@@ -1,0 +1,56 @@
+[TABLE] Users
+- UserID [String] (MongoDB's ObjectID)
+- FirstName [String]
+- LastName [String]
+- Username [String]
+- Password [String] (Hashed)
+- Email [String]
+- RoleType [Int] (0 = Student, 1 = Lecturer, 2 = Administrator)
+
+[TABLE] Subjects
+- SubjectID [String] (MongoDB's ObjectID)
+- SubjectName [String]
+
+[TABLE] Questions
+- QuestID [String] (MongoDB's ObjectID)
+- SubjectID [String] (Linking to 'Subjects' table -> 'SubjectID' property)
+- QuestType [Int] (0 = Basic, 1 = Medium, 2 = Advanced)
+- QuestContent [Text]
+- ImageUrl [String] 
+
+[TABLE] Answers
+- AnsID [String] (MongoDB's ObjectID)
+- QuestID [String] (Linking to 'Questions' table -> 'QuestID' property)
+- AnsType [Int] (0 = Text, 1 = Image, 2 = Both)
+- AnsContent [Text]
+- ImageUrl [String]
+- IsCorrect [Bit] (0 = Wrong, 1 = Right)
+
+[TABLE] Tests
+- TestID [String] (MongoDB's ObjectID)
+- PINCode [String] (Only 4 digits)
+- TestName [String] 
+- TestTime [Int] (Second)
+- StartTime [DateTime]
+- QuestTotal [Int]
+- QuestBasic [Int]
+- QuestMedium [Int]
+- QuestAdvanced [Int]
+- OpenStatus [Int] (0 = Not Opened, 1 = Opened, 2 = Testing, 3 = Closed)
+
+[TABLE] TestQuests
+- TestQuestID [String] (MongoDB's ObjectID)
+- TestID [String] (Linking to 'Tests' table -> 'TestID' property)
+- QuestID [String] (Linking to 'Questions' table -> 'QuestID' property)
+
+[TABLE] StudentTestQuests
+- StuTestQuestID [String] (MongoDB's ObjectID)
+- UserID [String] (Linking to 'Users' table -> 'UserID' property)
+- TestQuestID [String] (Linking to 'TestQuests' table -> 'TestQuestID' property)
+- AnsID [String] (Linking to 'QuestAnswers' table -> 'AnsID' property)
+
+[TABLE] StudentTests
+- StuTestID [String] (MongoDB's ObjectID)
+- UserID [String] (Linking to 'Users' table -> 'UserID' property)
+- TestID [String] (Linking to 'Tests' table -> 'TestID' property)
+- JoinedTime [DateTime]
