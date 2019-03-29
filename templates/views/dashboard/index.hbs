@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    {{> dashboard/meta_header }}
+  </head>
+  <body id="page-top">
+    <div id="wrapper">
+      {{> dashboard/sidebar }}
+      <div id="content-wrapper" class="d-flex flex-column">
+        <div id="content">
+          {{> dashboard/header }}
+
+          <div class="container-fluid">
+            <div class="d-sm-flex align-items-center justify-content-between mb-4">
+              <h1 class="h3 mb-0 text-gray-800">Trang chủ quản lý</h1>
+            </div>
+            <div class="row">
+              <div class="col-md-12">
+                <p class="my-0 text-primary"><span class="font-weight-bold">Chào mừng đến trung tâm quản lý SmartTest</span>, đây là nơi bạn có thể:</p>
+                <ul class="text-info">
+                  <li>Quản lý người dùng<small class="text-secondary ml-2">Xem, sửa, xóa và cấp quyền cho người dùng</small></li>
+                  <li>Quản lý bộ đề<small class="text-secondary ml-2">Tạo và sửa bộ đề</small></li>
+                  <li>Quản lý câu hỏi<small class="text-secondary ml-2">Thêm và sửa câu hỏi cho mỗi bộ đề</small></li>
+                  <li>Tạo bài kiểm tra<small class="text-secondary ml-2">Tạo và thực hiện bài kiểm tra</small></li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Statistics -->
+            <div class="d-sm-flex align-items-center justify-content-between mb-4">
+                <h5 class="h4 mb-0 text-gray-800">Thống kê</h5>
+              </div>
+            <div class="row">
+              <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-primary shadow h-100 py-2">
+                  <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                      <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Tổng số người dùng</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">1.024</div>
+                      </div>
+                      <div class="col-auto">
+                        <i class="fas fa-users fa-2x text-gray-300"></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-success shadow h-100 py-2">
+                  <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                      <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Tổng số bộ đề</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">215</div>
+                      </div>
+                      <div class="col-auto">
+                        <i class="fas fa-book fa-2x text-gray-300"></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-info shadow h-100 py-2">
+                  <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                      <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Tổng số câu hỏi</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">21.000</div>
+                      </div>
+                      <div class="col-auto">
+                        <i class="fas fa-question-circle fa-2x text-gray-300"></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-warning shadow h-100 py-2">
+                  <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                      <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Tổng số bài kiểm tra</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">18</div>
+                      </div>
+                      <div class="col-auto">
+                        <i class="far fa-file fa-2x text-gray-300"></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Content Row -->
+            <div class="row">
+              <div class="col-xl-8 col-lg-7">
+                <div class="card shadow mb-4">
+                  <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Số lượng người dùng mới hàng tháng</h6>
+                  </div>
+                  <div class="card-body">
+                    <div class="chart-area">
+                      <canvas id="myAreaChart"></canvas>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-xl-4 col-lg-5">
+                <div class="card shadow mb-4">
+                  <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Phân loại người dùng</h6>
+                  </div>
+                  <div class="card-body">
+                    <div class="chart-pie pt-4 pb-2">
+                      <canvas id="myPieChart"></canvas>
+                    </div>
+                    <div class="mt-4 text-center small">
+                      <span class="mr-2">
+                        <i class="fas fa-circle text-primary"></i> Học sinh / Sinh viên 
+                      </span>
+                      <span class="mr-2">
+                        <i class="fas fa-circle text-success"></i> Giảng viên
+                      </span>
+                      <span class="mr-2">
+                        <i class="fas fa-circle text-info"></i> Quản trị viên
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Footer -->
+        {{> dashboard/footer }}
+        <!-- End of Footer -->
+      </div>
+    </div>
+
+    <!-- Scroll to Top Button-->
+    <a class="scroll-to-top rounded" href="#page-top">
+      <i class="fas fa-angle-up"></i>
+    </a>
+    <!-- Logout Modal-->
+    <div class="modal fade" id="logoutModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel">Bạn chắc chắn muốn rời đi?</h5>
+            <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">×</span>
+            </button>
+          </div>
+          <div class="modal-body">Bấm 'Đăng xuất' để rời khỏi đây</div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" type="button" data-dismiss="modal">Hủy bỏ</button>
+            <a class="btn btn-primary" href="login.html">Đăng xuất</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {{> dashboard/meta_footer }}
+    <!-- Page level plugins -->
+    <script src="vendor/chart.js/Chart.min.js"></script>
+    <script src="js/demo/chart-area-demo.js"></script>
+    <script src="js/demo/chart-pie-demo.js"></script>
+  </body>
+</html>

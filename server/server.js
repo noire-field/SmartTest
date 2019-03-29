@@ -1,12 +1,14 @@
 // Import our things
 const config = require('./../config');
 const { Log } = require('./utils/logger');
+const router = require('./router');
 
 // Import necessary libs
 const path = require('path');
 const http = require('http');
 const express = require('express');
 const socketIO = require('socket.io');
+const hbs = require('hbs')
 
 // Check setting
 const publicPath = path.join(__dirname, '..', '/public');
@@ -20,10 +22,24 @@ var io = socketIO(server);
 // Serve the static files
 app.use(express.static(publicPath));
 
+// Define paths for Express config
+const publicDirectoryPath = path.join(__dirname, '../public')
+const viewsPath = path.join(__dirname, '../templates/views')
+const partialsPath = path.join(__dirname, '../templates/partials')
+
+// Setup handlebars engine and views location
+app.set('view engine', 'hbs')
+app.set('views', viewsPath)
+hbs.registerPartials(partialsPath)
+
+// Router
+router.register(app);
+
 // Open connection now
 server.listen(httpPort, () => {
     Log("HTTP Server has started on port " + httpPort);
 });
+
 
 /* SOCKET.IO
 io.on('connection', (socket) => {
