@@ -1,14 +1,15 @@
-// Import our things
-const config = require('./../config');
-const { Log } = require('./utils/logger');
-const router = require('./router');
-
 // Import necessary libs
 const path = require('path');
 const http = require('http');
 const express = require('express');
 const socketIO = require('socket.io');
 const hbs = require('hbs')
+
+// Import our things
+const config = require('./../config');
+const { Log } = require('./utils/logger');
+const router = require('./router');
+const db = require('./database');
 
 // Check setting
 const publicPath = path.join(__dirname, '..', '/public');
@@ -38,8 +39,14 @@ router.register(app);
 // Open connection now
 server.listen(httpPort, () => {
     Log("HTTP Server has started on port " + httpPort);
-});
 
+    db.query('SELECT 1+1 as TOTAL', function(error, result, fields) {
+        console.log(result);
+    });
+
+
+    Log("Test");
+});
 
 /* SOCKET.IO
 io.on('connection', (socket) => {
