@@ -7,6 +7,7 @@ const { Log } = require('./utils/logger');
 var pool = MySQL.createPool({
     connectionLimit: 10,
     host: config.DB_HOST,
+    port: config.DB_PORT,
     user: config.DB_USER,
     password: config.DB_PASS,
     database: config.DB_NAME
