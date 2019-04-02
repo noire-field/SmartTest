@@ -12,25 +12,38 @@ var pool = MySQL.createPool({
     password: config.DB_PASS,
     database: config.DB_NAME
 });
+
+function GetConnection(callback) {
+    pool.getConnection((error, con) => {
+        callback(error, con);
+    });
+
+}
 /*
-pool.getConnection((err, connection) => {
-    if (err) {
-        if (err.code === 'PROTOCOL_CONNECTION_LOST') {
-            Log("Database connection was closed.");
-        }
-        if (err.code === 'ER_CON_COUNT_ERROR') {
-            Log('Database has too many connections.')
-        }
-        if (err.code === 'ECONNREFUSED') {
-            Log('Database connection was refused.')
-        }
-    }
+function CheckConnection() {
+    return pool.getConnection((err, connection) => {
+        if (err) {
+            if (err.code === 'PROTOCOL_CONNECTION_LOST')
+                Log("Database connection was closed.");
+            if (err.code === 'ER_CON_COUNT_ERROR')
+                Log('Database has too many connections.');
+            if (err.code === 'ECONNREFUSED')
+                Log('Database connection was refused.');
 
-    if (connection) connection.release()
+            return false;
+        }
 
-    return
-})*/
+        if (connection)
+            connection.release()
+
+        return true;
+    })
+}*/
 
 pool.query = util.promisify(pool.query)
 
-module.exports = pool;
+module.exports = {
+    pool,
+    MySQL,
+    GetConnection
+};

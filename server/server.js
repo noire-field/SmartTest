@@ -5,7 +5,7 @@ const express = require('express');
 const socketIO = require('socket.io');
 const hbs = require('hbs')
 const session = require('express-session');
-const MySQLStore = require('express-mysql-session')(session);
+const FileStore = require('session-file-store')(session);
 const uuid = require('uuid');
 const bodyParser = require('body-parser');
 const passport = require('passport');
@@ -15,7 +15,7 @@ const LocalStrategy = require('passport-local').Strategy;
 const config = require('./../config');
 const { Log } = require('./utils/logger');
 const router = require('./router');
-const db = require('./database');
+const { GetConnection } = require('./database');
 
 // Check setting
 const publicPath = path.join(__dirname, '..', '/public');
@@ -29,26 +29,36 @@ var io = socketIO(server);
 // Configure Authendication
 passport.use(new LocalStrategy(
     (username, password, done) => {
-        Log(`LocalStrategy Checking... (${username})(${password})`);
-        if(username == 'noirefield' && password == 'noirefield123@') {
-            Log("LocalStrategy OK!");
-            return done(null, { userId: 111, username: 'noirefield', password: 'noirefield123@' });
-        } else {
-            return done('ERROR UNKNOWN', { what: true });
-        }
+        GetConnection((error, con) => {
+            if(error) return done(error);
+            con.query(
+                "SELECT UserID, Username, FirstName, RoleType, AvatarFile FROM Users WHERE Username = ? AND Password = ?", 
+                [username, password], // Auto escape string
+                function(error, results, fields) {
+                    if(error) return done(error);
+                    if(results.length <= 0) return done(null, false, { message: "Username or password is wrong..."});
+                    else return done(null, results[0]);
+                });
+        });
     }
 ));
 
 passport.serializeUser((user, done) => {
-    Log('Serializing user...');
-    done(null, user.userId);
+    done(null, user.UserID);
 });
 
-passport.deserializeUser((id, done) => {
-    console.log('Inside deserializeUser callback')
-    console.log(`The user id passport saved in the session file store is: ${id}`)
-    const user = 'noirefield' === id ? { userId: 111, username: 'noirefield', password: 'noirefield123@' } : false; 
-    done(null, user);
+passport.deserializeUser((UserID, done) => {
+    GetConnection((error, con) => {
+        if(error) return done(error)
+        con.query(
+            "SELECT UserID, Username, FirstName, RoleType, AvatarFile FROM Users WHERE UserID = ?", 
+            [UserID], // Auto escape string
+            function(error, results, fields) {
+                if(error) return done(error);
+                if(results.length <= 0) return done(null, false, { message: "Username or password is wrong..."});
+                else return done(null, results[0]);
+            });
+    });
   });
 
 // Serve the static files
@@ -59,18 +69,16 @@ app.use(session({
     genid: (req) => uuid(),
     key: config.SESSION_NAME,
     secret: config.SESSION_SECRET,
-    store: new MySQLStore({
-        host: config.DB_HOST,
-        port: config.DB_PORT,
-        user: config.DB_USER,
-        password: config.DB_PASS,
-        database: config.DB_NAME
-    }),
+    store: new FileStore(),
     resave: false,
     saveUninitialized: true
 }));
 app.use(passport.initialize());
 app.use(passport.session());
+app.use(function(error, req, res, next) { // Handling passport deserelizerUser errors
+    if(error) req.logout()
+    next()
+});
 
 // Define paths for Express config
 const publicDirectoryPath = path.join(__dirname, '../public')

@@ -8,15 +8,30 @@ module.exports.register = function(app) {
     });
 
     app.post('/login', (req, res, next) => {
+        if(req.isAuthenticated())
+           return res.json({ success: false, message: 'Already logged on.', redirect: true });
+
         passport.authenticate('local', (error, user, info) => {
-            Log('SESSION PASSPORT: ' + JSON.stringify(req.session.passport));
-            Log('USER: ' + JSON.stringify(req.user));
+            if(error) {
+                Log(`[router.js/login] ERROR: ${JSON.stringify(error)}`);
+                return res.json({ success: false, message: 'Unable to connect to database.', redirect: false });
+            } else if(!user) {
+                return res.json({ success: false, message: 'Username or password is incorrect.', redirect: false });
+            }
+
             req.login(user, (error) => {
-                Log('SESSION PASSPORT: ' + JSON.stringify(req.session.passport));
-                Log('USER: ' + JSON.stringify(req.user));
-                return res.send('Logged');
+                if(error) {
+                    Log(`[router.js/login] ERROR: ${JSON.stringify(error)}`);
+                    return res.json({ success: false, message: 'Unable to connect to database.', redirect: false });
+                }
+
+                return res.json({ success: true, firstName: req.user.FirstName });
             });
         })(req, res, next);
+    });
+
+    app.get('/logged', (req, res, next) => {
+        res.send(req.isAuthenticated() ? 'Logged In' : 'Not Logged In');
     });
 
     // Admin sections
