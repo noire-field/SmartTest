@@ -4,7 +4,7 @@
   "description": "An application that helps you mak test easier",
   "main": "index.js",
   "scripts": {
-    "start": "node server/server.js"
+    "start": "nodemon -e js,hbs server/server.js"
   },
   "repository": {
     "type": "git",

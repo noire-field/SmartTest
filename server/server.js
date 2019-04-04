@@ -29,6 +29,8 @@ var io = socketIO(server);
 // Configure Authendication
 passport.use(new LocalStrategy(
     (username, password, done) => {
+        Log(`Login: ${username} / ${password}`)
+
         GetConnection((error, con) => {
             if(error) return done(error);
             con.query(
@@ -36,7 +38,7 @@ passport.use(new LocalStrategy(
                 [username, password], // Auto escape string
                 function(error, results, fields) {
                     if(error) return done(error);
-                    if(results.length <= 0) return done(null, false, { message: "Username or password is wrong..."});
+                    if(results.length <= 0) return done(null, false, { message: "Username or password is incorrect..."});
                     else return done(null, results[0]);
                 });
         });
@@ -55,7 +57,7 @@ passport.deserializeUser((UserID, done) => {
             [UserID], // Auto escape string
             function(error, results, fields) {
                 if(error) return done(error);
-                if(results.length <= 0) return done(null, false, { message: "Username or password is wrong..."});
+                if(results.length <= 0) return done(null, false, { message: "Username or password is incorrect..."});
                 else return done(null, results[0]);
             });
     });
@@ -94,8 +96,16 @@ hbs.registerPartials(partialsPath)
 router.register(app);
 
 // Open connection now
-server.listen(httpPort, () => {
-    Log("HTTP Server has started on port " + httpPort);
+GetConnection((error, con) => {
+    if(error) {
+        Log("Unable to connect to database, therefore unable to start HTTP server.");
+        process.exit(1);
+        return null;
+    }
+
+    server.listen(httpPort, () => {
+        Log("HTTP Server has started on port " + httpPort);
+    });
 });
 
 /* SOCKET.IO

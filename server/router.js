@@ -1,10 +1,18 @@
 const passport = require('passport');
 const { Log } = require('./utils/logger');
+const config = require('./../config');
 
 module.exports.register = function(app) {
     app.get('/register', (req, res) => {
         console.log(req.sessionID);
         res.send("OK");
+    });
+
+    app.get('/login', (req, res, next) => {
+        res.render('login', {
+            head_title: 'Đăng nhập - ' + config.APP_NAME,
+            redirect: req.query.redirect
+        });
     });
 
     app.post('/login', (req, res, next) => {
@@ -16,7 +24,7 @@ module.exports.register = function(app) {
                 Log(`[router.js/login] ERROR: ${JSON.stringify(error)}`);
                 return res.json({ success: false, message: 'Unable to connect to database.', redirect: false });
             } else if(!user) {
-                return res.json({ success: false, message: 'Username or password is incorrect.', redirect: false });
+                return res.json({ success: false, message: 'Username or password is incorrect...', redirect: false });
             }
 
             req.login(user, (error) => {
@@ -35,7 +43,10 @@ module.exports.register = function(app) {
     });
 
     // Admin sections
-    app.get('/dashboard', (req, res) => {
+    app.get('/dashboard', (req, res, next) => {
+        if(!req.isAuthenticated()) // Check login
+            return res.redirect('/login?redirect=/dashboard');
+
         res.render('dashboard/index', {
             head_title: 'Trang chủ quản lý - SmartTest',
         })
