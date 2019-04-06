@@ -16,6 +16,7 @@ const config = require('./../config');
 const { Log } = require('./utils/logger');
 const router = require('./router');
 const { GetConnection } = require('./database');
+const { registerHelpers } = require('./utils/hbs_helpers');
 
 // Check setting
 const publicPath = path.join(__dirname, '..', '/public');
@@ -91,6 +92,7 @@ const partialsPath = path.join(__dirname, '../templates/partials')
 app.set('view engine', 'hbs')
 app.set('views', viewsPath)
 hbs.registerPartials(partialsPath)
+registerHelpers(hbs);
 
 // Router
 router.register(app);

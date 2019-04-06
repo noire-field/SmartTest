@@ -11,7 +11,7 @@
     "DB_NAME": "SmartTest",
 
     "LOGIN": {
-        "USERNAME": { "MIN": 4, "MAX": 32 },
-        "PASSWORD": { "MIN": 8, "MAX": 64 }
+        "USERNAME": { "MIN": 4, "MAX": 16, "PATTERN": "/^\\w{4,16}$/" },
+        "PASSWORD": { "MIN": 8, "MAX": 32, "PATTERN": "/^.{8,32}$/" }
     }
 }

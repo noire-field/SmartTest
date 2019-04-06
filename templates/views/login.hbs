@@ -14,22 +14,31 @@
                                 <div class="col-lg-6">
                                     <div class="p-5">
                                     <div class="text-center">
-                                        <h1 class="h4 text-gray-900 mb-4">Chào mừng trở lại! {{ redirect }}</h1>
+                                        <h1 class="h4 text-gray-900 mb-4">Chào mừng trở lại!</h1>
                                     </div>
                                     <form class="user">
                                         <div class="form-group">
-                                            <input type="text" v-model="username" class="form-control form-control-user" id="txbUsername" placeholder="Nhập tên tài khoản">
+                                            <input type="text" ref="txbUsername" v-model="username" class="form-control form-control-user" id="txbUsername" placeholder="Nhập tên tài khoản">
                                         </div>
                                         <div class="form-group">
-                                            <input type="password" v-model="password" class="form-control form-control-user" id="txbPassword" placeholder="Mật khẩu">
+                                            <input type="password" ref="txbPassword" v-model="password" class="form-control form-control-user" id="txbPassword" placeholder="Mật khẩu">
                                         </div>
                                         <div class="form-group">
                                             <div class="custom-control custom-checkbox small">
-                                                <input type="checkbox" class="custom-control-input" v-model="rememberLogin" id="checkRemember">
+                                                <input type="checkbox" class="custom-control-input" ref="checkRemember" v-model="rememberLogin" id="checkRemember">
                                                 <label class="custom-control-label" for="checkRemember">Ghi nhớ đăng nhập</label>
                                             </div>
                                         </div>
-                                        <button @click="login" class="btn btn-primary btn-user btn-block">Đăng nhập</button>
+                                        <button v-if="!logOn" ref="btnLogin" @click="login" class="btn btn-primary btn-user btn-block">
+                                            <span v-show="!loggingIn">Đăng nhập</span>
+                                            <div v-show="loggingIn" class="lds-hourglass"></div>
+                                        </button>
+                                        <button v-if="logOn" class="btn btn-success btn-user btn-block" disabled>
+                                            <i class="far fa-check-circle"></i>
+                                            <span>Chào {? logOnName ?}, đang chuyển trang...</span>
+                                            <div v-show="loggingIn" class="lds-hourglass"></div>
+                                        </button>
+                                        <p v-if="displayError" class="alert alert-danger small mt-2 py-1 px-2">{? loginError ?}</p>
                                     </form>
                                     <hr>
                                     <div class="text-center">
@@ -48,21 +57,70 @@
         </div>
         {{> dashboard/meta_footer }}
         <script src="js/vue.js"></script>
+        <script src="js/axios.min.js"></script>
         <script>
             var vm = new Vue({
                 el: "#app-login",
-                delimiters: ["<?",">"],
+                delimiters: ["{?","?}"],
                 data: {
+                    logOn: false,
+                    logOnName: '',
+                    loggingIn: false,
                     redirect: '{{ redirect }}',
                     username: '',
                     password: '',
                     rememberLogin: false,
-                    loginError: ''
+                    displayError: false,
+                    loginError: "Some error"
                 },
                 methods: {
                     login: function(e) {
                         e.preventDefault();
-                        alert(this.username + '/' + this.password);
+
+                        if(this.loggingIn) return;
+
+                        if(!(new RegExp({{ GetLoginInfo 0 }}).test(this.username)))
+                        {
+                            this.showError(true, 'Tên tài khoản phải trong khoảng {{ GetLoginInfo 2 }} ký tự và không có ký tự đặc biệt.')
+                            return;
+                        }
+                        if(!(new RegExp({{ GetLoginInfo 1 }}).test(this.password)))
+                        {
+                            this.showError(true, 'Mật khẩu phải trong khoảng {{ GetLoginInfo 3 }} ký tự.')
+                            return;
+                        }
+
+                        this.showError(false, null);
+                        this.lockInput(true);
+                        this.loggingIn = true;
+
+                        axios.post('/login',
+                        {
+                            username: this.username,
+                            password: this.password
+                        }).then((res) => {
+                            if(res.data.success) {
+                                this.logOnName = res.data.firstName;
+                                this.logOn = true;
+
+                                setTimeout(() => { window.location.replace(this.redirect.length > 0 ? this.redirect : '/'); }, 750);
+                            } else { this.loginFail(res.data.message); }
+                        }).catch((error) => { this.loginFail("Something went wrong, please try again later..."); })
+                    },
+                    showError: function(show, error) {
+                        this.displayError = show;
+                        this.loginError = error;
+                    },
+                    lockInput: function(lock) {
+                        this.$refs.btnLogin.disabled = lock;
+                        this.$refs.checkRemember.disabled = lock;
+                        this.$refs.txbUsername.disabled = lock;
+                        this.$refs.txbPassword.disabled = lock;
+                    },
+                    loginFail: function(reason) {
+                        this.loggingIn = false;
+                        this.lockInput(false);
+                        this.showError(true, reason);
                     }
                 }
             });
