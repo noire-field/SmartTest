@@ -30,18 +30,19 @@ var io = socketIO(server);
 // Configure Authendication
 passport.use(new LocalStrategy(
     (username, password, done) => {
-        Log(`Login: ${username} / ${password}`)
-
         GetConnection((error, con) => {
-            if(error) return done(error);
+            if(error) return done(error)
             con.query(
                 "SELECT UserID, Username, FirstName, RoleType, AvatarFile FROM Users WHERE Username = ? AND Password = ?", 
                 [username, password], // Auto escape string
                 function(error, results, fields) {
+                    con.release();
+
                     if(error) return done(error);
                     if(results.length <= 0) return done(null, false, { message: "Username or password is incorrect..."});
                     else return done(null, results[0]);
-                });
+                }
+            );
         });
     }
 ));
@@ -57,10 +58,13 @@ passport.deserializeUser((UserID, done) => {
             "SELECT UserID, Username, FirstName, RoleType, AvatarFile FROM Users WHERE UserID = ?", 
             [UserID], // Auto escape string
             function(error, results, fields) {
+                con.release();
+
                 if(error) return done(error);
                 if(results.length <= 0) return done(null, false, { message: "Username or password is incorrect..."});
                 else return done(null, results[0]);
-            });
+            }
+        );
     });
   });
 
@@ -104,6 +108,8 @@ GetConnection((error, con) => {
         process.exit(1);
         return null;
     }
+
+    con.release();
 
     server.listen(httpPort, () => {
         Log("HTTP Server has started on port " + httpPort);

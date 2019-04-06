@@ -17,7 +17,6 @@ function GetConnection(callback) {
     pool.getConnection((error, con) => {
         callback(error, con);
     });
-
 }
 /*
 function CheckConnection() {

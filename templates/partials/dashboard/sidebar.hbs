@@ -11,8 +11,8 @@
 
     <!-- Divider -->
     <hr class="sidebar-divider my-0">
-    <li class="nav-item active">
-        <a class="nav-link" href="index.html">
+    <li class="nav-item {{#If page 'index' 'active'}}{{/If}}">
+        <a class="nav-link" href="{{ GetAdminPageUrl 'Index' }}">
         <i class="fas fa-fw fa-tachometer-alt"></i>
         <span>Trang chủ quản lý</span></a>
     </li>
@@ -20,27 +20,27 @@
     <hr class="sidebar-divider">
     <div class="sidebar-heading">Quản lý SmartTest</div>
 
-    <li class="nav-item">
-        <a class="nav-link" href="charts.html">
-        <i class="fas fa-users"></i>
-        <span>Quản lý người dùng</span>
+    <li class="nav-item {{#If page 'users' 'active'}}{{/If}}">
+        <a class="nav-link pb-1" href="{{ GetAdminPageUrl 'Users' }}">
+            <i class="fas fa-users i-space"></i>
+            <span>Quản lý người dùng</span>
         </a>
     </li>
-    <li class="nav-item">
-        <a class="nav-link" href="charts.html">
-        <i class="fas fa-users"></i>
-        <span>Quản lý bộ đề</span>
+    <li class="nav-item {{#If page 'subjects' 'active'}}{{/If}}">
+        <a class="nav-link py-1" href="{{ GetAdminPageUrl 'Subjects' }}">
+            <i class="fas fa-book i-space"></i>
+            <span>Quản lý bộ đề</span>
         </a>
     </li>
-    <li class="nav-item">
-        <a class="nav-link" href="charts.html">
-        <i class="fas fa-users"></i>
+    <li class="nav-item {{#If page 'quests' 'active'}}{{/If}}">
+        <a class="nav-link py-1" href="{{ GetAdminPageUrl 'Quests' }}">
+        <i class="fas fa-question-circle i-space"></i>
         <span>Quản lý câu hỏi</span>
         </a>
     </li>
-    <li class="nav-item">
-        <a class="nav-link" href="charts.html">
-        <i class="fas fa-users"></i>
+    <li class="nav-item {{#If page 'tests' 'active'}}{{/If}}">
+        <a class="nav-link pt-1" href="{{ GetAdminPageUrl 'Tests' }}">
+        <i class="far fa-file i-space"></i>
         <span>Quản lý bài kiểm tra</span>
         </a>
     </li>
