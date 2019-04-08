@@ -1,6 +1,7 @@
 const passport = require('passport');
 const { Log } = require('./utils/logger');
 const config = require('./../config');
+const { QueryNow, GetPageLimit } = require('./database');
 
 module.exports.register = function(app) {
     app.get('/register', (req, res) => {
@@ -85,13 +86,31 @@ function Controller_Users(action, id, req, res, next) {
     switch(action)
     {
         case null:
-        case undefined:
+        case undefined: // View list
+            var page = req.query.page ? req.query.page : 1;
 
-            res.render('dashboard/users_index', {
-                page: 'users',
-                head_title: 'Quản lý người dùng - ' + config.APP_NAME,
-                user: req.user
+            QueryNow(`SELECT COUNT(UserID) AS TOTAL FROM users`)
+            .then((rows) => {
+                var { START, LIMIT } = GetPageLimit(page, rows[0].TOTAL, config.ITEM_PER_PAGE);
+                return QueryNow(`SELECT UserID, Username, FirstName, LastName, RoleType, RegisteredDate, AvatarFile, StudentID FROM users LIMIT ${START}, ${LIMIT}`);
             })
+            .then((rows) => {
+                res.render('dashboard/users_index', {
+                    page: 'users',
+                    head_title: `Quản lý người dùng - ${config.APP_NAME}`,
+                    user: req.user,
+                    userList: rows
+                });
+            })
+            .catch((error) => {
+                Log(error);
+                ErrorHandler(res, 'Oops... Something went wrong...');
+            })
+
             break;
     }
+}
+
+function ErrorHandler(res, msg) {
+    res.render('error', { errorMessage: msg });
 }

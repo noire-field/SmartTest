@@ -4,6 +4,8 @@
     "SESSION_NAME": "SmartTestAuth",
     "SESSION_SECRET": "Somethingbullshit",
 
+    "ITEM_PER_PAGE": 10,
+
     "DB_HOST": "127.0.0.1",
     "DB_PORT": 3306,
     "DB_USER": "SmartTest",

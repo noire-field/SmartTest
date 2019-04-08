@@ -33,3 +33,12 @@
 .i-space {
     width: 16px;
 }
+
+.test-line {
+    border: 1px solid black;
+}
+
+.row-avatar {
+    height: 20px;
+    width: 20px;
+}

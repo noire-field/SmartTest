@@ -19,10 +19,28 @@ module.exports.registerHelpers = function(hbs) {
         else return '/img/default_avatar.png';
     });
     
-    hbs.registerHelper('If', function(a, b, c) {
+    hbs.registerHelper('IfEqual', function(a, b, c) {
         if(a == b) return c;
         else return '';
     })
+
+    hbs.registerHelper('IfNotEmptyArray', function(value, options) {
+        if(value.length > 0) return options.fn(this);
+        else return options.inverse(this);
+    })
+
+    hbs.registerHelper('GetRoleTitle', function(roleType) {
+        switch(roleType) {
+            case 0: return 'Sinh viên';
+            case 1: return 'Giảng viên';
+            case 2: return 'Quản trị viên';
+            default: return 'Không rõ';
+        }
+    })
+
+    hbs.registerHelper('CombineName', function(firstName, lastName) {
+        return `${lastName} ${firstName}`;
+    });
 
     hbs.registerHelper('GetAdminPageUrl', function(section) {
         var dashboardUrl = '/dashboard';
