@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    {{> dashboard/meta_header }}
+  </head>
+  <body id="page-top">
+    <div id="wrapper">
+      {{> dashboard/sidebar }}
+      <div id="content-wrapper" class="d-flex flex-column">
+        <div id="content">
+          {{> dashboard/header }}
+          <div class="container-fluid">
+            <div class="d-sm-flex align-items-center justify-content-between mb-4">
+              <h1 class="h3 mb-0 text-gray-800">Chỉnh sửa người dùng</h1>
+              <a href="{{ GetAdminPageUrl 'Users'}}" class="btn btn-primary btn-sm"><i class="fas fa-arrow-circle-left mr-2"></i>Quay về</a>
+            </div>
+            <div class="row">
+              <div class="col-md-12">
+                <form action="{{ GetAdminPageUrl 'Users'}}/edit/{{ editUser.UserID }}" method="POST" class="mt-3">
+                  <div class="row">
+                    <div class="col-md-4">
+                      <div class="form-group">
+                        <label for="input-lastname"><b>Họ</b></label>
+                        <input type="text" class="form-control" id="input-lastname" name="input-lastname" value="{{ editUser.LastName }}">
+                      </div>
+                    </div>
+                    <div class="col-md-4">
+                      <div class="form-group">
+                        <label for="input-firstname"><b>Tên</b></label>
+                        <input type="text" class="form-control" id="input-firstname" name="input-firstname" value="{{ editUser.FirstName }}">
+                      </div>
+                    </div>
+                    <div class="col-md-4">
+                      <div class="form-group">
+                        <label for="input-studentid"><b>Mã Sinh Viên</b></label>
+                        <small class="small text-muted mb-1">Chỉ khi người dùng này là một sinh viên</small>
+                        <input type="text" class="form-control" id="input-studentid" name="input-studentid" value="{{ editUser.StudentID }}">
+                      </div>
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="col-md-4">
+                      <div class="form-group">
+                        <label for="input-username"><b>Tên tài khoản</b></label>
+                        <input type="text" class="form-control" id="input-username" name="input-username" value="{{ editUser.Username }}">
+                      </div>
+                    </div>
+                    <div class="col-md-4">
+                      <div class="form-group">
+                        <label for="input-email"><b>Email</b></label>
+                        <input type="email" class="form-control" id="input-email" name="input-email" value="{{ editUser.Email }}">
+                      </div>
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="col-md-4">
+                      <div class="form-group">
+                        <label for="input-roletype"><b>Quyền hạn</b></label>
+                        <select class="custom-select" name="input-roletype">
+                          <option value="0" {{#IfEqual editUser.RoleType 0 'selected' ''}}{{/IfEqual}}>Người dùng</option>
+                          <option value="1" {{#IfEqual editUser.RoleType 1 'selected' ''}}{{/IfEqual}}>Giảng viên</option>
+                          <option value="2" {{#IfEqual editUser.RoleType 2 'selected' ''}}{{/IfEqual}}>Quản trị viên</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="col-md-4">
+                      <div class="form-group">
+                        <label for="input-password"><b>Mật khẩu</b></label>
+                        <small class="small text-muted mb-1">Để trống nếu không muốn cập nhật</small>
+                        <input type="password" class="form-control" id="input-password" name="input-password">
+                      </div>
+                    </div>
+                  </div>
+                  <div class="text-center">
+                    <button id="submit-create" name="submit-create" type="submit" class="btn btn-info mx-auto"><i class="fas fa-check-circle"></i> Cập nhật</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        {{> dashboard/footer }}
+        <!-- End of Footer -->
+      </div>
+    </div>
+
+    <!-- Scroll to Top Button-->
+    <a class="scroll-to-top rounded" href="#page-top">
+      <i class="fas fa-angle-up"></i>
+    </a>
+   
+    {{> dashboard/meta_footer }}
+  </body>
+</html>

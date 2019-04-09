@@ -14,6 +14,7 @@ const LocalStrategy = require('passport-local').Strategy;
 // Import our things
 const config = require('./../config');
 const { Log } = require('./utils/logger');
+const User = require('./utils/user');
 const router = require('./router');
 const { GetConnection } = require('./database');
 const { registerHelpers } = require('./utils/hbs_helpers');
@@ -32,6 +33,13 @@ passport.use(new LocalStrategy(
     (username, password, done) => {
         GetConnection((error, con) => {
             if(error) return done(error)
+
+            if(!User.IsValidUsername(username) || !User.IsValidPassword(password))
+            {
+                con.release();
+                return done(null, false, { message: "Username or password is invalid..."});
+            }
+
             con.query(
                 "SELECT UserID, Username, FirstName, RoleType, AvatarFile FROM Users WHERE Username = ? AND Password = ?", 
                 [username, password], // Auto escape string

@@ -53,4 +53,46 @@ module.exports.registerHelpers = function(hbs) {
             default: return dashboardUrl;
         }
     });
+
+    hbs.registerHelper('GeneratePagination', function(urlForPageID, currentPage, totalPage) {
+        var htmlBegin = `<div class="row">
+                            <div class="col-md-6 offset-md-4 col-sm-6 offset-sm-3">
+                                <div class="text-xs-center">
+                                    <ul class="pagination mt-3 ">`;
+        var htmlMiddle = '';
+
+        currentPage = Number(currentPage);
+        totalPage = Number(totalPage);
+
+
+        if(currentPage == 1) htmlMiddle += `<li class="page-item disabled"><a class="page-link" href="#" tabindex="-1">First</a></li>`;
+        else htmlMiddle += `<li class="page-item"><a class="page-link" href="${urlForPageID}1" tabindex="-1">First</a></li>`;
+        if(currentPage <= 1) htmlMiddle += `<li class="page-item disabled"><a class="page-link" href="#" tabindex="-1">Previous</a></li>`;
+        else htmlMiddle += `<li class="page-item"><a class="page-link" href="${urlForPageID}${currentPage-1}" tabindex="-1">Previous</a></li>`;
+
+        if(totalPage <= 5)
+        {
+            for(let i = 1; i <= totalPage; i++) htmlMiddle += `<li class="page-item${i ==  currentPage ? ' active' : ''}"><a class="page-link" href="${urlForPageID}${i}">${i}</a></li>`;
+        } else {
+            if(currentPage <= 3) for(let i = 1; i <= 5; i++) htmlMiddle += `<li class="page-item${i ==  currentPage ? ' active' : ''}"><a class="page-link" href="${urlForPageID}${i}">${i}</a></li>`;
+            else if(totalPage-currentPage < 3) for(let i = totalPage-4; i <= totalPage; i++) htmlMiddle += `<li class="page-item${i ==  currentPage ? ' active' : ''}"><a class="page-link" href="${urlForPageID}${i}">${i}</a></li>`;
+            else {
+                for(let i = currentPage-2; i < currentPage; i++) htmlMiddle += `<li class="page-item"><a class="page-link" href="${urlForPageID}${i}">${i}</a></li>`;
+                htmlMiddle += `<li class="page-item active"><a class="page-link" href="${urlForPageID}${currentPage}">${currentPage$}</a></li>`;
+                for(let i = currentPage+1; i < currentPage+3; i++) htmlMiddle += `<li class="page-item"><a class="page-link" href="${urlForPageID}${i}">${i}</a></li>`;
+            }
+        }
+
+        if(currentPage >= totalPage) htmlMiddle += `<li class="page-item disabled"><a class="page-link" href="#" tabindex="-1">Next</a></li>`;
+        else htmlMiddle += `<li class="page-item"><a class="page-link" href="${urlForPageID}${currentPage+1}" tabindex="-1">Next</a></li>`;
+        if(currentPage == totalPage) htmlMiddle += `<li class="page-item disabled"><a class="page-link" href="#" tabindex="-1">Last</a></li>`;
+        else htmlMiddle += `<li class="page-item"><a class="page-link" href="${urlForPageID}${totalPage}" tabindex="-1">Last</a></li>`;
+
+        var htmlEnd = `</ul>
+                        </div>
+                    </div>
+                </div>`;
+
+        return htmlBegin + htmlMiddle + htmlEnd;
+    });
 }
