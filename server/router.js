@@ -137,24 +137,7 @@ function Controller_Users(type, action, id, req, res, next)
     
                 break;
             case 'edit':
-                if(!id) return res.redirect('/dashboard/users');
-    
-                QueryNow(`SELECT UserID, Username, Email, FirstName, LastName, RoleType, StudentID FROM users WHERE UserID = ?`, [id])
-                .then((rows) => {
-                    if(rows.length <= 0)
-                        return res.redirect('/dashboard/users');
-    
-                    res.render('dashboard/users_edit', {
-                        page: 'users',
-                        head_title: `Chỉnh sửa người dùng - ${config.APP_NAME}`,
-                        user: req.user,
-                        editUser: rows[0]
-                    });
-                })
-                .catch((error) => {
-                    Log(error);
-                    ErrorHandler(res, 'Oops... Something went wrong...');
-                })
+                Render_EditPage(id, res, req, { status: 'none' });
     
                 break;
         }
@@ -194,8 +177,6 @@ function Controller_Users(type, action, id, req, res, next)
                     if(!User.IsValidStudentID(thisUser.StudentID))
                         errors.push(`Mã Sinh Viên không hợp lệ`); 
 
-                        console.log(thisUser);
-
                     if(errors.length <= 0) {
                         if(thisUser.Password.length > 0) {
                             var q = QueryNow(`UPDATE users SET Username = ?, Password = ?, Email = ?, FirstName = ?, LastName = ?, RoleType = ?, StudentID = ? WHERE UserID = ?`,
@@ -206,22 +187,45 @@ function Controller_Users(type, action, id, req, res, next)
                         }
 
                         q.then((rows) => {
-                            return res.redirect('/dashboard/users/edit/'+id);
+                            return Render_EditPage(id, res, req, { status: 'success' });
                         }).catch((error) => {
-
+                            Log(error);
+                            return Render_EditPage(id, res, req, { status: 'error', errors: ['Không thể cập nhật do lỗi truy vấn #1'] });
                         })
                     } else {
-
+                        return Render_EditPage(id, res, req, { status: 'error', errors: errors });
                     }
                 })
                 .catch((error) => {
                     Log(error);
-                    ErrorHandler(res, 'Oops... Something went wrong...');
+                    return Render_EditPage(id, res, req, { status: 'error', errors: ['Không thể cập nhật do lỗi truy vấn #2'] });
                 })
     
                 break;
         }
     }
+}
+
+function Render_EditPage(id, res, req, extra={}) {
+    if(!id) return res.redirect('/dashboard/users');
+    
+    QueryNow(`SELECT UserID, Username, Email, FirstName, LastName, RoleType, StudentID FROM users WHERE UserID = ?`, [id])
+    .then((rows) => {
+        if(rows.length <= 0)
+            return res.redirect('/dashboard/users');
+
+        res.render('dashboard/users_edit', {
+            page: 'users',
+            head_title: `Chỉnh sửa người dùng - ${config.APP_NAME}`,
+            user: req.user,
+            editUser: rows[0],
+            ...extra
+        });
+    })
+    .catch((error) => {
+        Log(error);
+        ErrorHandler(res, 'Oops... Something went wrong...');
+    })
 }
 
 function ErrorHandler(res, msg) {

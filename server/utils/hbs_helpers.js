@@ -24,6 +24,11 @@ module.exports.registerHelpers = function(hbs) {
         else return '';
     })
 
+    hbs.registerHelper('IfEqualBlock', function(a, b, options) {
+        if(a == b) return options.fn(this);
+        else return options.inverse(this);
+    })
+
     hbs.registerHelper('IfNotEmptyArray', function(value, options) {
         if(value.length > 0) return options.fn(this);
         else return options.inverse(this);
