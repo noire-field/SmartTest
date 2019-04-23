@@ -20,12 +20,15 @@
     <hr class="sidebar-divider">
     <div class="sidebar-heading">Quản lý SmartTest</div>
 
+    {{#IfEqualBlock user.RoleType 2 }}
     <li class="nav-item {{#IfEqual page 'users' 'active'}}{{/IfEqual}}">
         <a class="nav-link pb-1" href="{{ GetAdminPageUrl 'Users' }}">
             <i class="fas fa-users i-space"></i>
             <span>Quản lý người dùng</span>
         </a>
     </li>
+    {{/IfEqualBlock}}
+
     <li class="nav-item {{#IfEqual page 'subjects' 'active'}}{{/IfEqual}}">
         <a class="nav-link py-1" href="{{ GetAdminPageUrl 'Subjects' }}">
             <i class="fas fa-book i-space"></i>

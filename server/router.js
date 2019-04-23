@@ -102,6 +102,9 @@ module.exports.register = function(app) {
 
 function Controller_Users(type, action, id, req, res, next) 
 {
+    if(req.user.RoleType < 2)
+        return res.redirect('/dashboard');
+
     if(type == 0) { // GET
         switch(action)
         {
@@ -137,8 +140,14 @@ function Controller_Users(type, action, id, req, res, next)
     
                 break;
             case 'edit':
+            console.log(req.user);
                 Render_EditPage(id, res, req, { status: 'none' });
-    
+                break;
+            case 'delete':
+                Render_DeletePage(id, res, req, { status: 'none' });
+                break;
+            default:
+                res.render('error', { errorMessage: 'Trang này không tồn tại.' });
                 break;
         }
     } else { // POST
@@ -202,32 +211,85 @@ function Controller_Users(type, action, id, req, res, next)
                 })
     
                 break;
+            case 'delete':
+                if(!id) return res.redirect('/dashboard/users');
+
+                QueryNow(`SELECT UserID, RoleType FROM users WHERE UserID = ?`, [id])
+                .then((rows) => {
+                    if(rows.length <= 0)
+                        return res.redirect('/dashboard/users');
+
+                    var errors = [];
+                    
+                    if(rows[0].RoleType >= 2)
+                        errors.push(`Không thể xóa một quản trị viên, vui lòng hạ cấp họ xuống trước.`); 
+
+                    if(errors.length <= 0) {
+                        var q = QueryNow(`DELETE FROM users WHERE UserID = ?`,[id]);
+
+                        q.then((rows) => {
+                            return res.redirect('/dashboard/users');
+                        }).catch((error) => {
+                            Log(error);
+                            return Render_DeletePage(id, res, req, { status: 'error', errors: ['Không thể cập nhật do lỗi truy vấn #1'] });
+                        })
+                    } else {
+                        return Render_DeletePage(id, res, req, { status: 'error', errors: errors });
+                    }
+                })
+                .catch((error) => {
+                    Log(error);
+                    return Render_DeletePage(id, res, req, { status: 'error', errors: ['Không thể xóa do lỗi truy vấn #2'] });
+                })
+
+                break;
         }
     }
+
+    function Render_EditPage(id, res, req, extra={}) {
+        if(!id) return res.redirect('/dashboard/users');
+
+        QueryNow(`SELECT UserID, Username, Email, FirstName, LastName, RoleType, StudentID FROM users WHERE UserID = ?`, [id])
+        .then((rows) => {
+            if(rows.length <= 0)
+                return res.redirect('/dashboard/users');
+
+            res.render('dashboard/users_edit', {
+                page: 'users',
+                head_title: `Chỉnh sửa người dùng - ${config.APP_NAME}`,
+                user: req.user,
+                editUser: rows[0],
+                ...extra
+            });
+        })
+        .catch((error) => {
+            Log(error);
+            ErrorHandler(res, 'Oops... Something went wrong...');
+        })
+    }
+
+    function Render_DeletePage(id, res, req, extra={}) {
+        if(!id) return res.redirect('/dashboard/users');
+
+        QueryNow(`SELECT UserID, FirstName FROM users WHERE UserID = ?`, [id])
+        .then((rows) => {
+            if(rows.length <= 0)
+                return res.redirect('/dashboard/users');
+
+            res.render('dashboard/users_delete', {
+                page: 'users',
+                head_title: `Xóa người dùng - ${config.APP_NAME}`,
+                user: req.user,
+                editUser: rows[0],
+                ...extra
+            });
+        })
+        .catch((error) => {
+            Log(error);
+            ErrorHandler(res, 'Oops... Something went wrong...');
+        })
+    }
 }
-
-function Render_EditPage(id, res, req, extra={}) {
-    if(!id) return res.redirect('/dashboard/users');
-    
-    QueryNow(`SELECT UserID, Username, Email, FirstName, LastName, RoleType, StudentID FROM users WHERE UserID = ?`, [id])
-    .then((rows) => {
-        if(rows.length <= 0)
-            return res.redirect('/dashboard/users');
-
-        res.render('dashboard/users_edit', {
-            page: 'users',
-            head_title: `Chỉnh sửa người dùng - ${config.APP_NAME}`,
-            user: req.user,
-            editUser: rows[0],
-            ...extra
-        });
-    })
-    .catch((error) => {
-        Log(error);
-        ErrorHandler(res, 'Oops... Something went wrong...');
-    })
-}
-
 function ErrorHandler(res, msg) {
     res.render('error', { errorMessage: msg });
 }
