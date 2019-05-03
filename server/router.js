@@ -611,20 +611,26 @@ function Controller_Quests(type, action, id, req, res, next)
                 }
 
                 if(errors.length <= 0) {
-                    /*
-                    QueryNow(`INSERT INTO subjects (SubjectName, OwnerID) VALUES(?, ?)`, [thisSubject.SubjectName, req.user.UserID])
+                    QueryNow(`INSERT INTO questions (SubjectID, QuestContent, OwnerID) VALUES(?, ?, ?)`, [quest.SubjectID, quest.Content, req.user.UserID])
                     .then((rows) => {
-                        return res.redirect('/dashboard/subjects');
-                    }).catch((error) => {
+                        // Add questions
+                        for(let q of quest.Answers)
+                            QueryNow(`INSERT INTO answers (QuestID,AnsType,AnsContent,IsCorrect) VALUES(?,?,?,?)`, [rows.insertId, 0, q.CONTENT, q.CORRECT]);
+
+                        // Add tags
+                        for(let t of quest.Tags)
+                            QueryNow(`INSERT INTO questtags (QuestID,Tag) VALUES(?,?)`, [rows.insertId, t]);
+
+                        return res.redirect('/dashboard/quests');
+                    })
+                    .catch((error) => {
                         Log(error);
                         return Render_AddPage(id, res, req, { status: 'error', errors: ['Không thể thêm do lỗi truy vấn #1'] });
-                    })*/
+                    })
                 } else {
                     return Render_AddPage(id, res, req, { status: 'error', errors: errors });
                 }
 
-                console.log(quest);
-            
                 break;
             case 'edit':
                 if(!id) return res.redirect('/dashboard/subjects');
@@ -662,21 +668,20 @@ function Controller_Quests(type, action, id, req, res, next)
     
                 break;
             case 'delete':
-                if(!id) return res.redirect('/dashboard/subjects');
+                if(!id) return res.redirect('/dashboard/quests');
 
-                QueryNow(`SELECT s.SubjectID, s.SubjectName, u.FirstName, u.LastName FROM subjects s INNER JOIN users u ON s.OwnerID = u.UserID WHERE s.SubjectID = ?${req.user.RoleType >= 2 ? '' : ` AND s.OwnerID = '${req.user.UserID}'`}`, [id])
+                QueryNow(`SELECT q.QuestID, q.QuestContent FROM questions q WHERE q.QuestID = ?${req.user.RoleType >= 2 ? '' : ` AND q.OwnerID = '${req.user.UserID}'`}`, [id])
                 .then((rows) => {
                     if(rows.length <= 0)
-                        return res.redirect('/dashboard/subjects');
+                        return res.redirect('/dashboard/quests');
 
                     var errors = [];
-
                     if(errors.length <= 0) {
-                        var q = QueryNow(`DELETE FROM subjects WHERE SubjectID = ?`,[id]);
-
-                        q.then((rows) => {
-                            return res.redirect('/dashboard/subjects');
-                        }).catch((error) => {
+                        QueryNow(`DELETE FROM questions WHERE QuestID = ?`,[id])
+                        .then((rows) => { return QueryNow(`DELETE FROM questtags WHERE QuestID = ?`, [id]) })
+                        .then((rows) => { return QueryNow(`DELETE FROM answers WHERE QuestID = ?`, [id]) })
+                        .then((rows) => { return res.redirect('/dashboard/quests') })
+                        .catch((error) => {
                             Log(error);
                             return Render_DeletePage(id, res, req, { status: 'error', errors: ['Không thể cập nhật do lỗi truy vấn #1'] });
                         })
@@ -734,18 +739,18 @@ function Controller_Quests(type, action, id, req, res, next)
     }
 
     function Render_DeletePage(id, res, req, extra={}) {
-        if(!id) return res.redirect('/dashboard/subjects');
+        if(!id) return res.redirect('/dashboard/quests');
 
-        QueryNow(`SELECT s.SubjectID, s.SubjectName, u.FirstName, u.LastName FROM subjects s INNER JOIN users u ON s.OwnerID = u.UserID WHERE s.SubjectID = ?${req.user.RoleType >= 2 ? '' : ` AND s.OwnerID = '${req.user.UserID}'`}`, [id])
+        QueryNow(`SELECT q.QuestID, q.QuestContent FROM questions q WHERE q.QuestID = ?${req.user.RoleType >= 2 ? '' : ` AND q.OwnerID = '${req.user.UserID}'`}`, [id])
         .then((rows) => {
             if(rows.length <= 0)
-                return res.redirect('/dashboard/subjects');
+                return res.redirect('/dashboard/quests');
 
-            res.render('dashboard/subjects/delete', {
-                page: 'subjects',
-                head_title: `Xóa bộ đề - ${config.APP_NAME}`,
+            res.render('dashboard/quests/delete', {
+                page: 'quests',
+                head_title: `Xóa câu hỏi - ${config.APP_NAME}`,
                 user: req.user,
-                editSubject: rows[0],
+                editQuest: rows[0],
                 ...extra
             });
         })

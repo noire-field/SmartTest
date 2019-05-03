@@ -11,8 +11,8 @@
           {{> dashboard/header }}
           <div class="container-fluid">
             <div class="d-sm-flex align-items-center justify-content-between mb-4">
-              <h1 class="h3 mb-0 text-gray-800">Xóa bộ đề</h1>
-              <a href="{{ GetAdminPageUrl 'Subjects'}}" class="btn btn-primary btn-sm"><i class="fas fa-arrow-circle-left mr-2"></i>Quay về</a>
+              <h1 class="h3 mb-0 text-gray-800">Xóa câu hỏi</h1>
+              <a href="{{ GetAdminPageUrl 'Quests'}}" class="btn btn-primary btn-sm"><i class="fas fa-arrow-circle-left mr-2"></i>Quay về</a>
             </div>
             {{#IfEqualBlock status 'error'}}
               <div class="alert alert-danger small">
@@ -23,9 +23,9 @@
             {{/IfEqualBlock}}
             <div class="row">
               <div class="col-md-12">
-                <form action="{{ GetAdminPageUrl 'Subjects'}}/delete/{{ editSubject.SubjectID }}" method="POST" class="mt-0">
-                  <p class="my-0"><span class="text-danger">Bạn có chắc chắn muốn xóa bộ đề</span>: <b>{{ editSubject.SubjectName }}</b></p>
-                  <p class="small text-danger">(Việc này sẽ không thể phục hồi, toàn bộ câu hỏi của bộ đề này sẽ bị xóa)</p>
+                <form action="{{ GetAdminPageUrl 'Quests'}}/delete/{{ editQuest.QuestID }}" method="POST" class="mt-0">
+                  <p class="my-0"><span class="text-danger">Bạn có chắc chắn muốn xóa câu hỏi</span>: <b>{{ editQuest.QuestContent }}</b></p>
+                  <p class="small text-danger">(Việc này sẽ không thể phục hồi)</p>
                   <button id="submit-delete" name="submit-delete" type="submit" class="btn btn-danger mx-auto"><i class="fas fa-trash-alt mr-2"></i>Xác nhận xóa</button>
                 </form>
               </div>
