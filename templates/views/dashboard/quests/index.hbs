@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    {{> dashboard/meta_header }}
+  </head>
+  <body id="page-top">
+    <div id="wrapper">
+      {{> dashboard/sidebar }}
+      <div id="content-wrapper" class="d-flex flex-column">
+        <div id="content">
+          {{> dashboard/header }}
+          <div class="container-fluid">
+            <div class="d-sm-flex align-items-center justify-content-between mb-4">
+              <h1 class="h3 mb-0 text-gray-800">Quản lý câu hỏi</h1>
+            </div>
+            <div class="row">
+              <div class="col-md-12">
+                <div class="card text-dark">
+                  <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-question-circle i-space mr-2"></i>Danh sách câu hỏi</span>
+                    <a href="{{ GetAdminPageUrl 'Quests'}}/add" class="btn btn-primary btn-sm"><i class="fas fa-plus-circle mr-2"></i>Thêm câu hỏi</a>
+                  </div>
+                  <div class="card-body p-0">
+                    <div class="table-responsive">
+                      <table class="table table-striped table-bordered table-hover">
+                        <thead>
+                          <tr class="text-center">
+                            <th>ID</th>
+                            <th>Câu hỏi</th>
+                            <th>Bộ đề</th>
+                            <th>Sở hữu</th>
+                            <th>Thao tác</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {{#IfNotEmptyArray questList}}
+                            {{#each questList}}
+                            <tr class="text-dark text-center">
+                              <td>{{ this.QuestID }}</td>
+                              <td>{{ this.QuestContent }}</td>
+                              <td>{{ this.SubjectName }}</td>
+                              <td>{{ CombineName this.FirstName this.LastName }}</td>
+                              <td>
+                                <a href="{{ GetAdminPageUrl 'Quests'}}/edit/{{ this.QuestID }}" class="btn btn-warning btn-sm px-1 py-0" title="Sửa"><i class="fas fa-edit"></i></a>
+                                <a href="{{ GetAdminPageUrl 'Quests'}}/delete/{{ this.QuestID }}" class="btn btn-danger btn-sm px-1 py-0" title="Xóa"><i class="fas fa-trash-alt"></i></a>
+                              </td>
+                            </tr>
+                            {{/each}}
+                          {{else}}
+                            <tr>
+                              <td colspan="5"><h6 class="text-center">Không có bất câu hỏi đề nào</h6></td>
+                            </tr>
+                          {{/IfNotEmptyArray}}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {{{ GeneratePagination pagination.URL pagination.CURRENT pagination.TOTAL }}}
+          </div>
+        </div>
+
+        <!-- Footer -->
+        {{> dashboard/footer }}
+        <!-- End of Footer -->
+      </div>
+    </div>
+
+    <!-- Scroll to Top Button-->
+    <a class="scroll-to-top rounded" href="#page-top">
+      <i class="fas fa-angle-up"></i>
+    </a>
+   
+    {{> dashboard/meta_footer }}
+  </body>
+</html>
