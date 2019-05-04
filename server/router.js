@@ -633,22 +633,60 @@ function Controller_Quests(type, action, id, req, res, next)
 
                 break;
             case 'edit':
-                if(!id) return res.redirect('/dashboard/subjects');
+                if(!id) return res.redirect('/dashboard/quests');
 
-                QueryNow(`SELECT s.SubjectID, s.SubjectName, u.FirstName, u.LastName FROM subjects s INNER JOIN users u ON s.OwnerID = u.UserID WHERE s.SubjectID = ?${req.user.RoleType >= 2 ? '' : ` AND s.OwnerID = '${req.user.UserID}'`}`, [id])
+                QueryNow(`SELECT q.QuestID, q.SubjectID, q.QuestContent FROM questions q WHERE q.QuestID = ?${req.user.RoleType >= 2 ? '' : ` AND q.OwnerID = '${req.user.UserID}'`}`, [id])
                 .then((rows) => {
                     if(rows.length <= 0)
-                        return res.redirect('/dashboard/subjects');
+                        return res.redirect('/dashboard/quests');
 
-                    var errors = [];
-
-                    let thisSubject = {
-                        SubjectName: req.body['input-subjectname']
+                    let quest = {
+                        SubjectID: req.body['input-subjectid'] != undefined ? req.body['input-subjectid'] : 0,
+                        Content: req.body['input-questcontent'],
+                        Tags: [],
+                        Answers: []
                     };
-                    
-                    if(!Subject.SubjectName.IsValidName(thisSubject.SubjectName))
-                        errors.push(`Tên bộ đề phải từ ${Subject.SubjectName.MIN} đến ${Subject.SubjectName.MAX} ký tự`);
+    
+                    // Tags
+                    var splitTags = req.body['input-questtags'].split(',');
+                    for(tag of splitTags) {
+                        var trimTag = tag.trim();
+                        if(trimTag.length > 0)
+                            quest.Tags.push(trimTag);
+                    }
+    
+                    // Answers
+                    for(let i = 0; i < 4; i++) {
+                        if(req.body[`input-questans[${i}][content]`].length > 0) {
+                            quest.Answers.push({ 
+                                CONTENT: req.body[`input-questans[${i}][content]`],
+                                CORRECT: req.body[`input-questans[${i}][correct]`] != undefined ? true : false
+                            });
+                        }
+                    }
+    
+                    if(quest.SubjectID <= 0)
+                        errors.push(`Bộ đề không hợp lệ, vui lòng chọn bộ đề`);
+                    if(quest.Content.length <= 0 || quest.Content.length >= 128)
+                        errors.push(`Nội dung câu hỏi phải từ 1 đến 128 ký tự`);
+                    if(quest.Tags.length <= 0 || quest.Tags.length > 5)
+                        errors.push(`Câu hỏi chưa có thẻ, vui lòng thêm thẻ, tối đa 5 thẻ`);
+                    if(quest.Answers.length <= 0)
+                        errors.push(`Chưa có câu trả lời nào được nhập vào`);
+                    else {
+                        let CorrectAnswer = false;
+                        for(let i = 0; i < quest.Answers.length; i++) {
+                            if(quest.Answers[i].CORRECT == true) {
+                                CorrectAnswer = true;
+                                break;
+                            }
+                        }
+    
+                        if(!CorrectAnswer)
+                            errors.push(`Phải có ít nhất một câu hỏi đúng`);
+                    }
 
+                   
                     if(errors.length <= 0) {
                         QueryNow(`UPDATE subjects SET SubjectName = ? WHERE SubjectID = ?`, [thisSubject.SubjectName, id])
                         .then((rows) => {
@@ -717,18 +755,46 @@ function Controller_Quests(type, action, id, req, res, next)
     }
 
     function Render_EditPage(id, res, req, extra={}) {
-        if(!id) return res.redirect('/dashboard/subjects');
+        if(!id) return res.redirect('/dashboard/quests');
 
-        QueryNow(`SELECT s.SubjectID, s.SubjectName, u.FirstName, u.LastName FROM subjects s INNER JOIN users u ON s.OwnerID = u.UserID WHERE s.SubjectID = ?${req.user.RoleType >= 2 ? '' : ` AND s.OwnerID = '${req.user.UserID}'`}`, [id])
+        var questInfo = null;
+        var subjectList = [];
+        var questTags = [];
+
+        QueryNow(`SELECT q.QuestID, q.SubjectID, q.QuestContent FROM questions q WHERE q.QuestID = ?${req.user.RoleType >= 2 ? '' : ` AND q.OwnerID = '${req.user.UserID}'`}`, [id])
         .then((rows) => {
             if(rows.length <= 0)
-                return res.redirect('/dashboard/subjects');
+                return res.redirect('/dashboard/quests');
+            
+            questInfo = rows[0];
+            return QueryNow(`SELECT s.SubjectID, s.SubjectName, u.FirstName, u.LastName FROM subjects s INNER JOIN users u ON s.OwnerID = u.UserID${req.user.RoleType >= 2 ? `` : ` WHERE s.OwnerID = '${req.user.UserID}'`}`)
+        })
+        .then((rows) => {
+            subjectList = rows;
+            return QueryNow(`SELECT Tag FROM questtags WHERE QuestID = ?`, [id]);
+        })
+        .then((rows) => {
+            questTags = rows;
+            return QueryNow(`SELECT * FROM answers WHERE QuestID = ?`, [id]);
+        })
+        .then((rows) => {
+            if(rows.length < 4)
+                rows.push({ AnsContent: '', IsCorrect: false });
 
-            res.render('dashboard/subjects/edit', {
-                page: 'subjects',
-                head_title: `Chỉnh sửa bộ đề - ${config.APP_NAME}`,
+            for(let i = 0; i < 4; i++) {
+                if(typeof rows[i].IsCorrect == 'object') 
+                    rows[i].IsCorrect = JSON.parse(JSON.stringify(rows[i].IsCorrect)).data[0]
+                rows[i].Index = i;
+            }
+        
+            res.render('dashboard/quests/edit', {
+                page: 'quests',
+                head_title: `Chỉnh sửa câu hỏi - ${config.APP_NAME}`,
                 user: req.user,
-                editSubject: rows[0],
+                subjectList,
+                questTags: questTags.map((o) => o.Tag).join(', '),
+                editQuest: questInfo,
+                answers: rows,
                 ...extra
             });
         })
