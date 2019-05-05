@@ -640,6 +640,8 @@ function Controller_Quests(type, action, id, req, res, next)
                     if(rows.length <= 0)
                         return res.redirect('/dashboard/quests');
 
+                    var errors = [];
+
                     let quest = {
                         SubjectID: req.body['input-subjectid'] != undefined ? req.body['input-subjectid'] : 0,
                         Content: req.body['input-questcontent'],
@@ -686,10 +688,16 @@ function Controller_Quests(type, action, id, req, res, next)
                             errors.push(`Phải có ít nhất một câu hỏi đúng`);
                     }
 
-                   
                     if(errors.length <= 0) {
-                        QueryNow(`UPDATE subjects SET SubjectName = ? WHERE SubjectID = ?`, [thisSubject.SubjectName, id])
+                        QueryNow(`UPDATE questions SET SubjectID = ?, QuestContent = ? WHERE QuestID = ?`, [quest.SubjectID, quest.Content, id])
+                        .then((rows) => { return QueryNow(`DELETE FROM answers WHERE QuestID = ?`, [id]) })
+                        .then((rows) => { return QueryNow(`DELETE FROM questtags WHERE QuestID = ?`, [id]) })
                         .then((rows) => {
+                            for(let q of quest.Answers)
+                                QueryNow(`INSERT INTO answers (QuestID,AnsType,AnsContent,IsCorrect) VALUES(?,?,?,?)`, [id, 0, q.CONTENT, q.CORRECT]);
+                            for(let t of quest.Tags)
+                                QueryNow(`INSERT INTO questtags (QuestID,Tag) VALUES(?,?)`, [id, t]);
+
                             return Render_EditPage(id, res, req, { status: 'success' });
                         }).catch((error) => {
                             Log(error);
@@ -778,7 +786,8 @@ function Controller_Quests(type, action, id, req, res, next)
             return QueryNow(`SELECT * FROM answers WHERE QuestID = ?`, [id]);
         })
         .then((rows) => {
-            if(rows.length < 4)
+            var missingLenth = Math.min(4-rows.length, 4);
+            for(let i = 0; i < missingLenth; i++)
                 rows.push({ AnsContent: '', IsCorrect: false });
 
             for(let i = 0; i < 4; i++) {
