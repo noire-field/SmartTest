@@ -17,7 +17,6 @@ module.exports = {
         
                     QueryNow(`SELECT COUNT(QuestID) AS TOTAL FROM questions${req.user.RoleType >= 2 ? `` : ` WHERE OwnerID = '${req.user.UserID}'`}`)
                     .then((rows) => {
-                        console.log(rows[0].TOTAL);
                         var { START, LIMIT } = GetPageLimit(page, rows[0].TOTAL, config.ITEM_PER_PAGE);
                         pagination = [page, Math.ceil(rows[0].TOTAL / config.ITEM_PER_PAGE)];
 

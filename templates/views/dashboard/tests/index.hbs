@@ -11,14 +11,14 @@
           {{> dashboard/header }}
           <div class="container-fluid">
             <div class="d-sm-flex align-items-center justify-content-between mb-4">
-              <h1 class="h3 mb-0 text-gray-800">Quản lý câu hỏi</h1>
+              <h1 class="h3 mb-0 text-gray-800">Quản lý bài kiểm tra</h1>
             </div>
             <div class="row">
               <div class="col-md-12">
                 <div class="card text-dark">
                   <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="fas fa-question-circle i-space mr-2"></i>Danh sách câu hỏi</span>
-                    <a href="{{ GetAdminPageUrl 'Quests'}}/add" class="btn btn-primary btn-sm"><i class="fas fa-plus-circle mr-2"></i>Thêm câu hỏi</a>
+                    <span><i class="fas fa-question-circle i-space mr-2"></i>Danh sách bài kiểm tra</span>
+                    <a href="{{ GetAdminPageUrl 'Tests'}}/add" class="btn btn-primary btn-sm"><i class="fas fa-plus-circle mr-2"></i>Thêm bài kiểm tra</a>
                   </div>
                   <div class="card-body p-0">
                     <div class="table-responsive">
@@ -26,29 +26,39 @@
                         <thead>
                           <tr class="text-center">
                             <th>ID</th>
-                            <th>Câu hỏi</th>
-                            <th>Bộ đề</th>
+                            <th>Tên Bài KT</th>
+                            <th>Mã PIN</th>
+                            <th>Số câu hỏi</th>
                             <th>Sở hữu</th>
+                            <th>Trạng thái</th>
                             <th>Thao tác</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {{#IfNotEmptyArray questList}}
-                            {{#each questList}}
-                            <tr class="text-dark text-center">
-                              <td>{{ this.QuestID }}</td>
-                              <td>{{ this.QuestContent }}</td>
-                              <td>{{ this.SubjectName }}</td>
+                          {{#IfNotEmptyArray testList}}
+                            {{#each testList}}
+                            <tr class="text-dark text-center {{ GetTestRowColor this.OpenStatus }}">
+                              <td>{{ this.TestID }}</td>
+                              <td>{{ this.TestName }}</td>
+                              <td>{{ this.PINCode }}</td>
+                              <td>{{ this.QuestTotal }}</td>
                               <td>{{ CombineName this.FirstName this.LastName }}</td>
+                              <td>{{ GetTestStatusText this.OpenStatus }}</td>
                               <td>
-                                <a href="{{ GetAdminPageUrl 'Quests'}}/edit/{{ this.QuestID }}" class="btn btn-warning btn-sm px-1 py-0" title="Sửa"><i class="fas fa-edit"></i></a>
-                                <a href="{{ GetAdminPageUrl 'Quests'}}/delete/{{ this.QuestID }}" class="btn btn-danger btn-sm px-1 py-0" title="Xóa"><i class="fas fa-trash-alt"></i></a>
+                                {{#IfEqualBlock this.OpenStatus 0 }}
+                                  <a href="{{ GetAdminPageUrl 'Tests'}}/edit/{{ this.QuestID }}" class="btn btn-success btn-sm px-1 py-0" title="Sửa"><i class="fas fa-lock-open mr-2"></i>Mở vào</a>
+                                {{/IfEqualBlock}}
+                                {{#IfEqualBlock this.OpenStatus 1 }}
+                                  <a href="{{ GetAdminPageUrl 'Tests'}}/open/{{ this.QuestID }}" class="btn btn-primary btn-sm px-1 py-0" title="Mở cho thí sinh vào phòng"><i class="fas fa-envelope-open-text mr-2"></i>Làm bài</a>
+                                {{/IfEqualBlock}}
+                                <a href="{{ GetAdminPageUrl 'Tests'}}/edit/{{ this.QuestID }}" class="btn btn-warning btn-sm px-1 py-0" title="Sửa"><i class="fas fa-edit"></i></a>
+                                <a href="{{ GetAdminPageUrl 'Tests'}}/delete/{{ this.QuestID }}" class="btn btn-danger btn-sm px-1 py-0" title="Xóa"><i class="fas fa-trash-alt"></i></a>
                               </td>
                             </tr>
                             {{/each}}
                           {{else}}
                             <tr>
-                              <td colspan="5"><h6 class="text-center">Không có bất câu hỏi đề nào</h6></td>
+                              <td colspan="7"><h6 class="text-center">Không có bất kỳ bài kiểm tra nào</h6></td>
                             </tr>
                           {{/IfNotEmptyArray}}
                         </tbody>

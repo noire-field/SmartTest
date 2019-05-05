@@ -6,6 +6,7 @@ const { QueryNow, GetPageLimit } = require('./database');
 const { Controller_Users } = require('./controllers/users');
 const { Controller_Subjects } = require('./controllers/subjects');
 const { Controller_Quests } = require('./controllers/quests');
+const { Controller_Tests } = require('./controllers/tests');
 
 module.exports.register = function(app) {
     app.get('/register', (req, res) => {

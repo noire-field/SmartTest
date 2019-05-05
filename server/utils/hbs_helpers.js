@@ -67,8 +67,7 @@ module.exports.registerHelpers = function(hbs) {
         var htmlMiddle = '';
 
         currentPage = Number(currentPage);
-        totalPage = Number(totalPage);
-
+        totalPage = Math.max(Number(totalPage), 1);
 
         if(currentPage == 1) htmlMiddle += `<li class="page-item disabled"><a class="page-link" href="#" tabindex="-1">First</a></li>`;
         else htmlMiddle += `<li class="page-item"><a class="page-link" href="${urlForPageID}1" tabindex="-1">First</a></li>`;
@@ -99,5 +98,25 @@ module.exports.registerHelpers = function(hbs) {
                 </div>`;
 
         return htmlBegin + htmlMiddle + htmlEnd;
+    });
+
+    hbs.registerHelper('GetTestStatusText', function(statusCode) {
+        switch(statusCode) {
+            case 0: return 'Chưa mở';
+            case 1: return 'Cho phép tham dự';
+            case 2: return 'Đang kiểm tra';
+            case 3: return 'Kết thúc';
+            default: return 'Không rõ';
+        }
+    });
+
+    hbs.registerHelper('GetTestRowColor', function(statusCode) {
+        switch(statusCode) {
+            case 0: return 'table-info';
+            case 1: return 'table-success';
+            case 2: return 'table-warning';
+            case 3: return '';
+            default: return 'table-warning';
+        }
     });
 }

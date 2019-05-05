@@ -15,22 +15,21 @@ module.exports = {
                     var page = req.query.page ? req.query.page : 1;
                     var pagination = [page, 1];
         
-                    QueryNow(`SELECT COUNT(QuestID) AS TOTAL FROM questions${req.user.RoleType >= 2 ? `` : ` WHERE OwnerID = '${req.user.UserID}'`}`)
+                    QueryNow(`SELECT COUNT(TestID) AS TOTAL FROM tests${req.user.RoleType >= 2 ? `` : ` WHERE OwnerID = '${req.user.UserID}'`}`)
                     .then((rows) => {
-                        console.log(rows[0].TOTAL);
                         var { START, LIMIT } = GetPageLimit(page, rows[0].TOTAL, config.ITEM_PER_PAGE);
                         pagination = [page, Math.ceil(rows[0].TOTAL / config.ITEM_PER_PAGE)];
 
-                        return QueryNow(`SELECT q.QuestID, q.QuestContent, s.SubjectName, u.FirstName, u.LastName FROM questions q INNER JOIN subjects s ON q.SubjectID = s.SubjectID INNER JOIN users u ON q.OwnerID = u.UserID${req.user.RoleType >= 2 ? `` : ` WHERE s.OwnerID = '${req.user.UserID}'`} LIMIT ${START}, ${LIMIT}`);
+                        return QueryNow(`SELECT t.*, u.FirstName, u.LastName FROM tests t INNER JOIN users u ON t.OwnerID = u.UserID${req.user.RoleType >= 2 ? `` : ` WHERE t.OwnerID = '${req.user.UserID}'`} LIMIT ${START}, ${LIMIT}`);
                     })
                     .then((rows) => {
-                        res.render('dashboard/quests/index', {
-                            page: 'quests',
-                            head_title: `Quản lý câu hỏi - ${config.APP_NAME}`,
+                        res.render('dashboard/tests/index', {
+                            page: 'tests',
+                            head_title: `Quản lý bài kiểm tra - ${config.APP_NAME}`,
                             user: req.user,
-                            questList: rows,
+                            testList: rows,
                             pagination: { 
-                                URL: '/dashboard/quests?page=',
+                                URL: '/dashboard/tests?page=',
                                 CURRENT: pagination[0], 
                                 TOTAL: pagination[1] 
                             }
