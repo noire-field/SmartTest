@@ -244,9 +244,9 @@ module.exports = {
             // Find subjects first
             QueryNow(`SELECT s.SubjectID, s.SubjectName, u.FirstName, u.LastName FROM subjects s INNER JOIN users u ON s.OwnerID = u.UserID${req.user.RoleType >= 2 ? `` : ` WHERE s.OwnerID = '${req.user.UserID}'`}`)
             .then((rows) => {
-                res.render('dashboard/quests/add', {
+                res.render('dashboard/tests/add', {
                     page: 'quests',
-                    head_title: `Thêm câu hỏi - ${config.APP_NAME}`,
+                    head_title: `Thêm bài kiểm tra - ${config.APP_NAME}`,
                     user: req.user,
                     subjectList: rows,
                     ...extra
