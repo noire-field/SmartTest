@@ -67,12 +67,14 @@
                             <tr class="text-center">
                               <th>Tên phần</th>
                               <th>Thẻ (loại câu hỏi)</th>
+                              <th>Số câu hỏi</th>
                             </tr>
                           </thead>
                           <tbody>
                             <tr v-for="p in testParts" class="text-center">
-                              <td class="py-1 my-0"><input type="text" class="form-control" name="input-testparts[][name]" v-model="p.NAME" placeholder="VD: Cơ bản"></td>
-                              <td class="py-2 my-0"><input type="text" class="form-control" name="input-testparts[][tags]" v-model="p.TAGS" placeholder="VD: Maths, Basic"></td>
+                              <td class="py-1 my-0"><input type="text" class="form-control" v-model="p.NAME" placeholder="VD: Cơ bản"></td>
+                              <td class="py-2 my-0"><input type="text" class="form-control" v-model="p.TAGS" placeholder="VD: Maths, Basic"></td>
+                              <td class="py-2 my-0"><input type="number" class="form-control" v-model="p.COUNT" min="1" max="200" value="5"></td>
                             </tr>
                           </tbody>
                         </table>
@@ -80,7 +82,8 @@
                     </div>
                   </div>
                   <div>
-                    <button @click="testCreate" id="submit-create" name="submit-create" type="submit" class="btn btn-info mx-auto"><i class="fas fa-plus-circle mr-2"></i>Thêm câu hỏi</button>
+                    <button @click="testCheck" id="submit-check" name="submit-check" type="submit" class="btn btn-primary mx-auto"><i class="fas fa-clipboard-check mr-2"></i>Xem trước</button>
+                    <button refs="btnCreate" @click="testCreate" id="submit-create" name="submit-create" type="submit" class="btn btn-info mx-auto"><i class="fas fa-plus-circle mr-2"></i>Thêm câu hỏi</button>
                   </div>
                 </form>
               </div>
@@ -107,6 +110,7 @@
       var vm = new Vue({
         el: "#vue-app",
         data: {
+          previewed: false,
           testName: "",
           testSubjectID: 0,
           testTime: 45,
@@ -114,7 +118,8 @@
           testParts: [
             {
               "NAME": "",
-              "TAGS": ""
+              "TAGS": "",
+              "COUNT": 10
             }
           ]
         },
@@ -123,9 +128,83 @@
             e.preventDefault();
             vm.testParts.push({ "NAME": "", "TAGS": "" });
           },
+          testCheck: function(e) {
+            e.preventDefault();
+
+            var t = {
+              "NAME": vm.testName,
+              "SUBJECTID": Number(vm.testSubjectID),
+              "TIME": Number(vm.testTime),
+              "PIN": vm.testPINCode,
+              "PARTS": vm.testParts
+            };
+
+            var checkResult = vm.checkValidTest(t);
+            if(!checkResult.result) {
+              alert(checkResult.error);
+              return;
+            }
+
+            axios.post("{{ GetAdminPageUrl 'Tests' }}/add", { test: t })
+            .then((res) => {
+              console.log(res);
+            })
+            .catch((error) => {
+
+            });
+
+            vm.previewed = true;
+          },
           testCreate: function(e) {
             e.preventDefault();
-            alert("Added");
+
+            if(!vm.previewed) {
+              alert("Vui lòng xem trước, trước khi tạo bài kiểm tra")
+              return;
+            }
+
+            var t = {
+              "NAME": vm.testName,
+              "SUBJECTID": Number(vm.testSubjectID),
+              "TIME": Number(vm.testTime),
+              "PIN": vm.testPINCode,
+              "PARTS": vm.testParts
+            };
+
+            var checkResult = vm.checkValidTest(t);
+            if(!checkResult.result) {
+              alert(checkResult.error);
+              return;
+            }
+
+            
+          },
+          checkValidTest: function(t) {
+            if(t.NAME.length <= 0 || t.NAME.length > 128)
+              return { result: false, error: "Tên bài kiểm tra phải từ 1 đến 128 ký tự" };
+            if(t.SUBJECTID <= 0)
+              return { result: false, error: "Vui lòng chọn bộ đề" };
+            if(t.TIME <= 5 || t.TIME > 1000)
+              return { result: false, error: "Thời gian kiểm tra phải từ 5 đến 1000 phút" };
+            if(t.PIN.length > 0 && !(new RegExp(/^\d{5}$/).test(t.PIN)))
+              return { result: false, error: "Mã PIN phải là 5 chữ số (hoặc để trống)" };
+
+            var fixedParts = [];
+            for(var p of t.PARTS) {
+              if(p.NAME.length > 0)
+              {
+                if(p.TAGS.length <= 0) { return { result: false, error: "Phần '"+ p.NAME +"' chưa có thẻ" }; }
+                if(p.NAME.length > 64) { return { result: false, error: "Phần '"+ p.NAME +"' tên quá dài, vui lòng giảm xuống tối đa 64 ký tự" }; }
+                if(p.TAGS.length > 64) { return { result: false, error: "Phần '"+ p.NAME +"' có quá nhiều thẻ" }; }
+
+                fixedParts.push(p);
+              }
+            }
+
+            if(fixedParts.length <= 0)
+              return { result: false, error: "Bạn chưa thêm bất kỳ phần nào và thẻ" };
+
+            return { result: true, error: "" };
           }
         }
       });

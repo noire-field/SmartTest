@@ -60,6 +60,39 @@ module.exports = {
                 case 'add':
                     var errors = [];
 
+                    var t = req.body.test;
+
+                    res.send('OK');
+
+                    try {
+                        if(t.NAME.length <= 0 || t.NAME.length > 128)
+                            errors.push("Tên bài kiểm tra phải từ 1 đến 128 ký tự");
+                        if(t.SUBJECTID <= 0)
+                            errors.push("Vui lòng chọn bộ đề");
+                        if(t.TIME <= 5 || t.TIME > 1000)
+                            errors.push("Thời gian kiểm tra phải từ 5 đến 1000 phút");
+                        if(t.PIN.length > 0 && !(new RegExp(/^\d{5}$/).test(t.PIN)))
+                            errors.push("Mã PIN phải là 5 chữ số (hoặc để trống)");
+                        var fixedParts = [];
+                        for(var p of t.PARTS) {
+                            if(p.NAME.length > 0)
+                            {
+                                if(p.TAGS.length <= 0) { errors.push("Phần '"+ p.NAME +"' chưa có thẻ"); break; }
+                                if(p.NAME.length > 64) { errors.push("Phần '"+ p.NAME +"' tên quá dài, vui lòng giảm xuống tối đa 64 ký tự"); break; }
+                                if(p.TAGS.length > 64) { errors.push("Phần '"+ p.NAME +"' có quá nhiều thẻ"); break; }
+
+                                fixedParts.push(p);
+                            }
+                        }
+
+                        if(fixedParts.length <= 0)
+                            errors.push("Bạn chưa thêm bất kỳ phần nào và thẻ");
+
+                    } catch(e) {
+                        
+                    }
+
+                    /*
                     let quest = {
                         SubjectID: req.body['input-subjectid'] != undefined ? req.body['input-subjectid'] : 0,
                         Content: req.body['input-questcontent'],
@@ -125,7 +158,7 @@ module.exports = {
                         })
                     } else {
                         return Render_AddPage(id, res, req, { status: 'error', errors: errors });
-                    }
+                    }*/
 
                     break;
                 case 'edit':
