@@ -57,40 +57,24 @@ module.exports = {
         } else { // POST
             switch(action)
             {
+                case 'preview': 
+                    var test = req.body.test;
+                    var errors = CheckValidTest(test);
+
+                    if(errors.length > 0)
+                        return res.json({ status: false, errors: errors });
+
+                    var testData = GenerateTestData(test);
+                    testData.then((data) => {
+                        console.log(data);
+                        return res.json({ status: true, data: data });
+                    }).catch((error) => {
+                        return res.json({ status: false, errors: ['Something went wrong with our server'] });
+                    });
+                    
+                    break;
                 case 'add':
-                    var errors = [];
-
-                    var t = req.body.test;
-
-                    res.send('OK');
-
-                    try {
-                        if(t.NAME.length <= 0 || t.NAME.length > 128)
-                            errors.push("Tên bài kiểm tra phải từ 1 đến 128 ký tự");
-                        if(t.SUBJECTID <= 0)
-                            errors.push("Vui lòng chọn bộ đề");
-                        if(t.TIME <= 5 || t.TIME > 1000)
-                            errors.push("Thời gian kiểm tra phải từ 5 đến 1000 phút");
-                        if(t.PIN.length > 0 && !(new RegExp(/^\d{5}$/).test(t.PIN)))
-                            errors.push("Mã PIN phải là 5 chữ số (hoặc để trống)");
-                        var fixedParts = [];
-                        for(var p of t.PARTS) {
-                            if(p.NAME.length > 0)
-                            {
-                                if(p.TAGS.length <= 0) { errors.push("Phần '"+ p.NAME +"' chưa có thẻ"); break; }
-                                if(p.NAME.length > 64) { errors.push("Phần '"+ p.NAME +"' tên quá dài, vui lòng giảm xuống tối đa 64 ký tự"); break; }
-                                if(p.TAGS.length > 64) { errors.push("Phần '"+ p.NAME +"' có quá nhiều thẻ"); break; }
-
-                                fixedParts.push(p);
-                            }
-                        }
-
-                        if(fixedParts.length <= 0)
-                            errors.push("Bạn chưa thêm bất kỳ phần nào và thẻ");
-
-                    } catch(e) {
-                        
-                    }
+                   
 
                     /*
                     let quest = {
@@ -271,6 +255,90 @@ module.exports = {
 
                     break;
             }
+        }
+
+        function CheckValidTest(t) {
+            var errors = [];
+            try {
+                if(t.NAME.length <= 0 || t.NAME.length > 128)
+                    errors.push("Tên bài kiểm tra phải từ 1 đến 128 ký tự");
+                if(t.SUBJECTID <= 0)
+                    errors.push("Vui lòng chọn bộ đề");
+                if(t.TIME <= 5 || t.TIME > 1000)
+                    errors.push("Thời gian kiểm tra phải từ 5 đến 1000 phút");
+                if(t.PIN.length > 0 && !(new RegExp(/^\d{5}$/).test(t.PIN)))
+                    errors.push("Mã PIN phải là 5 chữ số (hoặc để trống)");
+                var fixedParts = [];
+                for(var p of t.PARTS) {
+                    if(p.NAME.length > 0)
+                    {
+                        if(p.TAGS.length <= 0) { errors.push("Phần '"+ p.NAME +"' chưa có thẻ"); break; }
+                        if(p.NAME.length > 64) { errors.push("Phần '"+ p.NAME +"' tên quá dài, vui lòng giảm xuống tối đa 64 ký tự"); break; }
+                        if(p.TAGS.length > 64) { errors.push("Phần '"+ p.NAME +"' có quá nhiều thẻ"); break; }
+                        if(Number(p.COUNT) <= 0) {errors.push("Phần '"+ p.NAME +"' chưa có số câu hỏi mong muốn"); break; }
+
+                        fixedParts.push(p);
+                    }
+                }
+
+                if(fixedParts.length <= 0)
+                    errors.push("Bạn chưa thêm bất kỳ phần nào và thẻ");
+            } catch(e) {
+                errors.push('Lỗi không xác định');
+            }
+
+            return errors;
+        }
+
+        async function GenerateTestData(test) {
+            // Pull out all questions of this subject
+            return new Promise((resolve, reject) => {
+                QueryNow(`SELECT q.QuestID, q.QuestContent, GROUP_CONCAT(qt.Tag SEPARATOR ',') Tags FROM questions q INNER JOIN questtags qt ON q.QuestID = qt.QuestID WHERE q.SubjectID = ? GROUP BY q.QuestID`, [test.SUBJECTID])
+                .then((rows) => {
+                    var testParts = [];
+                    var questList = [];
+
+                    for(let t of rows) {
+                        questList.push({
+                            ID: t.QuestID,
+                            CONTENT: t.QuestContent,
+                            TAGS: TagStringToArray(t.Tags)
+                        });
+                    }
+
+                    for(let p of test.PARTS) {
+                        testParts.push({
+                            NAME: p.NAME,
+                            QUESTS: ScanQuestsIntoPart(p.TAGS, questList)
+                        })
+                    }
+
+                    resolve(testParts);
+                })
+                .catch((error) => {
+                    reject(error);
+                });
+            });
+        }
+
+        function ScanQuestsIntoPart(tags, questList) {
+            var reqTags = TagStringToArray(tags);
+            var newList = [];
+
+            for(let q of questList) {
+                let allowed = true;
+                for(let t of q.TAGS) {
+                    if(reqTags.indexOf(t) == -1)
+                        allowed = false;
+                }
+                if(allowed) newList.push(q);
+            }
+
+            return newList;
+        }
+
+        function TagStringToArray(strTags) {
+            return strTags.split(',').map((tag) => tag.trim()).filter((tag) => tag.length > 0 ? true : false);
         }
 
         function Render_AddPage(id, res, req, extra={}) {

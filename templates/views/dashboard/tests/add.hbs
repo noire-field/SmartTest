@@ -126,7 +126,7 @@
         methods: {
           testAddPart: function(e) {
             e.preventDefault();
-            vm.testParts.push({ "NAME": "", "TAGS": "" });
+            vm.testParts.push({ "NAME": "", "TAGS": "", "COUNT": 0 });
           },
           testCheck: function(e) {
             e.preventDefault();
@@ -145,9 +145,9 @@
               return;
             }
 
-            axios.post("{{ GetAdminPageUrl 'Tests' }}/add", { test: t })
+            axios.post("{{ GetAdminPageUrl 'Tests' }}/preview", { test: t })
             .then((res) => {
-              console.log(res);
+              
             })
             .catch((error) => {
 
@@ -196,6 +196,7 @@
                 if(p.TAGS.length <= 0) { return { result: false, error: "Phần '"+ p.NAME +"' chưa có thẻ" }; }
                 if(p.NAME.length > 64) { return { result: false, error: "Phần '"+ p.NAME +"' tên quá dài, vui lòng giảm xuống tối đa 64 ký tự" }; }
                 if(p.TAGS.length > 64) { return { result: false, error: "Phần '"+ p.NAME +"' có quá nhiều thẻ" }; }
+                if(Number(p.COUNT) <= 0) { return { result: false, error: "Phần '"+ p.NAME +"' chưa có số câu hỏi mong muốn" }}
 
                 fixedParts.push(p);
               }
