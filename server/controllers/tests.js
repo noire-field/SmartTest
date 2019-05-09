@@ -66,63 +66,41 @@ module.exports = {
 
                     var testData = GenerateTestData(test);
                     testData.then((data) => {
-                        console.log(data);
-                        return res.json({ status: true, data: data });
+                        return res.json({ status: true, parts: data });
                     }).catch((error) => {
                         return res.json({ status: false, errors: ['Something went wrong with our server'] });
                     });
-                    
+
                     break;
                 case 'add':
-                   
+                    var test = req.body.test;
+                    var errors = CheckValidTest(test);
 
-                    /*
-                    let quest = {
-                        SubjectID: req.body['input-subjectid'] != undefined ? req.body['input-subjectid'] : 0,
-                        Content: req.body['input-questcontent'],
-                        Tags: [],
-                        Answers: []
-                    };
+                    if(errors.length > 0)
+                        return res.json({ status: false, errors: errors });
 
-                    // Tags
-                    var splitTags = req.body['input-questtags'].split(',');
-                    for(tag of splitTags) {
-                        var trimTag = tag.trim();
-                        if(trimTag.length > 0)
-                            quest.Tags.push(trimTag);
-                    }
+                    var testData = GenerateTestData(test);
+                    testData.then((data) => {
+                        return QueryNow(`SELECT PINCode FROM tests WHERE OpenStatus <= 2`);
+                    })
+                    .then((rows) => {
+                        var listPIN = [];
+                        for(let p of rows) listPIN.push(p.PINCode);
 
-                    // Answers
-                    for(let i = 0; i < 4; i++) {
-                        if(req.body[`input-questans[${i}][content]`].length > 0) {
-                            quest.Answers.push({ 
-                                CONTENT: req.body[`input-questans[${i}][content]`],
-                                CORRECT: req.body[`input-questans[${i}][correct]`] != undefined ? true : false
-                            });
-                        }
-                    }
+                        if(test.PIN.length > 0 && listPIN.indexOf(test.PIN) != -1)
+                            return res.json({ status: false, errors: ['Vui lòng chọn mã PIN khác hoặc để trống'] });
 
-                    if(quest.SubjectID <= 0)
-                        errors.push(`Bộ đề không hợp lệ, vui lòng chọn bộ đề`);
-                    if(quest.Content.length <= 0 || quest.Content.length >= 128)
-                        errors.push(`Nội dung câu hỏi phải từ 1 đến 128 ký tự`);
-                    if(quest.Tags.length <= 0 || quest.Tags.length > 5)
-                        errors.push(`Câu hỏi chưa có thẻ, vui lòng thêm thẻ, tối đa 5 thẻ`);
-                    if(quest.Answers.length <= 0)
-                        errors.push(`Chưa có câu trả lời nào được nhập vào`);
-                    else {
-                        let CorrectAnswer = false;
-                        for(let i = 0; i < quest.Answers.length; i++) {
-                            if(quest.Answers[i].CORRECT == true) {
-                                CorrectAnswer = true;
-                                break;
-                            }
-                        }
+                        while(test.PIN.length <= 0 || listPIN.indexOf(test.PIN) == -1)
+                            test.PIN = String(getRandomInt(10000, 99999));
+                        
+                        return res.json({ status: true, PIN: test.PIN });
+                    })
+                    .catch((error) => {
+                        return res.json({ status: false, errors: ['Something went wrong with our server'] });
+                    });
 
-                        if(!CorrectAnswer)
-                            errors.push(`Phải có ít nhất một câu hỏi đúng`);
-                    }
-
+                 
+/*
                     if(errors.length <= 0) {
                         QueryNow(`INSERT INTO questions (SubjectID, QuestContent, OwnerID) VALUES(?, ?, ?)`, [quest.SubjectID, quest.Content, req.user.UserID])
                         .then((rows) => {
@@ -257,6 +235,12 @@ module.exports = {
             }
         }
 
+        function getRandomInt(min, max) {
+            min = Math.ceil(min);
+            max = Math.floor(max);
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
         function CheckValidTest(t) {
             var errors = [];
             try {
@@ -307,10 +291,19 @@ module.exports = {
                     }
 
                     for(let p of test.PARTS) {
-                        testParts.push({
-                            NAME: p.NAME,
-                            QUESTS: ScanQuestsIntoPart(p.TAGS, questList)
-                        })
+                        if(p.NAME.length > 0)
+                            testParts.push({
+                                NAME: p.NAME,
+                                QUESTS: ScanQuestsIntoPart(p.TAGS, questList),
+                                COUNT: p.COUNT
+                            })
+                    }
+
+                    // Refresh the part
+                    for(let tp of testParts) {
+                        ShuffleArray(tp.QUESTS);
+                        while(tp.QUESTS.length > tp.COUNT)
+                            tp.QUESTS.pop();
                     }
 
                     resolve(testParts);
@@ -319,6 +312,14 @@ module.exports = {
                     reject(error);
                 });
             });
+        }
+
+        function ShuffleArray(a) { // Thanks to https://stackoverflow.com/questions/6274339/how-can-i-shuffle-an-array
+            for (let i = a.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [a[i], a[j]] = [a[j], a[i]];
+            }
+            return a;
         }
 
         function ScanQuestsIntoPart(tags, questList) {
