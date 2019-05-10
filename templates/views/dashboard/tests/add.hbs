@@ -12,7 +12,7 @@
           <div class="container-fluid">
             <div class="d-sm-flex align-items-center justify-content-between mb-4">
               <h1 class="h3 mb-0 text-gray-800">Thêm bài kiểm tra</h1>
-              <a href="{{ GetAdminPageUrl 'Quests'}}" class="btn btn-primary btn-sm"><i class="fas fa-arrow-circle-left mr-2"></i>Quay về</a>
+              <a href="{{ GetAdminPageUrl 'Tests'}}" class="btn btn-primary btn-sm"><i class="fas fa-arrow-circle-left mr-2"></i>Quay về</a>
             </div>
             {{#IfEqualBlock status 'error'}}
               <div class="alert alert-danger small">
@@ -172,6 +172,9 @@
           testCheck: function(e) {
             e.preventDefault();
 
+            if(vm.fetchingData)
+              return;
+
             var t = {
               "NAME": vm.testName,
               "SUBJECTID": Number(vm.testSubjectID),
@@ -208,12 +211,14 @@
               }
             });
 
-            
             vm.fetchingData = true;
             $("#modal-preview").modal("show");
           },
           testCreate: function(e) {
             e.preventDefault();
+
+            if(vm.fetchingData)
+              return;
 
             if(!vm.previewed) {
               alert("Vui lòng xem trước, trước khi tạo bài kiểm tra")
@@ -234,7 +239,23 @@
               return;
             }
 
-            
+            axios.post("{{ GetAdminPageUrl 'Tests' }}/add", { test: t })
+            .then(({ data }) => {
+              if(data.status) {
+                return window.location = "{{ GetAdminPageUrl 'Tests' }}";
+              } else {
+                alert(data.errors.join(', '));
+              }
+
+              vm.fetchingData = false;
+            })
+            .catch((error) => {
+              console.log(error);
+              alert("Có gì đó bị sai ở phía server, không thể tạo bài kiểm tra");
+              vm.fetchingData = false;
+            });
+
+            vm.fetchingData = true;
           },
           checkValidTest: function(t) {
             if(t.NAME.length <= 0 || t.NAME.length > 128)

@@ -79,8 +79,10 @@ module.exports = {
                     if(errors.length > 0)
                         return res.json({ status: false, errors: errors });
 
-                    var testData = GenerateTestData(test);
-                    testData.then((data) => {
+                    var testData = [];
+                    GenerateTestData(test)
+                    .then((data) => {
+                        testData = data;
                         return QueryNow(`SELECT PINCode FROM tests WHERE OpenStatus <= 2`);
                     })
                     .then((rows) => {
@@ -89,114 +91,82 @@ module.exports = {
 
                         if(test.PIN.length > 0 && listPIN.indexOf(test.PIN) != -1)
                             return res.json({ status: false, errors: ['Vui lòng chọn mã PIN khác hoặc để trống'] });
-
-                        while(test.PIN.length <= 0 || listPIN.indexOf(test.PIN) == -1)
+                        while(test.PIN.length <= 0 || listPIN.indexOf(test.PIN) != -1)
                             test.PIN = String(getRandomInt(10000, 99999));
-                        
-                        return res.json({ status: true, PIN: test.PIN });
+
+                        var totalQuest = 0;
+                        for(let p of testData)
+                            totalQuest += p.QUESTS.length;
+
+                        return QueryNow(`INSERT INTO tests (PINCode, TestName, TestTime, QuestTotal, OpenStatus, OwnerID) VALUES(?,?,?,?,0,?)`, [test.PIN, test.NAME, test.TIME, totalQuest, req.user.UserID]);
+                    })
+                    .then((rows) => {
+                        for(let p of testData) {
+                            QueryNow(`INSERT INTO testparts (TestID, PartName) VALUES(?, ?)`, [rows.insertId, p.NAME])
+                            .then((rows) => {
+                                for(let q of p.QUESTS)
+                                    QueryNow(`INSERT INTO partquests (TestPartID, QuestID) VALUES(?, ?)`, [rows.insertId, q.ID]);
+                            });
+                        }
+
+                        return res.json({ status: true });
                     })
                     .catch((error) => {
                         return res.json({ status: false, errors: ['Something went wrong with our server'] });
                     });
 
-                 
-/*
-                    if(errors.length <= 0) {
-                        QueryNow(`INSERT INTO questions (SubjectID, QuestContent, OwnerID) VALUES(?, ?, ?)`, [quest.SubjectID, quest.Content, req.user.UserID])
-                        .then((rows) => {
-                            // Add questions
-                            for(let q of quest.Answers)
-                                QueryNow(`INSERT INTO answers (QuestID,AnsType,AnsContent,IsCorrect) VALUES(?,?,?,?)`, [rows.insertId, 0, q.CONTENT, q.CORRECT]);
-
-                            // Add tags
-                            for(let t of quest.Tags)
-                                QueryNow(`INSERT INTO questtags (QuestID,Tag) VALUES(?,?)`, [rows.insertId, t]);
-
-                            return res.redirect('/dashboard/quests');
-                        })
-                        .catch((error) => {
-                            Log(error);
-                            return Render_AddPage(id, res, req, { status: 'error', errors: ['Không thể thêm do lỗi truy vấn #1'] });
-                        })
-                    } else {
-                        return Render_AddPage(id, res, req, { status: 'error', errors: errors });
-                    }*/
-
                     break;
                 case 'edit':
-                    if(!id) return res.redirect('/dashboard/quests');
+                    if(!id) return res.redirect('/dashboard/tests');
 
-                    QueryNow(`SELECT q.QuestID, q.SubjectID, q.QuestContent FROM questions q WHERE q.QuestID = ?${req.user.RoleType >= 2 ? '' : ` AND q.OwnerID = '${req.user.UserID}'`}`, [id])
+                    var errors = [];
+                    var t = [];
+
+                    QueryNow(`SELECT t.TestID, t.PINCode, t.TestName, t.TestTime, t.OpenStatus FROM tests t WHERE t.TestID = ?${req.user.RoleType >= 2 ? '' : ` AND t.OwnerID = '${req.user.UserID}'`}`, [id])
                     .then((rows) => {
                         if(rows.length <= 0)
-                            return res.redirect('/dashboard/quests');
+                            return res.redirect('/dashboard/tests');
 
-                        var errors = [];
-
-                        let quest = {
-                            SubjectID: req.body['input-subjectid'] != undefined ? req.body['input-subjectid'] : 0,
-                            Content: req.body['input-questcontent'],
-                            Tags: [],
-                            Answers: []
-                        };
-        
-                        // Tags
-                        var splitTags = req.body['input-questtags'].split(',');
-                        for(tag of splitTags) {
-                            var trimTag = tag.trim();
-                            if(trimTag.length > 0)
-                                quest.Tags.push(trimTag);
-                        }
-        
-                        // Answers
-                        for(let i = 0; i < 4; i++) {
-                            if(req.body[`input-questans[${i}][content]`].length > 0) {
-                                quest.Answers.push({ 
-                                    CONTENT: req.body[`input-questans[${i}][content]`],
-                                    CORRECT: req.body[`input-questans[${i}][correct]`] != undefined ? true : false
-                                });
-                            }
-                        }
-        
-                        if(quest.SubjectID <= 0)
-                            errors.push(`Bộ đề không hợp lệ, vui lòng chọn bộ đề`);
-                        if(quest.Content.length <= 0 || quest.Content.length >= 128)
-                            errors.push(`Nội dung câu hỏi phải từ 1 đến 128 ký tự`);
-                        if(quest.Tags.length <= 0 || quest.Tags.length > 5)
-                            errors.push(`Câu hỏi chưa có thẻ, vui lòng thêm thẻ, tối đa 5 thẻ`);
-                        if(quest.Answers.length <= 0)
-                            errors.push(`Chưa có câu trả lời nào được nhập vào`);
-                        else {
-                            let CorrectAnswer = false;
-                            for(let i = 0; i < quest.Answers.length; i++) {
-                                if(quest.Answers[i].CORRECT == true) {
-                                    CorrectAnswer = true;
-                                    break;
-                                }
-                            }
-        
-                            if(!CorrectAnswer)
-                                errors.push(`Phải có ít nhất một câu hỏi đúng`);
+                        t = {
+                            ID: id,
+                            NAME: req.body['input-testname'],
+                            TIME: Number(req.body['input-testtime']),
+                            PIN: req.body['input-pincode'],
                         }
 
-                        if(errors.length <= 0) {
-                            QueryNow(`UPDATE questions SET SubjectID = ?, QuestContent = ? WHERE QuestID = ?`, [quest.SubjectID, quest.Content, id])
-                            .then((rows) => { return QueryNow(`DELETE FROM answers WHERE QuestID = ?`, [id]) })
-                            .then((rows) => { return QueryNow(`DELETE FROM questtags WHERE QuestID = ?`, [id]) })
-                            .then((rows) => {
-                                for(let q of quest.Answers)
-                                    QueryNow(`INSERT INTO answers (QuestID,AnsType,AnsContent,IsCorrect) VALUES(?,?,?,?)`, [id, 0, q.CONTENT, q.CORRECT]);
-                                for(let t of quest.Tags)
-                                    QueryNow(`INSERT INTO questtags (QuestID,Tag) VALUES(?,?)`, [id, t]);
+                        if(Number(rows[0]['OpenStatus']) > 0)
+                            errors.push("Bài kiểm tra này đang hoạt động, không thể chỉnh sửa");
+                        if(t.NAME.length <= 0 || t.NAME.length > 128)
+                            errors.push("Tên bài kiểm tra phải từ 1 đến 128 ký tự");
+                        if(t.TIME <= 5 || t.TIME > 1000)
+                            errors.push("Thời gian kiểm tra phải từ 5 đến 1000 phút");
+                        if(t.PIN.length > 0 && !(new RegExp(/^\d{5}$/).test(t.PIN)))
+                            errors.push("Mã PIN phải là 5 chữ số (hoặc để trống)");
 
-                                return Render_EditPage(id, res, req, { status: 'success' });
-                            }).catch((error) => {
-                                Log(error);
-                                return Render_EditPage(id, res, req, { status: 'error', errors: ['Không thể cập nhật do lỗi truy vấn #1'] });
-                            })
-                        } else {
+                        if(errors.length > 0)
+                            Render_EditPage(id, res, req, { status: 'error', errors: errors });
+
+                        return QueryNow(`SELECT PINCode FROM tests WHERE OpenStatus <= 2 AND TestID != ?`, [id]);
+                    })
+                    .then((rows) => {
+                        var listPIN = [];
+                        for(let p of rows) listPIN.push(p.PINCode);
+
+                        if(t.PIN.length > 0 && listPIN.indexOf(t.PIN) != -1)
+                            errors.push('Vui lòng chọn mã PIN khác hoặc để trống');
+                        while(t.PIN.length <= 0 || listPIN.indexOf(t.PIN) != -1)
+                            t.PIN = String(getRandomInt(10000, 99999));
+
+                        if(errors.length > 0)
                             return Render_EditPage(id, res, req, { status: 'error', errors: errors });
-                        }
+
+                        QueryNow(`UPDATE tests SET TestName = ?, PINCode = ?, TestTime = ? WHERE TestID = ?`, [t.NAME, t.PIN, t.TIME, id])
+                        .then((rows) => { 
+                            return Render_EditPage(id, res, req, { status: 'success' });
+                        }).catch((error) => {
+                            Log(error);
+                            return Render_EditPage(id, res, req, { status: 'error', errors: ['Không thể cập nhật do lỗi truy vấn #1'] });
+                        })
                     })
                     .catch((error) => {
                         Log(error);
@@ -205,19 +175,29 @@ module.exports = {
         
                     break;
                 case 'delete':
-                    if(!id) return res.redirect('/dashboard/quests');
+                    if(!id) return res.redirect('/dashboard/tests');
 
-                    QueryNow(`SELECT q.QuestID, q.QuestContent FROM questions q WHERE q.QuestID = ?${req.user.RoleType >= 2 ? '' : ` AND q.OwnerID = '${req.user.UserID}'`}`, [id])
+                    var errors = [];
+                    var t = [];
+
+                    QueryNow(`SELECT t.TestID, t.PINCode, t.TestName, t.TestTime, t.OpenStatus FROM tests t WHERE t.TestID = ?${req.user.RoleType >= 2 ? '' : ` AND t.OwnerID = '${req.user.UserID}'`}`, [id])
                     .then((rows) => {
                         if(rows.length <= 0)
-                            return res.redirect('/dashboard/quests');
+                            return res.redirect('/dashboard/tests');
 
-                        var errors = [];
+                        if(Number(rows[0]['OpenStatus']) > 0)
+                            errors.push("Bài kiểm tra này đang hoạt động, không thể xóa");
+
                         if(errors.length <= 0) {
-                            QueryNow(`DELETE FROM questions WHERE QuestID = ?`,[id])
-                            .then((rows) => { return QueryNow(`DELETE FROM questtags WHERE QuestID = ?`, [id]) })
-                            .then((rows) => { return QueryNow(`DELETE FROM answers WHERE QuestID = ?`, [id]) })
-                            .then((rows) => { return res.redirect('/dashboard/quests') })
+                            QueryNow(`DELETE FROM tests WHERE TestID = ?`,[id])
+                            .then((rows) => { return QueryNow(`SELECT TestPartID FROM testparts WHERE TestID = ?`, [id]) }) // Scan all parts of this test
+                            .then((rows) => { 
+                                QueryNow(`DELETE FROM testparts WHERE TestID = ?`, [id]);
+                                for(let p of rows) 
+                                    QueryNow(`DELETE FROM partquests WHERE TestPartID = ?`, [p.TestPartID]);
+
+                                return res.redirect('/dashboard/tests');
+                            })
                             .catch((error) => {
                                 Log(error);
                                 return Render_DeletePage(id, res, req, { status: 'error', errors: ['Không thể cập nhật do lỗi truy vấn #1'] });
@@ -361,47 +341,18 @@ module.exports = {
         }
 
         function Render_EditPage(id, res, req, extra={}) {
-            if(!id) return res.redirect('/dashboard/quests');
+            if(!id) return res.redirect('/dashboard/tests');
 
-            var questInfo = null;
-            var subjectList = [];
-            var questTags = [];
-
-            QueryNow(`SELECT q.QuestID, q.SubjectID, q.QuestContent FROM questions q WHERE q.QuestID = ?${req.user.RoleType >= 2 ? '' : ` AND q.OwnerID = '${req.user.UserID}'`}`, [id])
+            QueryNow(`SELECT t.TestID, t.PINCode, t.TestName, t.TestTime, t.OpenStatus FROM tests t WHERE t.TestID = ?${req.user.RoleType >= 2 ? '' : ` AND t.OwnerID = '${req.user.UserID}'`}`, [id])
             .then((rows) => {
-                if(rows.length <= 0)
-                    return res.redirect('/dashboard/quests');
-                
-                questInfo = rows[0];
-                return QueryNow(`SELECT s.SubjectID, s.SubjectName, u.FirstName, u.LastName FROM subjects s INNER JOIN users u ON s.OwnerID = u.UserID${req.user.RoleType >= 2 ? `` : ` WHERE s.OwnerID = '${req.user.UserID}'`}`)
-            })
-            .then((rows) => {
-                subjectList = rows;
-                return QueryNow(`SELECT Tag FROM questtags WHERE QuestID = ?`, [id]);
-            })
-            .then((rows) => {
-                questTags = rows;
-                return QueryNow(`SELECT * FROM answers WHERE QuestID = ?`, [id]);
-            })
-            .then((rows) => {
-                var missingLenth = Math.min(4-rows.length, 4);
-                for(let i = 0; i < missingLenth; i++)
-                    rows.push({ AnsContent: '', IsCorrect: false });
-
-                for(let i = 0; i < 4; i++) {
-                    if(typeof rows[i].IsCorrect == 'object') 
-                        rows[i].IsCorrect = JSON.parse(JSON.stringify(rows[i].IsCorrect)).data[0]
-                    rows[i].Index = i;
-                }
-            
-                res.render('dashboard/quests/edit', {
-                    page: 'quests',
-                    head_title: `Chỉnh sửa câu hỏi - ${config.APP_NAME}`,
+                if(rows.length <= 0 || Number(rows[0]['OpenStatus']) > 0)
+                    return res.redirect('/dashboard/tests');
+  
+                res.render('dashboard/tests/edit', {
+                    page: 'tests',
+                    head_title: `Chỉnh sửa bài kiểm tra - ${config.APP_NAME}`,
                     user: req.user,
-                    subjectList,
-                    questTags: questTags.map((o) => o.Tag).join(', '),
-                    editQuest: questInfo,
-                    answers: rows,
+                    editTest: rows[0],
                     ...extra
                 });
             })
@@ -412,18 +363,18 @@ module.exports = {
         }
 
         function Render_DeletePage(id, res, req, extra={}) {
-            if(!id) return res.redirect('/dashboard/quests');
+            if(!id) return res.redirect('/dashboard/tests');
 
-            QueryNow(`SELECT q.QuestID, q.QuestContent FROM questions q WHERE q.QuestID = ?${req.user.RoleType >= 2 ? '' : ` AND q.OwnerID = '${req.user.UserID}'`}`, [id])
+            QueryNow(`SELECT t.TestID, t.PINCode, t.TestName, t.TestTime, t.OpenStatus FROM tests t WHERE t.TestID = ?${req.user.RoleType >= 2 ? '' : ` AND t.OwnerID = '${req.user.UserID}'`}`, [id])
             .then((rows) => {
-                if(rows.length <= 0)
-                    return res.redirect('/dashboard/quests');
-
-                res.render('dashboard/quests/delete', {
-                    page: 'quests',
-                    head_title: `Xóa câu hỏi - ${config.APP_NAME}`,
+                if(rows.length <= 0 || Number(rows[0]['OpenStatus']) > 0)
+                    return res.redirect('/dashboard/tests');
+  
+                res.render('dashboard/tests/delete', {
+                    page: 'tests',
+                    head_title: `Xóa bài kiểm tra - ${config.APP_NAME}`,
                     user: req.user,
-                    editQuest: rows[0],
+                    editTest: rows[0],
                     ...extra
                 });
             })
