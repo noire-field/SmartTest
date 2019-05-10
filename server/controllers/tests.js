@@ -1,6 +1,7 @@
 const config = require('./../../config');
 const { Log, ErrorHandler } = require('../utils/logger');
 const { QueryNow, GetPageLimit } = require('../database');
+const activeTest = require('./../activeTest');
 
 module.exports = {
     Controller_Tests: function(type, action, id, req, res, next) {
@@ -49,6 +50,42 @@ module.exports = {
                     break;
                 case 'delete':
                     Render_DeletePage(id, res, req, { status: 'none' });
+                    break;
+                case 'open':
+                    if(!id) return res.redirect('/dashboard/tests');
+
+                    QueryNow(`SELECT t.OpenStatus FROM tests t WHERE t.TestID = ?${req.user.RoleType >= 2 ? '' : ` AND t.OwnerID = '${req.user.UserID}'`}`, [id])
+                    .then((rows) => {
+                        if(rows.length <= 0 || Number(rows[0]['OpenStatus']) != 0)
+                            return res.redirect('/dashboard/tests');
+
+                        return QueryNow(`UPDATE tests SET OpenStatus = 1 WHERE TestID = ?${req.user.RoleType >= 2 ? '' : ` AND t.OwnerID = '${req.user.UserID}'`}`, [id])
+                    })
+                    .then((rows) => {
+                        return res.redirect('/dashboard/tests');
+                    })
+                    .catch((rows) => {
+                        if(!id) return res.redirect('/dashboard/tests');
+                    })
+
+                    break;
+                case 'start':
+                    if(!id) return res.redirect('/dashboard/tests');
+
+                    QueryNow(`SELECT t.OpenStatus FROM tests t WHERE t.TestID = ?${req.user.RoleType >= 2 ? '' : ` AND t.OwnerID = '${req.user.UserID}'`}`, [id])
+                    .then((rows) => {
+                        if(rows.length <= 0 || Number(rows[0]['OpenStatus']) != 1)
+                            return res.redirect('/dashboard/tests');
+
+                        return activeTest.StartTest(id);
+                    })
+                    .then((status) => {
+                        return res.redirect('/dashboard/tests');
+                    })
+                    .catch((error) => {
+                        return res.redirect('/dashboard/tests');
+                    })
+
                     break;
                 default:
                     res.render('error', { errorMessage: 'Trang này không tồn tại.' });
@@ -327,7 +364,7 @@ module.exports = {
             QueryNow(`SELECT s.SubjectID, s.SubjectName, u.FirstName, u.LastName FROM subjects s INNER JOIN users u ON s.OwnerID = u.UserID${req.user.RoleType >= 2 ? `` : ` WHERE s.OwnerID = '${req.user.UserID}'`}`)
             .then((rows) => {
                 res.render('dashboard/tests/add', {
-                    page: 'quests',
+                    page: 'tests',
                     head_title: `Thêm bài kiểm tra - ${config.APP_NAME}`,
                     user: req.user,
                     subjectList: rows,

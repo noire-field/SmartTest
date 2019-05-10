@@ -18,6 +18,7 @@ const User = require('./utils/user');
 const router = require('./router');
 const { GetConnection } = require('./database');
 const { registerHelpers } = require('./utils/hbs_helpers');
+const activeTest = require('./activeTest');
 
 // Check setting
 const publicPath = path.join(__dirname, '..', '/public');
@@ -116,37 +117,10 @@ GetConnection((error, con) => {
         process.exit(1);
         return null;
     }
-
     con.release();
 
     server.listen(httpPort, () => {
         Log("HTTP Server has started on port " + httpPort);
+        activeTest.CheckStartup();
     });
 });
-
-/* SOCKET.IO
-io.on('connection', (socket) => {
-    console.log("New user connected");
-
-    // Welcome
-    socket.emit('newMessage', generateMessage('Admin', 'Welcome to the chat!'));
-    socket.broadcast.emit('newMessage', generateMessage('Admin', 'New user joined!'));
-
-    socket.on('createMessage', (message, callback) => {
-        console.log('createMessage: ', message);
-
-        io.emit('newMessage', generateMessage(message.from, message.text));
-        callback('This is from the server');
-
-        //socket.broadcast.emit('newMessage', {
-        //    from: message.from,
-        //    text: message.text,
-        //    createdAt: new Date().getTime()
-        //});
-    })
-
-    socket.on('disconnect', () => {
-        console.log("User disconnected");
-    })
-});
-*/
