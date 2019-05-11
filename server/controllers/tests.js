@@ -59,7 +59,7 @@ module.exports = {
                         if(rows.length <= 0 || Number(rows[0]['OpenStatus']) != 0)
                             return res.redirect('/dashboard/tests');
 
-                        return QueryNow(`UPDATE tests SET OpenStatus = 1 WHERE TestID = ?${req.user.RoleType >= 2 ? '' : ` AND t.OwnerID = '${req.user.UserID}'`}`, [id])
+                        return activeTest.OpenTest(id);
                     })
                     .then((rows) => {
                         return res.redirect('/dashboard/tests');
