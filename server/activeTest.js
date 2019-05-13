@@ -1,5 +1,3 @@
-const socketIO = require('socket.io');
-
 const config = require('./../config');
 const { Log } = require('./utils/logger');
 const { QueryNow } = require('./database');
@@ -7,13 +5,43 @@ const { QueryNow } = require('./database');
 module.exports = {
     CheckStartup,
     StartTest,
-    OpenTest
+    OpenTest,
+    ActivateSocket
 };
 
 var RunningTests = [];
 
 function CheckStartup() {
-    
+    QueryNow(`SELECT * FROM tests WHERE OpenStatus = 1 OR OpenStatus = 2`)
+    .then((tests) => {
+        if(tests.length <= 0) return;
+
+        var thisTest = null;
+        for(let t of tests) {
+            thisTest = {
+                ID: t.TestID,
+                NAME: t.TestName,
+                PIN: t.PINCode,
+                STARTTIME: t.OpenStatus <= 1 ? null : new Date(t.StartTime),
+                TESTTIME: Number(t.TestTime),
+                STATUS: Number(t.OpenStatus),
+                PARTS: [],
+                STUDENTS: []
+            };
+
+            if(thisTest.STATUS == 2) { // Testing 
+                Get_TestParts(thisTest.ID)
+                .then((result) => {
+                    if(result.status) {
+                        thisTest.PARTS = result.parts;
+                        RunningTests[thisTest.ID] = thisTest;
+                    }
+                });
+            } else {
+                RunningTests[thisTest.ID] = thisTest;
+            }
+        }
+    });
 }
 
 function OpenTest(testId) {
@@ -31,8 +59,8 @@ function OpenTest(testId) {
                 PIN: rows[0].PINCode,
                 STARTTIME: null,
                 TESTTIME: Number(rows[0].TestTime),
-                PARTS: [],
                 STATUS: 1,
+                PARTS: [],
                 STUDENTS: []
             };
 
@@ -49,69 +77,73 @@ function OpenTest(testId) {
 }
 
 function StartTest(testId) {
-    return new Promise((resolve, reject) => {
-        var thisTest = null;
+    return new Promise((outResolve, reject) => {
+        var thisTest = RunningTests[testId];
 
-        if(RunningTests[testId]) {
-            console.log(RunningTests[testId]);
-            resolve();
-            return;
-        } else {
-            console.log('Cant find test');
-            resolve();
-            return;
-        }
+        if(!thisTest)
+            return QueryNow(`SELECT OpenStatus FROM tests WHERE TestID = ?`, [testId])
+                    .then((rows) => {
+                        if(rows.length <= 0) 
+                            return outResolve({ status: false, message: 'Hệ thống không tồn tại bài kiểm tra này' });
+                        if(Number(rows[0]['OpenStatus']) == 1) {
+                            QueryNow(`UPDATE tests SET OpenStatus = 0 WHERE TestID = ?`, [testId])
+                            .then((rows) => { return outResolve({ status: false, message: 'Vui lòng thử lại' }); });
+                        } else  return outResolve({ status: false, message: 'Có lỗi không xác định' });
+                    });
 
-        // return QueryNow(`UPDATE tests SET OpenStatus = 2, StartTime = NOW() WHERE TestID = ?`, [testId]);
+        Get_TestParts(testId)
+        .then((result) => {
+            if(result.status) {
+                thisTest.STARTTIME = new Date();
+                thisTest.PARTS = result.parts;
+                
+                QueryNow(`UPDATE tests SET OpenStatus = 2, StartTime = NOW() WHERE TestID = ?`, [testId]);
+                return outResolve({ status: true });
+            }
 
-        QueryNow(`SELECT * FROM tests WHERE TestID = ?`, [testId])
-        .then((rows) => {
-            if(rows.length <= 0 || Number(rows[0]['OpenStatus']) != 1)
-                return resolve({ status: false, message: 'Không thể tìm thấy bài kiểm tra này, hoặc bài kiểm tra này không ở trạng thái mở' });
-
-            thisTest = {
-                NAME: rows[0].TestName,
-                PIN: rows[0].PINCode,
-                STARTTIME: new Date(), // Temporarily
-                TESTTIME: Number(rows[0].TestTime),
-                PARTS: [],
-                STATUS: 0
-            };
-
-            return QueryNow(`SELECT TestPartID, PartName FROM testparts WHERE TestID = ?`, [testId]);
+            return outResolve({ status: false, message: result.message });
         })
+        .catch((error) => {
+            console.log(error);
+        });
+    });
+}
+
+function Get_TestParts(testId) {
+    return new Promise((outResolve, outReject) => {
+        QueryNow(`SELECT TestPartID, PartName FROM testparts WHERE TestID = ?`, [testId])
         .then((parts) => {
             if(parts.length <= 0)
-                return resolve({ status: false, message: 'Bài kiểm tra này không có phần nào' });
-
+                return outResolve({ status: false, message: 'Bài kiểm tra này không có phần nào' });
+    
             var strPartList = parts.map((p) => p.TestPartID).join(',');
             var allQuests = [];
             var allAnswers = [];
             var finalizedParts = [];
-
+    
             return QueryNow(`SELECT pq.PartQuestID, pq.TestPartID, pq.QuestID, q.QuestContent FROM partquests pq INNER JOIN questions q on pq.QuestID = q.QuestID where pq.TestPartID IN (${strPartList})`)
             .then((quests) => {
                 allQuests = quests;
-
+    
                 var strQuestList = quests.map((q) => q.QuestID).join(',');
                 return QueryNow(`SELECT AnsID, QuestID, AnsContent, IsCorrect FROM answers WHERE QuestID IN (${strQuestList})`);
             })
             .then((answers) => {
                 allAnswers = answers;
-
+    
                 for(let p of parts) {
                     var thisPart = {
                         NAME: p.PartName,
                         QUESTS: []
                     };
-
+    
                     for(let q of allQuests) {
                         if(p.TestPartID == q.TestPartID) {
                             var thisQuest = {
                                 CONTENT: q.QuestContent,
                                 ANSWERS: []
                             }
-
+    
                             for(let a of allAnswers) {
                                 if(q.QuestID == a.QuestID) {
                                     thisQuest.ANSWERS.push({
@@ -121,51 +153,63 @@ function StartTest(testId) {
                                     });
                                 }
                             }
-
+    
                             thisPart.QUESTS.push(thisQuest);
                         }
                     }
-
+    
                     finalizedParts.push(thisPart);
                 }
-
-                thisTest.PARTS = finalizedParts;
-                return new Promise((resolve, reject) => resolve(true))
+    
+                return outResolve({ status: true, parts: finalizedParts });
+            })
+            .catch((error) => {
+                return outResolve({ status: false, message: "Có gì đó bị sai ở khâu lấy ra phần và câu hỏi" });
             });
-        })
-        .then((status) => {
-            
         })
         .catch((error) => {
             console.log(error);
-        });
+        })
     });
 }
 
-
-/* SOCKET.IO
-io.on('connection', (socket) => {
-    console.log("New user connected");
-
-    // Welcome
-    socket.emit('newMessage', generateMessage('Admin', 'Welcome to the chat!'));
-    socket.broadcast.emit('newMessage', generateMessage('Admin', 'New user joined!'));
-
-    socket.on('createMessage', (message, callback) => {
-        console.log('createMessage: ', message);
-
-        io.emit('newMessage', generateMessage(message.from, message.text));
-        callback('This is from the server');
-
-        //socket.broadcast.emit('newMessage', {
-        //    from: message.from,
-        //    text: message.text,
-        //    createdAt: new Date().getTime()
-        //});
-    })
-
-    socket.on('disconnect', () => {
-        console.log("User disconnected");
-    })
-});
+/*
+setInterval(function() {
+    console.log(RunningTests);
+}, 1500);
 */
+
+function ActivateSocket(io) {
+    io.on('connection', (socket) => {
+        console.log("New user connected");
+    
+        // Welcome
+        socket.emit('newMessage', generateMessage('Admin', 'Welcome to the chat!'));
+        socket.broadcast.emit('newMessage', generateMessage('Admin', 'New user joined!'));
+
+        socket.on('createMessage', (message) => {
+            console.log('createMessage: ', message);
+    
+            io.emit('newMessage', generateMessage(message.from, message.text));
+    
+            socket.broadcast.emit('newMessage', {
+                from: message.from,
+                text: message.text,
+                createdAt: new Date().getTime()
+            });
+        })
+    
+        socket.on('disconnect', () => {
+            console.log("User disconnected");
+        })
+    });
+
+    Log('Socket.IO Servre has started alongside the HTTP Server');
+}
+
+function generateMessage(from, text) {
+    return {
+        from,
+        text
+    }
+}

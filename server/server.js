@@ -122,5 +122,6 @@ GetConnection((error, con) => {
     server.listen(httpPort, () => {
         Log("HTTP Server has started on port " + httpPort);
         activeTest.CheckStartup();
+        activeTest.ActivateSocket(io);
     });
 });

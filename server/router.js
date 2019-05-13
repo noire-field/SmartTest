@@ -105,4 +105,9 @@ module.exports.register = function(app) {
                 return res.redirect('/');
         }
     });
+
+    // Test Socket
+    app.get('/socket', (req, res, next) => {
+        return res.render('testSocket');
+    });
 }
