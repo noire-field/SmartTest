@@ -204,7 +204,7 @@ function ActivateSocket(io) {
         })
     });
 
-    Log('Socket.IO Servre has started alongside the HTTP Server');
+    Log('Socket.IO Server has started alongside the HTTP Server');
 }
 
 function generateMessage(from, text) {

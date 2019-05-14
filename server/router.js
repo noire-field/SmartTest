@@ -110,4 +110,9 @@ module.exports.register = function(app) {
     app.get('/socket', (req, res, next) => {
         return res.render('testSocket');
     });
+
+    // Test Socket
+    app.get('/', (req, res, next) => {
+        return res.render('index');
+    });
 }
