@@ -113,6 +113,10 @@ module.exports.register = function(app) {
 
     // Test Socket
     app.get('/', (req, res, next) => {
-        return res.render('index');
+        return res.render('index', {
+            head_title: 'Trang chủ - ' + config.APP_NAME,
+            isUserLogged: req.isAuthenticated(),
+            user: req.isAuthenticated() ? req.user : null
+        });
     });
 }
