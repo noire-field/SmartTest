@@ -4,10 +4,13 @@ const config = require('./../config');
 const { QueryNow, GetPageLimit } = require('./database');
 
 const User = require('./utils/user');
+
 const { Controller_Users } = require('./controllers/users');
 const { Controller_Subjects } = require('./controllers/subjects');
 const { Controller_Quests } = require('./controllers/quests');
 const { Controller_Tests } = require('./controllers/tests');
+
+const activeTest = require('./activeTest');
 
 module.exports.register = function(app) {
     app.get('/register', (req, res) => {
@@ -167,12 +170,57 @@ module.exports.register = function(app) {
         return res.render('testSocket');
     });
 
-    // Test Socket
+    // Homepage
     app.get('/', (req, res, next) => {
         return res.render('index', {
             head_title: 'Trang chủ - ' + config.APP_NAME,
             isUserLogged: req.isAuthenticated(),
             user: req.isAuthenticated() ? req.user : null
         });
+    });
+
+    app.get('/findroom/:pin?', (req, res, next) => {
+        var pin = req.params.pin ? req.params.pin : -1;
+
+        if(!req.isAuthenticated())
+            return res.json({ status: false, message: "Vui lòng đăng nhập trước" });
+        if(req.user.RoleType != 0) 
+            return res.json({ status: false, message: "Chỉ có tài khoản sinh viên mới được thực hiện kiểm tra" });
+        if(!(new RegExp(/^\d{5}$/).test(pin)))
+            return res.json({ status: false, message: "Mã pin không hợp lệ" });
+
+        QueryNow(`SELECT t.TestName, t.TestTime, u.FirstName FROM tests t INNER JOIN users u ON t.OwnerID = u.UserID WHERE t.PINCode = ? AND t.OpenStatus = 1`, [pin])
+        .then((rows) => {
+            if(rows.length <= 0)
+                return res.json({ status: false, message: "Bài kiểm tra không tồn tại, có thể chưa mở hoặc sai mã PIN." });
+
+            return res.json({ status: true, testName: rows[0].TestName, testTime: rows[0].TestTime, testOwner: rows[0].FirstName });
+        })
+        .catch((error) => {
+            return res.json({ status: false, message: "Đã xảy ra lỗi phía server" });
+        })
+    });
+
+    app.get('/joinroom/:pin?', (req, res, next) => {
+        var pin = req.params.pin ? req.params.pin : -1;
+
+        if(!req.isAuthenticated())
+            return res.redirect('/');
+        if(req.user.RoleType != 0) 
+            return res.redirect('/');
+        if(!(new RegExp(/^\d{5}$/).test(pin)))
+            return res.redirect('/');
+
+        QueryNow(`SELECT t.TestID FROM tests t WHERE t.PINCode = ? AND t.OpenStatus = 1`, [pin])
+        .then((rows) => {
+            if(rows.length <= 0)
+                return res.redirect('/');
+
+            if(activeTest.JoinTest(Number(rows[0].TestID), req.user)) return res.redirect('/testing');
+            else return res.redirect('/');
+        })
+        .catch((error) => {
+            return res.redirect('/');
+        })
     });
 }

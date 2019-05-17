@@ -34,13 +34,13 @@
             <ul>
               <li><a href="#">Quản lý tài khoản</a></li>
               <li><a href="#">Kết quả kiểm tra</a></li>
-              <li><a href="#">Đăng xuất</a></li>
+              <li><a href="/logout">Đăng xuất</a></li>
             </ul>
           </li>
           {{/IfEqualBlock}}
           {{#IfEqualBlock isUserLogged false}}
           <li><a href="/login">Đăng nhập</a></li>
-          <li><a href="#">Đăng ký</a></li>
+          <li><a href="/register">Đăng ký</a></li>
           {{/IfEqualBlock}}
         </ul>
       </nav><!-- #nav-menu-container -->
@@ -57,9 +57,9 @@
       <div class="row">
         <div class="col-md-12">
           <div v-if="!isLoading" class="input-group mb-3">
-            <input type="text" id="txbPINCode" class="form-control" placeholder="{{#IfEqual isUserLogged false 'Vui lòng đăng nhập'}}{{/IfEqual}}{{#IfEqual isUserLogged true 'Mã PIN bài kiểm tra'}}{{/IfEqual}}" {{#IfEqual isUserLogged false 'disabled'}}{{/IfEqual}}>
+            <input v-model="inputPIN" type="text" id="txbPINCode" class="form-control" placeholder="{{#IfEqual isUserLogged false 'Vui lòng đăng nhập'}}{{/IfEqual}}{{#IfEqual isUserLogged true 'Mã PIN bài kiểm tra'}}{{/IfEqual}}" {{#IfEqual isUserLogged false 'disabled'}}{{/IfEqual}}>
             <div class="input-group-append">
-              <button id="btnGetToRoom" class="btn btn-success" type="button" {{#IfEqual isUserLogged false 'disabled' ''}}{{/IfEqual}}>Tìm phòng</button>
+              <button @click="searchRoom" id="btnGetToRoom" class="btn btn-success" type="button" {{#IfEqual isUserLogged false 'disabled' ''}}{{/IfEqual}}>Tìm phòng</button>
             </div>
           </div>
         </div>
@@ -77,11 +77,14 @@
               <div class="card-header py-1 px-2 bg-primary text-white"><i class="fas fa-check-circle mr-2"></i><span>Đã tìm được phòng</span></div>
               <div class="card-body py-3 d-flex justify-content-between align-items-center text-left">
                 <div class="pr-5">
-                  <p class="m-0 y-0 text-primary"><b>Bài kiểm tra môn lịch sử</b></p>
-                  <p class="m-0 y-0 text-primary small"><b>Giảng viên:</b> Cuong, Vu Manh</p>
+                  <p class="m-0 y-0 text-primary"><b>{? testName ?}</b></p>
+                  <hr class="my-1">
+                  <p class="m-0 y-0 text-primary small"><b>Thời gian làm bài:</b> {? testTime ?} phút</p>
+                  <p class="m-0 y-0 text-primary small"><b>Giảng viên:</b> {? testOwner ?}</p>
+
                 </div>
                 <div>
-                  <button class="btn btn-info"><i class="fas fa-chevron-circle-right mr-2"></i>Vào phòng</button>
+                  <button @click="joinRoom" class="btn btn-info"><i class="fas fa-chevron-circle-right mr-2"></i>Vào phòng</button>
                 </div>
               </div>
             </div>
@@ -111,10 +114,64 @@
       el: "#hero",
       delimiters: ["{?","?}"],
       data: {
+        testName: "",
+        testTime: 0,
+        testOwner: "",
+        inputPIN: "",
         isLoading: false,
         isError: false,
         errors: [],
-        roomFound: false
+        roomFound: false,
+        roundFoundPIN: "",
+      },
+      methods: {
+        searchRoom: function() {
+          vm.roomFound = false;
+          vm.showError(false, "");
+
+          if(!(new RegExp(/^\d{5}$/).test(vm.inputPIN)))
+            return vm.showError(true, 'Mã PIN phải là 5 chữ số');
+
+          vm.isLoading = true;
+
+          $.ajax({
+            url: "/findroom/" + vm.inputPIN,
+            method: "GET",
+            success: function(ret) {
+              vm.isLoading = false;
+              if(!ret.status)
+                return vm.showError(true, ret.message);
+
+              vm.testName = ret.testName;
+              vm.testTime = ret.testTime;
+              vm.testOwner = ret.testOwner;
+
+              vm.roundFoundPIN = vm.inputPIN;
+              vm.roomFound = true;
+            },
+            error: function(error) {
+              vm.isLoading = false;
+              vm.showError(true, "Không thể kết nối tới máy chủ");
+            }
+          });
+        },
+        joinRoom: function() {
+          if(!vm.roomFound || !(new RegExp(/^\d{5}$/).test(vm.roundFoundPIN)))
+          {
+            vm.isLoading = false;
+            vm.roomFound = false;
+            vm.roundFoundPIN = "";
+            vm.showError(false, "");
+
+            return;
+          }
+
+          window.location = '/joinroom/'+vm.roundFoundPIN;
+        },
+        showError: function(show, error) {
+          vm.isError = show;
+          vm.errors = [error];
+        }
       }
     });
   </script>

@@ -6,7 +6,8 @@ module.exports = {
     CheckStartup,
     StartTest,
     OpenTest,
-    ActivateSocket
+    ActivateSocket,
+    JoinTest
 };
 
 var RunningTests = [];
@@ -173,11 +174,9 @@ function Get_TestParts(testId) {
     });
 }
 
-/*
 setInterval(function() {
     console.log(RunningTests);
 }, 1500);
-*/
 
 function ActivateSocket(io) {
     io.on('connection', (socket) => {
@@ -212,4 +211,9 @@ function generateMessage(from, text) {
         from,
         text
     }
+}
+
+function JoinTest(testId, user)
+{
+
 }
