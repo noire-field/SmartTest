@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    {{> dashboard/meta_header }}
+  </head>
+    <body class="bg-gradient-primary">
+        <div id="app-register" class="container">
+            <div class="card o-hidden border-0 shadow-lg my-5">
+            <div class="card-body p-0">
+                <div class="row">
+                <div class="col-lg-5 d-none d-lg-block bg-register-image"></div>
+                <div class="col-lg-7">
+                    <div class="p-5">
+                    <div class="text-center">
+                        <h1 class="h4 text-gray-900 mb-4">Đăng ký tài khoản</h1>
+                    </div>
+                    <form class="user">
+                        <div class="form-group row">
+                            <div class="col-sm-6 mb-3 mb-sm-0">
+                                <input ref="lastName" type="text" class="form-control form-control-user" v-model="lastName" placeholder="Họ">
+                            </div>
+                            <div class="col-sm-6">
+                                <input ref="firstName" type="text" class="form-control form-control-user" v-model="firstName" placeholder="Tên">
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-sm-6 mb-3 mb-sm-0">
+                                <input ref="username" type="text" class="form-control form-control-user" v-model="username" placeholder="Tên tài khoản">
+                            </div>
+                            <div class="col-sm-6">
+                                <input ref="studentId" type="text" class="form-control form-control-user" v-model="studentId" placeholder="Mã sinh viên">
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-sm-6 mb-3 mb-sm-0">
+                                <input ref="password" type="password" class="form-control form-control-user" v-model="password" placeholder="Mật khẩu">
+                            </div>
+                            <div class="col-sm-6">
+                                <input ref="password2" type="password" class="form-control form-control-user" v-model="password2" placeholder="Nhập lại mật khẩu">
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-sm-12">
+                                <b>Loại tài khoản: </b>
+                                <label class="radio-inline"><input ref="roleType0" type="radio" class="mx-2" value="0" name="roleType" v-model="roleType">Sinh Viên</label>
+                                <label class="radio-inline"><input ref="roleType1" type="radio" class="mx-2" value="1" name="roleType" v-model="roleType">Giảng Viên</label>
+                            </div>
+                        </div>
+                        <a ref="register" @click="register" class="btn btn-primary text-white btn-user btn-block">
+                            <span>{? registering == true ? "Đang đăng ký" : "Đăng ký" ?}</span>
+                            <div v-if="registering" class="lds-hourglass"></div>
+                        </a>
+                        <p v-if="displayError" class="alert alert-danger small mt-2 py-1 px-2">{? loginError ?}</p>
+                    </form>
+                    <hr>
+                    <!--<div class="text-center">
+                        <a class="small" href="forgot-password.html">Quên mật khẩu</a>
+                    </div>-->
+                    <div class="text-center">
+                        <a class="small" href="/login">Đã có tài khoản? Đăng nhập!</a>
+                    </div>
+                    </div>
+                </div>
+                </div>
+            </div>
+            </div>
+        </div>
+        {{> dashboard/meta_footer }}
+        <script src="js/vue.js"></script>
+        <script src="js/axios.min.js"></script>
+        <script>
+            var vm = new Vue({
+                el: "#app-register",
+                delimiters: ["{?","?}"],
+                data: {
+                    firstName: "",
+                    lastName: "",
+                    username: "",
+                    studentId: "",
+                    password: "",
+                    password2: "",
+                    roleType: "0",
+                    registering: false,
+                    displayError: false,
+                    loginError: "Some error"
+                    
+                },
+                methods: {
+                    register: function(e) {
+                        e.preventDefault();
+
+                        if(this.registering) return;
+
+                        if(!(new RegExp(/.{1,32}/).test(this.lastName))) {
+                            this.showError(true, 'Họ phải trong khoảng 1 đến 32 ký tự.');
+                            return;
+                        }
+                        if(!(new RegExp(/.{1,32}/).test(this.firstName))) {
+                            this.showError(true, 'Tên phải trong khoảng 1 đến 32 ký tự.');
+                            return;
+                        }
+                        if(!(new RegExp({{ GetLoginInfo 0 }}).test(this.username)))
+                        {
+                            this.showError(true, 'Tên tài khoản phải trong khoảng {{ GetLoginInfo 2 }} ký tự và không có ký tự đặc biệt.')
+                            return;
+                        }
+                        if(!(new RegExp({{ GetLoginInfo 1 }}).test(this.password)))
+                        {
+                            this.showError(true, 'Mật khẩu phải trong khoảng {{ GetLoginInfo 3 }} ký tự.')
+                            return;
+                        }
+                        if(this.password !== this.password2)
+                        {
+                            this.showError(true, 'Hai mật khẩu không khớp nhau.')
+                            return;
+                        }
+                        if(!(new RegExp(/.{0,10}/).test(this.studentId))) {
+                            this.showError(true, 'Mã sinh viên phải trong khoảng 0 đến 10 ký tự.');
+                            return;
+                        }
+                        var roleType = Number(this.roleType);
+                        if(roleType < 0 || roleType > 1) {
+                            this.showError(true, 'Vui lòng chọn loại tài khoản hợp lệ.');
+                            return;
+                        }
+
+                        this.showError(false, null);
+                        this.lockInput(true);
+                        this.registering = true;
+
+                        axios.post('/register',
+                        {
+                            firstName: this.firstName,
+                            lastName: this.lastName,
+                            username: this.username,
+                            password: this.password,
+                            studentId: this.studentId,
+                            roleType: roleType
+                        }).then((res) => {
+                            if(res.data.status) {
+                                alert('Đăng ký thành công! Vui lòng đăng nhập.');
+                               
+                                setTimeout(() => { 
+                                    window.location.replace('/login'); 
+                                }, 500);
+                            } else { this.loginFail(res.data.message); }
+                        }).catch((error) => { this.loginFail("Something went wrong, please try again later..."); })
+                    },
+                    showError: function(show, error) {
+                        this.displayError = show;
+                        this.loginError = error;
+                    },
+                    lockInput: function(lock) {
+                        this.$refs.firstName.disabled = lock;
+                        this.$refs.lastName.disabled = lock;
+                        this.$refs.username.disabled = lock;
+                        this.$refs.password.disabled = lock;
+                        this.$refs.password2.disabled = lock;
+                        this.$refs.studentId.disabled = lock;
+                        this.$refs.roleType0.disabled = lock;
+                        this.$refs.roleType1.disabled = lock;
+                        this.$refs.register.disabled = lock;
+                    },
+                    loginFail: function(reason) {
+                        this.registering = false;
+                        this.lockInput(false);
+                        this.showError(true, reason);
+                    }
+                }
+            });
+        </script>
+    </body>
+</html>
