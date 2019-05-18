@@ -30,6 +30,16 @@ function CheckStartup() {
                 STUDENTS: []
             };
 
+            if(thisTest.STATUS >= 1) { // Opening + Testing
+                Get_TestStudents(thisTest.ID)
+                .then((list) => {
+                    thisTest.STUDENTS = list;
+                    RunningTests[thisTest.ID] = thisTest;
+                })
+                .catch((error) => {
+                    console.log(error);
+                });
+            }
             if(thisTest.STATUS == 2) { // Testing 
                 Get_TestParts(thisTest.ID)
                 .then((result) => {
@@ -174,10 +184,35 @@ function Get_TestParts(testId) {
     });
 }
 
-setInterval(function() {
-    console.log(RunningTests);
-}, 1500);
+function Get_TestStudents(testId) {
+    return new Promise((outResolve, outReject) => {
+        QueryNow(`SELECT st.StuTestID, st.UserID, st.TestID, st.JoinedDate, u.FirstName, u.LastName FROM studenttests st INNER JOIN users u ON st.UserID = u.UserID WHERE st.TestID = ?`, [testId])
+        .then((students) => {
+            var studentList = [];
+            for(let st of students) {
+                studentList[st.UserID] = {
+                    StuTestID: Number(st.StuTestID),
+                    UserID: Number(st.UserID),
+                    TestID: Number(st.TestID),
+                    JoinedDate: new Date(st.JoinedDate),
+                    FirstName: st.FirstName,
+                    LastName: st.LastName,
+                    TestQuests: []
+                }
+            }
 
+            outResolve(studentList);
+        })
+        .catch((error) => {
+            return outReject('Không thể lấy danh sách sinh viên đang làm');
+        })
+    });
+}
+/*
+setInterval(function() {
+    if(RunningTests[8]) console.log(RunningTests[8].STUDENTS);
+}, 1500);
+*/
 function ActivateSocket(io) {
     io.on('connection', (socket) => {
         console.log("New user connected");
@@ -215,5 +250,39 @@ function generateMessage(from, text) {
 
 function JoinTest(testId, user)
 {
+    return new Promise((outResolve, outReject) => {
+        if(!RunningTests[testId] || RunningTests[testId].STATUS != 1)
+            return outReject('Bài kiểm tra không tồn tại hoặc không mở');
+        if(RunningTests[testId].STUDENTS[user.UserID])
+            return outResolve();
+            
+        var StuTestID = -1;
+        QueryNow(`INSERT INTO studenttests (UserID,TestID,JoinedDate) VALUES(?,?,NOW())`, [user.UserID, testId])
+        .then((rows) => {
+            StuTestID = rows.insertId;
+            return QueryNow(`SELECT st.StuTestID, st.TestID, st.JoinedDate, u.FirstName, u.LastName FROM studenttests st INNER JOIN users u ON st.UserID = u.UserID WHERE st.StuTestID = ?`, [StuTestID]);
+        })
+        .then((rows) => {
+            if(rows.length <= 0) {
+                QueryNow(`DELETE FROM studenttests WHERE StuTestID = ?`, [StuTestID]);
+                return outReject('Có lỗi khi truy vấn nhập phòng');
+            }
 
+            RunningTests[testId].STUDENTS[user.UserID] = {
+                StuTestID: Number(rows[0].StuTestID),
+                UserID: user.UserID,
+                TestID: testId,
+                JoinedDate: new Date(rows[0].JoinedDate),
+                FirstName: rows[0].FirstName,
+                LastName: rows[0].LastName,
+                TestQuests: []
+            }
+
+            outResolve();
+        })
+        .catch((error) => {
+            return outReject('Có lỗi khi truy vấn nhập phòng');
+        })
+    });
 }
+

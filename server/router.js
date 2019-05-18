@@ -216,8 +216,32 @@ module.exports.register = function(app) {
             if(rows.length <= 0)
                 return res.redirect('/');
 
-            if(activeTest.JoinTest(Number(rows[0].TestID), req.user)) return res.redirect('/testing');
-            else return res.redirect('/');
+            return activeTest.JoinTest(Number(rows[0].TestID), req.user);
+        })
+        .then((result) => {
+            return res.redirect('/testing');
+        })
+        .catch((error) => {
+            return res.redirect('/');
+        })
+    });
+
+    app.get('/testing', (req, res, next) => {
+        if(!req.isAuthenticated())
+            return res.redirect('/');
+        if(req.user.RoleType != 0) 
+            return res.redirect('/');
+
+        QueryNow(`SELECT st.TestID FROM studenttests st INNER JOIN tests t ON st.TestID = t.TestID WHERE st.UserID = ? AND t.OpenStatus IN (1,2)`, [req.user.UserID])
+        .then((rows) => {
+            if(rows.length <= 0)
+                return res.redirect('/');
+
+            return res.render('testing', {
+                head_title: 'Kiểm tra - ' + config.APP_NAME,
+                user: req.user,
+                testId: Number(rows[0].TestID)
+            });
         })
         .catch((error) => {
             return res.redirect('/');

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>{{ head_title }}</title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link href="/css/bootstrap.min.css" rel="stylesheet" type="text/css">
+    <link href="/css/testing.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <link href="/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+    <div id="app-testing" class="container pt-3" style="display:none;">
+        <div v-if="fetchingData" class="text-center text-white loading-box"><img src="img/loading3.gif" class="icon-loading mr-2">Đang tải dữ liệu, vui lòng chờ...</div>
+        <div v-if="header.visible" class="row text-dark white-transparent-high py-3 px-2 d-flex align-items-center mb-4">
+            <div class="col-md-4">
+                <h2 class="my-0 py-0">{? header.testName ?}</h2>
+                <p class="my-0 py-0"><i class="far fa-question-circle mr-2"></i>Số câu hỏi: <b>{? header.testQuestCount[0] ?}/{? header.testQuestCount[1] ?}</b></p>
+            </div>
+            <div class="col-md-4 text-center">
+                <p class="my-0 py-0"><i class="far fa-clock mr-2"></i>Thời gian làm bài</p>
+                <h2>{? header.testTimeleft ?}</h2>
+            </div>
+             <div class="col-md-4 text-right">
+                <p class="my-0 py-0"><i class="fas fa-power-off mr-2"></i>Trạng thái</p>
+                <h2>{? header.testStatus ?}</h2>
+            </div>
+        </div>
+        <div v-if="lobby.visible">
+            <div class="row mb-4 mt-5">
+                <div class="col-md-12">
+                    <div class="white-transparent-high text-dark px-3 py-2 d-flex justify-content-between align-items-center">
+                        <h5 class="text-center my-0 py-0"><i class="fas fa-users mr-2"></i>Sinh viên tham dự</h5>
+                        <h3>20</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div v-for="n in 20" class="col-md-3 mb-3">
+                    <div class="white-transparent-high text-dark px-3 py-2"><i class="fas fa-user mr-2"></i>Phùng Hữu Lộc</div>
+                </div>
+            </div>
+        </div>
+        <div v-if="testing.visible">
+            <div class="card rounded-0">
+                <div class="card-header"><h5 class="mb-0"><i class="fas fa-pen-fancy mr-2"></i>Làm bài</h5></div>
+                <div class="card-body">
+                    <h4>Câu 3. Việt Nam Cộng hòa thành lập năm bao nhiêu?</h4>
+                    <div class="ml-md-4 mb-3">
+                        <div class="radio"><label class="mb-0"><input type="radio" name="optradio" class="mr-2">Năm 1975</label></div>
+                        <div class="radio"><label class="mb-0"><input type="radio" name="optradio" class="mr-2">Năm 1955</label></div>
+                        <div class="radio"><label class="mb-0"><input type="radio" name="optradio" class="mr-2">Năm 1945</label></div>
+                        <div class="radio"><label class="mb-0"><input type="radio" name="optradio" class="mr-2">Năm 1911</label></div>
+                    </div>
+                    <!-- <button class="btn btn-outline-info btn-sm"><i class="far fa-arrow-alt-circle-left mr-2"></i>Câu trước</button> -->
+                    <button class="btn btn-outline-primary btn-sm"><i class="far fa-arrow-alt-circle-right mr-2"></i>Câu kế tiếp</button>
+                </div>
+                <div class="card-footer">
+                    <nav style="overflow: auto;">
+                        <ul class="pagination my-0">
+                            <li v-for="n in 20" class="page-item"><a class="page-link" href="#">{? n ?}</a></li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/bootstrap.bundle.min.js"></script>
+    <script src="js/vue.js"></script>
+    <script src="js/babel.min.js"></script>
+    <script type="text/babel">
+        var vm = new Vue({
+            el: "#app-testing",
+            delimiters: ['{?','?}'],
+            data: {
+                fetchingData: false,
+                header: {
+                    visible: true,
+                    testName: "Kiểm tra lịch sử",
+                    testStatus: "Mở phòng",
+                    testQuestCount: [0, 10],
+                    testTimeleft: "44:30"
+                },
+                lobby: {
+                    visible: false
+                },
+                testing: {
+                    visible: true
+                }
+            },
+            mounted: () => {
+                document.getElementById('app-testing').style.display = "block";
+            }
+        });
+    </script>
+</body>
+</html>
