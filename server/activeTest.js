@@ -11,6 +11,7 @@ module.exports = {
 };
 
 var RunningTests = [];
+var socketUsers = [];
 
 function CheckStartup() {
     QueryNow(`SELECT * FROM tests WHERE OpenStatus = 1 OR OpenStatus = 2`)
@@ -215,6 +216,10 @@ setInterval(function() {
 */
 function ActivateSocket(io) {
     io.on('connection', (socket) => {
+        socket.on('join_room', (data) => { socketOnJoinRoom(io, socket, data); });
+        
+        //console.log(socket);
+        /*
         console.log("New user connected");
     
         // Welcome
@@ -231,14 +236,50 @@ function ActivateSocket(io) {
                 text: message.text,
                 createdAt: new Date().getTime()
             });
-        })
-    
-        socket.on('disconnect', () => {
-            console.log("User disconnected");
-        })
+        })*/
     });
 
     Log('Socket.IO Server has started alongside the HTTP Server');
+}
+
+function socketOnJoinRoom(io, socket, data) {
+    var test = RunningTests[data.testId];
+    if(!test || !test.STUDENTS[data.userId]) 
+        return socket.disconnect();
+
+    socket.join(test.ID);
+
+    var user = test.STUDENTS[data.userId];
+    socketUsers[user.UserID] = {
+        ...socket,
+        testId: test.ID,
+        userName: user.LastName + " " + user.FirstName
+    }
+
+    var lobby = [];
+    for(let st of test.STUDENTS) {
+        if(st) lobby.push(`${st.LastName} ${st.FirstName}`);
+    }
+
+    socket.emit('join_testinfo', {
+        test: {
+            ID: test.id,
+            NAME: test.NAME,
+            TESTTIME: test.TESTTIME,
+            STATUS: test.STATUS
+        },
+        lobby: lobby
+    });
+
+    io.to(test.ID).emit('update_lobby', lobby);
+
+    Log(`[Test Room ${socketUsers[user.UserID].testId}] Student ${socketUsers[user.UserID].userName} has connected `);
+
+    socket.on('disconnect', () => { 
+        socket.leave(test.ID);
+        Log(`[Test Room ${socketUsers[user.UserID].testId}] Student ${socketUsers[user.UserID].userName} has disconnected `);
+        socketUsers[user.UserID] = null 
+    });
 }
 
 function generateMessage(from, text) {

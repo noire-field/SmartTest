@@ -14,7 +14,7 @@
 </head>
 <body>
     <div id="app-testing" class="container pt-3" style="display:none;">
-        <div v-if="fetchingData" class="text-center text-white loading-box"><img src="img/loading3.gif" class="icon-loading mr-2">Đang tải dữ liệu, vui lòng chờ...</div>
+        <div v-if="fetchingData" class="text-center text-white loading-box"><img src="img/loading3.gif" class="icon-loading mr-2">{? loadingText ?}</div>
         <div v-if="header.visible" class="row text-dark white-transparent-high py-3 px-2 d-flex align-items-center mb-4">
             <div class="col-md-4">
                 <h2 class="my-0 py-0">{? header.testName ?}</h2>
@@ -39,8 +39,8 @@
                 </div>
             </div>
             <div class="row">
-                <div v-for="n in 20" class="col-md-3 mb-3">
-                    <div class="white-transparent-high text-dark px-3 py-2"><i class="fas fa-user mr-2"></i>Phùng Hữu Lộc</div>
+                <div v-for="st in lobby.users" class="col-md-3 mb-3">
+                    <div class="white-transparent-high text-dark px-3 py-2"><i class="fas fa-user mr-2"></i>{? st ?}</div>
                 </div>
             </div>
         </div>
@@ -48,6 +48,7 @@
             <div class="card rounded-0">
                 <div class="card-header"><h5 class="mb-0"><i class="fas fa-pen-fancy mr-2"></i>Làm bài</h5></div>
                 <div class="card-body">
+                    <h5><i>Phần Cơ Bản</i></h5>
                     <h4>Câu 3. Việt Nam Cộng hòa thành lập năm bao nhiêu?</h4>
                     <div class="ml-md-4 mb-3">
                         <div class="radio"><label class="mb-0"><input type="radio" name="optradio" class="mr-2">Năm 1975</label></div>
@@ -78,23 +79,91 @@
             el: "#app-testing",
             delimiters: ['{?','?}'],
             data: {
-                fetchingData: false,
+                testId: {{ testId }},
+                userId: {{ user.UserID }},
+                socket: null,
+                fetchingData: true,
+                loadingText: "Đang kết nối...",
                 header: {
-                    visible: true,
+                    visible: false,
                     testName: "Kiểm tra lịch sử",
                     testStatus: "Mở phòng",
                     testQuestCount: [0, 10],
                     testTimeleft: "44:30"
                 },
                 lobby: {
-                    visible: false
+                    visible: false,
+                    users: []
                 },
                 testing: {
-                    visible: true
+                    visible: false
                 }
             },
-            mounted: () => {
+            methods: {
+                socketConnect() {
+                    this.socket = io();
+                    this.socket.on('connect', this.socketOnConnected);
+                    this.socket.on('disconnect', this.socketOnDisconnected);
+                    this.socket.on('connect_failed', this.socketOnConnectFailed);
+
+                    this.socket.on('join_testinfo', this.socketOnJoinTestInfo);
+                    this.socket.on('update_lobby', this.socketOnUpdateLobby);
+                },
+                socketOnConnected() {
+                    this.loadingText = "Đã kết nối, đang tải dữ liệu...";
+                    this.socket.emit('join_room', { testId: this.testId, userId: this.userId });
+                },
+                socketOnDisconnected() {
+
+                },
+                socketOnConnectFailed() {
+                    this.loadingText = "Không thể kết nối tới máy chú, thử lại sau.";
+                },
+                socketOnJoinTestInfo(data) {
+                    this.header = {
+                        visible: true,
+                        testName: data.test.NAME,
+                        testStatus: data.test.STATUS == 1 ? "Mở phòng" : "Làm bài",
+                        testQuestCount: ['-','-'],
+                        testTimeleft: ((data.test.TESTTIME < 10) ? ("0" + data.test.TESTTIME) : data.test.TESTTIME) + ":00"
+                    };
+
+                    this.lobby.users = data.lobby;
+
+                    if(data.test.STATUS == 1) {
+                        this.lobby.visible = true;
+                        this.testing.visible = false;
+                    }
+
+                    this.fetchingData = false;
+                },
+                socketOnUpdateLobby(data) {
+                    this.lobby.users = data;
+                }
+            },
+            mounted() {
+                // Show items after loading VueJS
                 document.getElementById('app-testing').style.display = "block";
+                this.socketConnect();
+
+                
+                /*
+                socket.on('connect', function() {
+                    console.log("Connected to server");
+                
+                    socket.emit('createMessage', {
+                        from: 'Noirefield',
+                        text: "Hi, that sucks"
+                    });
+                });
+
+                socket.on('disconnect', function() {
+                    console.log("Disconnected from server");
+                });
+
+                socket.on('newMessage', function(newMessage) {
+                    console.log("newMessage: ", newMessage);
+                });*/
             }
         });
     </script>
