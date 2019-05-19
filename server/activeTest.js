@@ -12,6 +12,7 @@ module.exports = {
 
 var RunningTests = [];
 var socketUsers = [];
+var socketIO = null;
 
 function CheckStartup() {
     QueryNow(`SELECT * FROM tests WHERE OpenStatus = 1 OR OpenStatus = 2`)
@@ -103,12 +104,21 @@ function StartTest(testId) {
                         } else  return outResolve({ status: false, message: 'Có lỗi không xác định' });
                     });
 
+        if(!socketIO) return outResolve({ status: false, message: "Socket không hoạt động" });
+
         Get_TestParts(testId)
         .then((result) => {
             if(result.status) {
+                thisTest.STATUS = 2;
                 thisTest.STARTTIME = new Date();
                 thisTest.PARTS = result.parts;
                 
+                socketIO.to(thisTest.ID).emit('start_test', {
+                    status: thisTest.STATUS,
+                    startTime: thisTest.STARTTIME,
+                    parts: ShuffleCheck_TestPart(thisTest.PARTS)
+                });
+
                 QueryNow(`UPDATE tests SET OpenStatus = 2, StartTime = NOW() WHERE TestID = ?`, [testId]);
                 return outResolve({ status: true });
             }
@@ -119,6 +129,17 @@ function StartTest(testId) {
             console.log(error);
         });
     });
+}
+
+function ShuffleCheck_TestPart(parts) {
+    var newParts = Object.assign({}, parts);
+    
+    for(let p in newParts)
+        for(let q of newParts[p].QUESTS)
+            for(let a of q.ANSWERS)
+                delete a.IsCorrect;
+    
+    return newParts;
 }
 
 function Get_TestParts(testId) {
@@ -145,6 +166,7 @@ function Get_TestParts(testId) {
     
                 for(let p of parts) {
                     var thisPart = {
+                        ID: p.TestPartID,
                         NAME: p.PartName,
                         QUESTS: []
                     };
@@ -152,6 +174,7 @@ function Get_TestParts(testId) {
                     for(let q of allQuests) {
                         if(p.TestPartID == q.TestPartID) {
                             var thisQuest = {
+                                ID: q.QuestID,
                                 CONTENT: q.QuestContent,
                                 ANSWERS: []
                             }
@@ -209,12 +232,13 @@ function Get_TestStudents(testId) {
         })
     });
 }
-/*
+
 setInterval(function() {
-    if(RunningTests[8]) console.log(RunningTests[8].STUDENTS);
+    //console.log(RunningTests[8].PARTS);
 }, 1500);
-*/
+
 function ActivateSocket(io) {
+    socketIO = io;
     io.on('connection', (socket) => {
         socket.on('join_room', (data) => { socketOnJoinRoom(io, socket, data); });
         

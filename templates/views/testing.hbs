@@ -48,21 +48,22 @@
             <div class="card rounded-0">
                 <div class="card-header"><h5 class="mb-0"><i class="fas fa-pen-fancy mr-2"></i>Làm bài</h5></div>
                 <div class="card-body">
-                    <h5><i>Phần Cơ Bản</i></h5>
-                    <h4>Câu 3. Việt Nam Cộng hòa thành lập năm bao nhiêu?</h4>
+                    <h5><i>Phần {? testing.parts[testing.quests[testing.selectedQuest].PartID] ?}</i></h5>
+                    <h4>Câu {? testing.selectedQuest + 1 ?}. {? testing.quests[testing.selectedQuest].CONTENT ?}</h4>
                     <div class="ml-md-4 mb-3">
-                        <div class="radio"><label class="mb-0"><input type="radio" name="optradio" class="mr-2">Năm 1975</label></div>
-                        <div class="radio"><label class="mb-0"><input type="radio" name="optradio" class="mr-2">Năm 1955</label></div>
-                        <div class="radio"><label class="mb-0"><input type="radio" name="optradio" class="mr-2">Năm 1945</label></div>
-                        <div class="radio"><label class="mb-0"><input type="radio" name="optradio" class="mr-2">Năm 1911</label></div>
+                        <div v-for="(a, i) in testing.quests[testing.selectedQuest].ANSWERS" class="radio">
+                            <label class="mb-0"><input type="radio" name="optradio" class="mr-2" :value="a.AnsID" v-model="testing.quests[testing.selectedQuest].CHOICE" :data-answer-id="a.AnsID">{? a.AnsContent ?}</label>
+                        </div>
                     </div>
                     <!-- <button class="btn btn-outline-info btn-sm"><i class="far fa-arrow-alt-circle-left mr-2"></i>Câu trước</button> -->
-                    <button class="btn btn-outline-primary btn-sm"><i class="far fa-arrow-alt-circle-right mr-2"></i>Câu kế tiếp</button>
+                    <button v-if="testing.selectedQuest < testing.quests.length-1" @click="nextQuest" class="btn btn-outline-primary btn-sm"><i class="far fa-arrow-alt-circle-right mr-2"></i>Câu kế tiếp</button>
                 </div>
                 <div class="card-footer">
                     <nav style="overflow: auto;">
                         <ul class="pagination my-0">
-                            <li v-for="n in 20" class="page-item"><a class="page-link" href="#">{? n ?}</a></li>
+                            <li v-for="(q, i) in testing.quests" class="page-item" :class="{ active: i == testing.selectedQuest }">
+                                <a @click="selectQuest" :data-quest-index="i" :data-quest-id="q.QuestID" class="page-link" :class="{'bg-success': q.CHOICE != null, 'text-white': q.CHOICE != null}" href="#">{? i+1 ?}</a>
+                            </li>
                         </ul>
                     </nav>
                 </div>
@@ -84,6 +85,7 @@
                 socket: null,
                 fetchingData: true,
                 loadingText: "Đang kết nối...",
+                clientStatus: 0,
                 header: {
                     visible: false,
                     testName: "Kiểm tra lịch sử",
@@ -96,7 +98,10 @@
                     users: []
                 },
                 testing: {
-                    visible: false
+                    visible: false,
+                    parts: [],
+                    quests: [],
+                    selectedQuest: 0
                 }
             },
             methods: {
@@ -108,6 +113,7 @@
 
                     this.socket.on('join_testinfo', this.socketOnJoinTestInfo);
                     this.socket.on('update_lobby', this.socketOnUpdateLobby);
+                    this.socket.on('start_test', this.socketOnStartTest);
                 },
                 socketOnConnected() {
                     this.loadingText = "Đã kết nối, đang tải dữ liệu...";
@@ -131,14 +137,58 @@
                     this.lobby.users = data.lobby;
 
                     if(data.test.STATUS == 1) {
+                        this.clientStatus = 1;
                         this.lobby.visible = true;
                         this.testing.visible = false;
+                    } else if(data.test.STATUS == 1) {
+                        this.clientStatus = 2;
                     }
 
                     this.fetchingData = false;
                 },
                 socketOnUpdateLobby(data) {
                     this.lobby.users = data;
+                },
+                socketOnStartTest(data) {
+                    var questList = [];
+                    for(let p in data.parts) {
+                        let part = data.parts[p];
+
+                        this.testing.parts[part.ID] = part.NAME;
+                        this.shuffleArray(part.QUESTS);
+
+                        for(let q of part.QUESTS)
+                            questList.push({
+                                QuestID: q.ID,
+                                PartID: part.ID,
+                                CONTENT: q.CONTENT,
+                                ANSWERS: q.ANSWERS,
+                                CHOICE: null
+                            });
+                    }
+
+                    this.testing.quests = questList;
+                    this.header.testStatus = "Làm bài";
+                    this.header.testQuestCount = [0, questList.length];
+                    this.clientStatus = 2;
+
+                    this.lobby.visible = false;
+                    this.testing.visible = true;
+                },
+                shuffleArray(a) {
+                    for (let i = a.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [a[i], a[j]] = [a[j], a[i]];
+                    }
+                    return a;
+                },
+                selectQuest: function(e) {
+                    var questIndex = Number(e.currentTarget.getAttribute('data-quest-index'));
+                    this.testing.selectedQuest = questIndex;
+                },
+                nextQuest() {
+                    if(this.testing.selectedQuest < this.testing.quests.length-1)
+                        this.testing.selectedQuest++;
                 }
             },
             mounted() {
