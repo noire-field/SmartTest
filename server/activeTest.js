@@ -175,6 +175,7 @@ function Get_TestParts(testId) {
                         if(p.TestPartID == q.TestPartID) {
                             var thisQuest = {
                                 ID: q.QuestID,
+                                PARTQUESTID: q.PartQuestID,
                                 CONTENT: q.QuestContent,
                                 ANSWERS: []
                             }
@@ -241,26 +242,7 @@ function ActivateSocket(io) {
     socketIO = io;
     io.on('connection', (socket) => {
         socket.on('join_room', (data) => { socketOnJoinRoom(io, socket, data); });
-        
-        //console.log(socket);
-        /*
-        console.log("New user connected");
-    
-        // Welcome
-        socket.emit('newMessage', generateMessage('Admin', 'Welcome to the chat!'));
-        socket.broadcast.emit('newMessage', generateMessage('Admin', 'New user joined!'));
-
-        socket.on('createMessage', (message) => {
-            console.log('createMessage: ', message);
-    
-            io.emit('newMessage', generateMessage(message.from, message.text));
-    
-            socket.broadcast.emit('newMessage', {
-                from: message.from,
-                text: message.text,
-                createdAt: new Date().getTime()
-            });
-        })*/
+        socket.on('save_test', (data) => { socketOnSaveTest(socket, data); })
     });
 
     Log('Socket.IO Server has started alongside the HTTP Server');
@@ -274,8 +256,10 @@ function socketOnJoinRoom(io, socket, data) {
     socket.join(test.ID);
 
     var user = test.STUDENTS[data.userId];
+    if(!user) return socket.disconnect();
+
     socketUsers[user.UserID] = {
-        ...socket,
+        socket: socket,
         testId: test.ID,
         userName: user.LastName + " " + user.FirstName
     }
@@ -285,15 +269,28 @@ function socketOnJoinRoom(io, socket, data) {
         if(st) lobby.push(`${st.LastName} ${st.FirstName}`);
     }
 
-    socket.emit('join_testinfo', {
-        test: {
-            ID: test.id,
-            NAME: test.NAME,
-            TESTTIME: test.TESTTIME,
-            STATUS: test.STATUS
-        },
-        lobby: lobby
-    });
+    if(test.STATUS == 1)
+        socket.emit('join_testinfo', {
+            test: {
+                ID: test.id,
+                NAME: test.NAME,
+                STARTTIME: test.STARTTIME,
+                TESTTIME: test.TESTTIME,
+                STATUS: test.STATUS
+            },
+            lobby: lobby
+        });
+    else if(test.STATUS == 2)
+        socket.emit('join_testinfo', {
+            test: {
+                ID: test.id,
+                NAME: test.NAME,
+                STARTTIME: test.STARTTIME,
+                TESTTIME: test.TESTTIME,
+                STATUS: test.STATUS
+            },
+            parts: ShuffleCheck_TestPart(test.PARTS)
+        });
 
     io.to(test.ID).emit('update_lobby', lobby);
 
@@ -303,6 +300,76 @@ function socketOnJoinRoom(io, socket, data) {
         socket.leave(test.ID);
         Log(`[Test Room ${socketUsers[user.UserID].testId}] Student ${socketUsers[user.UserID].userName} has disconnected `);
         socketUsers[user.UserID] = null 
+    });
+}
+
+function socketOnSaveTest(socket, data) {
+    var test = RunningTests[data.testId];
+    if(!test || !test.STUDENTS[data.userId]) 
+        return socket.disconnect();
+
+    var user = test.STUDENTS[data.userId];
+    if(!user) return socket.disconnect();
+
+    if(socketUsers[user.UserID].socket != socket) {
+        socket.emit('save_result', { status: false, message: 'Hành động bất hợp pháp, không thể lưu bài' });
+        return;
+    }
+
+    var quests = data.quests;
+    if(!quests || quests.length <= 0) {
+        socket.emit('save_result', { status: false, message: 'Không có gì để lưu...' });
+        return;
+    }
+    
+    QueryNow(`SELECT stq.StuTestQuestID, stq.PartQuestID, stq.AnsID FROM studenttests st INNER JOIN testparts tp ON st.TestID = tp.TestID INNER JOIN partquests pq ON tp.TestPartID = pq.TestPartID INNER JOIN studenttestquests stq ON stq.PartQuestID = pq.PartQuestID WHERE st.UserID = ? AND st.TestID = ?;`, 
+    [user.UserID, test.ID]).then((rows) => {
+        var addList = [];
+        var updateList = [];
+
+        for(let qC of quests) {
+            let found = false;
+            for(let qS of rows) {
+                if(qC.PartQuestID ==  qS.PartQuestID) {
+                    c = true;
+                    if(qC.AnsID != qS.AnsID) 
+                        updateList.push({ 
+                            StuTestQuestID: qS.StuTestQuestID,
+                            PartQuestID: qS.PartQuestID,
+                            AnsID: qC.AnsID
+                        });
+                    found = true;
+                    break;
+                }
+            }
+
+            if(!found) addList.push({
+                PartQuestID: qC.PartQuestID,
+                AnsID: qC.AnsID
+            });
+        }
+
+        var promiseTasks = [];
+        
+        for(let q of addList)
+            promiseTasks.push(QueryNow(`INSERT INTO studenttestquests (UserID,PartQuestID,AnsID) VALUES(?,?,?)`, [user.UserID, q.PartQuestID, q.AnsID]));
+        for(let q of updateList)
+            promiseTasks.push(QueryNow(`UPDATE studenttestquests SET AnsID = ? WHERE UserID = ? AND StuTestQuestID = ?`, [q.AnsID, user.UserID, q.StuTestQuestID]));
+
+        if(promiseTasks.length > 0) {
+            Promise.all(promiseTasks)
+            .then((rows) => {
+                socket.emit('save_result', { status: true, addList, updateList });
+            })
+            .catch((error) => {
+                socket.emit('save_result', { status: false, message: "Không thể lưu bài do lỗi cập nhật" });
+            });
+        } else {
+            socket.emit('save_result', { status: true });
+        }
+    })
+    .catch((error) => {
+        socket.emit('save_result', { status: false, message: "Không thể lưu bài do lỗi khi tìm câu hỏi" });
     });
 }
 

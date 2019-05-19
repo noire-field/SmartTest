@@ -34,7 +34,7 @@
                 <div class="col-md-12">
                     <div class="white-transparent-high text-dark px-3 py-2 d-flex justify-content-between align-items-center">
                         <h5 class="text-center my-0 py-0"><i class="fas fa-users mr-2"></i>Sinh viên tham dự</h5>
-                        <h3>20</h3>
+                        <h3>{? lobby.users.length ?}</h3>
                     </div>
                 </div>
             </div>
@@ -46,13 +46,20 @@
         </div>
         <div v-if="testing.visible">
             <div class="card rounded-0">
-                <div class="card-header"><h5 class="mb-0"><i class="fas fa-pen-fancy mr-2"></i>Làm bài</h5></div>
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-pen-fancy mr-2"></i>Làm bài</h5>
+                    <button @click="saveTest" class="btn btn-info btn-sm" :disabled="testing.saveStatus >= 1">
+                        <span v-if="testing.saveStatus == 0"><i class="far fa-save mr-2"></i>Lưu bài</span>
+                        <div v-if="testing.saveStatus == 1" class="lds-hourglass mr-2"></div>
+                        <span v-if="testing.saveStatus == 2"><i class="far fa-save mr-2"></i>Lưu bài</span>
+                    </button>
+                </div>
                 <div class="card-body">
                     <h5><i>Phần {? testing.parts[testing.quests[testing.selectedQuest].PartID] ?}</i></h5>
                     <h4>Câu {? testing.selectedQuest + 1 ?}. {? testing.quests[testing.selectedQuest].CONTENT ?}</h4>
                     <div class="ml-md-4 mb-3">
                         <div v-for="(a, i) in testing.quests[testing.selectedQuest].ANSWERS" class="radio">
-                            <label class="mb-0"><input type="radio" name="optradio" class="mr-2" :value="a.AnsID" v-model="testing.quests[testing.selectedQuest].CHOICE" :data-answer-id="a.AnsID">{? a.AnsContent ?}</label>
+                            <label class="mb-0"><input type="radio" @change="onCheckChange" class="mr-2" :value="a.AnsID" v-model="testing.quests[testing.selectedQuest].CHOICE" :data-answer-id="a.AnsID">{? a.AnsContent ?}</label>
                         </div>
                     </div>
                     <!-- <button class="btn btn-outline-info btn-sm"><i class="far fa-arrow-alt-circle-left mr-2"></i>Câu trước</button> -->
@@ -101,9 +108,13 @@
                     visible: false,
                     parts: [],
                     quests: [],
-                    selectedQuest: 0
+                    selectedQuest: 0,
+                    saveStatus: 0
                 }
             },
+            computed: {
+                
+            }, 
             methods: {
                 socketConnect() {
                     this.socket = io();
@@ -114,6 +125,7 @@
                     this.socket.on('join_testinfo', this.socketOnJoinTestInfo);
                     this.socket.on('update_lobby', this.socketOnUpdateLobby);
                     this.socket.on('start_test', this.socketOnStartTest);
+                    this.socket.on('save_result', this.socketOnSaveResult);
                 },
                 socketOnConnected() {
                     this.loadingText = "Đã kết nối, đang tải dữ liệu...";
@@ -126,6 +138,9 @@
                     this.loadingText = "Không thể kết nối tới máy chú, thử lại sau.";
                 },
                 socketOnJoinTestInfo(data) {
+                    if(this.clientStatus == data.test.STATUS)
+                        return
+
                     this.header = {
                         visible: true,
                         testName: data.test.NAME,
@@ -140,8 +155,15 @@
                         this.clientStatus = 1;
                         this.lobby.visible = true;
                         this.testing.visible = false;
-                    } else if(data.test.STATUS == 1) {
+                    } else if(data.test.STATUS == 2) {
                         this.clientStatus = 2;
+
+                        var questList = this.loadPartQuests(data.parts);
+                        this.testing.quests = questList;
+                        this.header.testQuestCount = [0, questList.length];
+
+                        this.lobby.visible = false;
+                        this.testing.visible = true;
                     }
 
                     this.fetchingData = false;
@@ -150,22 +172,7 @@
                     this.lobby.users = data;
                 },
                 socketOnStartTest(data) {
-                    var questList = [];
-                    for(let p in data.parts) {
-                        let part = data.parts[p];
-
-                        this.testing.parts[part.ID] = part.NAME;
-                        this.shuffleArray(part.QUESTS);
-
-                        for(let q of part.QUESTS)
-                            questList.push({
-                                QuestID: q.ID,
-                                PartID: part.ID,
-                                CONTENT: q.CONTENT,
-                                ANSWERS: q.ANSWERS,
-                                CHOICE: null
-                            });
-                    }
+                    var questList = this.loadPartQuests(data.parts);
 
                     this.testing.quests = questList;
                     this.header.testStatus = "Làm bài";
@@ -174,6 +181,27 @@
 
                     this.lobby.visible = false;
                     this.testing.visible = true;
+                },
+                loadPartQuests(parts) {
+                    var questList = [];
+                    for(let p in parts) {
+                        let part = parts[p];
+
+                        this.testing.parts[part.ID] = part.NAME;
+                        this.shuffleArray(part.QUESTS);
+
+                        for(let q of part.QUESTS)
+                            questList.push({
+                                QuestID: q.ID,
+                                PartID: part.ID,
+                                PartQuestID: q.PARTQUESTID,
+                                CONTENT: q.CONTENT,
+                                ANSWERS: q.ANSWERS,
+                                CHOICE: null
+                            });
+                    }
+
+                    return questList;
                 },
                 shuffleArray(a) {
                     for (let i = a.length - 1; i > 0; i--) {
@@ -189,6 +217,36 @@
                 nextQuest() {
                     if(this.testing.selectedQuest < this.testing.quests.length-1)
                         this.testing.selectedQuest++;
+                },
+                saveTest() {
+                    if(this.testing.saveStatus > 0) 
+                        return;
+
+                    this.testing.saveStatus = 1;
+
+                    var saveQuests = [];
+
+                    for(let q in this.testing.quests) {
+                        let quest = this.testing.quests[q];
+                        if(quest.CHOICE != null) saveQuests.push({
+                            PartQuestID: quest.PartQuestID,
+                            AnsID: quest.CHOICE
+                        });
+                    }
+
+                    this.socket.emit('save_test', { testId: this.testId, userId: this.userId, quests: saveQuests });
+                },
+                onCheckChange() {
+                    this.testing.saveStatus = 0;
+                },
+                socketOnSaveResult(data) {
+                    if(data.status) {
+                        this.testing.saveStatus = 2;
+                        //console.log(data);
+                    } else {
+                        this.testing.saveStatus = 0;
+                        alert(data.message);
+                    }
                 }
             },
             mounted() {
