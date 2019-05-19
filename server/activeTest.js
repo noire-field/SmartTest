@@ -280,18 +280,27 @@ function socketOnJoinRoom(io, socket, data) {
             },
             lobby: lobby
         });
-    else if(test.STATUS == 2)
-        socket.emit('join_testinfo', {
-            test: {
-                ID: test.id,
-                NAME: test.NAME,
-                STARTTIME: test.STARTTIME,
-                TESTTIME: test.TESTTIME,
-                STATUS: test.STATUS
-            },
-            parts: ShuffleCheck_TestPart(test.PARTS)
+    else if(test.STATUS == 2) {
+        QueryNow(`SELECT stq.StuTestQuestID, stq.PartQuestID, stq.AnsID FROM studenttests st INNER JOIN testparts tp ON st.TestID = tp.TestID INNER JOIN partquests pq ON tp.TestPartID = pq.TestPartID INNER JOIN studenttestquests stq ON stq.PartQuestID = pq.PartQuestID WHERE st.UserID = ? AND st.TestID = ?;`, 
+        [user.UserID, test.ID])
+        .then((rows) => {
+            socket.emit('join_testinfo', {
+                test: {
+                    ID: test.id,
+                    NAME: test.NAME,
+                    STARTTIME: test.STARTTIME,
+                    TESTTIME: test.TESTTIME,
+                    STATUS: test.STATUS
+                },
+                parts: ShuffleCheck_TestPart(test.PARTS),
+                preSaved: rows
+            });
+        })
+        .catch((error) => {
+            console.log('Something went wrong at the socketOnJoinRoom');
         });
-
+    }
+        
     io.to(test.ID).emit('update_lobby', lobby);
 
     Log(`[Test Room ${socketUsers[user.UserID].testId}] Student ${socketUsers[user.UserID].userName} has connected `);

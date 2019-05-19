@@ -164,6 +164,9 @@
 
                         this.lobby.visible = false;
                         this.testing.visible = true;
+
+                        this.loadSavedAnswers(data.preSaved);
+                        this.updateQuestCount();
                     }
 
                     this.fetchingData = false;
@@ -238,6 +241,7 @@
                 },
                 onCheckChange() {
                     this.testing.saveStatus = 0;
+                    this.updateQuestCount();
                 },
                 socketOnSaveResult(data) {
                     if(data.status) {
@@ -246,6 +250,23 @@
                     } else {
                         this.testing.saveStatus = 0;
                         alert(data.message);
+                    }
+                },
+                loadSavedAnswers(ans) {
+                    for(let q of this.testing.quests)
+                        for(let a of ans)
+                            if(q.PartQuestID == a.PartQuestID) {
+                                q.CHOICE = a.AnsID;
+                                break;
+                            }
+                },
+                updateQuestCount() {
+                    if(this.clientStatus == 2) {
+                        let totalAnswered = 0;
+                        for(let q of this.testing.quests)
+                            if(q.CHOICE) totalAnswered++;
+
+                        this.header.testQuestCount = [totalAnswered, this.testing.quests.length];
                     }
                 }
             },
