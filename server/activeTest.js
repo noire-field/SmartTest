@@ -14,6 +14,15 @@ var RunningTests = [];
 var socketUsers = [];
 var socketIO = null;
 
+/* KNOWNS BUG
+    1. Must input all tags to detect questions when creating test
+    2. One account multi page bug
+    3. Auto redirect to testing from homepage if in test
+    4. Statistics from Dashboard doesn't work
+    5. Disallow to join more than one test at once
+    7. Show Dashboard for Admin/Lecturer and Result page for Student
+*/
+
 function CheckStartup() {
     QueryNow(`SELECT * FROM tests WHERE OpenStatus = 1 OR OpenStatus = 2`)
     .then((tests) => {
@@ -29,7 +38,9 @@ function CheckStartup() {
                 TESTTIME: Number(t.TestTime),
                 STATUS: Number(t.OpenStatus),
                 PARTS: [],
-                STUDENTS: []
+                STUDENTS: [],
+                TIMER: null,
+                MAPQUESTS: null
             };
 
             if(thisTest.STATUS >= 1) { // Opening + Testing
@@ -37,6 +48,9 @@ function CheckStartup() {
                 .then((list) => {
                     thisTest.STUDENTS = list;
                     RunningTests[thisTest.ID] = thisTest;
+
+                    if(thisTest.STATUS == 2)
+                        Get_StudentSavedQuests(thisTest);
                 })
                 .catch((error) => {
                     console.log(error);
@@ -48,8 +62,15 @@ function CheckStartup() {
                     if(result.status) {
                         thisTest.PARTS = result.parts;
                         RunningTests[thisTest.ID] = thisTest;
+
+                        thisTest.MAPQUESTS = TestMapQuests(thisTest);
                     }
                 });
+
+                thisTest.TIMER = setInterval(() => {
+                    let currentTest = thisTest;
+                    CheckTestTimer(currentTest);
+                }, 1000);
             } else {
                 RunningTests[thisTest.ID] = thisTest;
             }
@@ -74,7 +95,9 @@ function OpenTest(testId) {
                 TESTTIME: Number(rows[0].TestTime),
                 STATUS: 1,
                 PARTS: [],
-                STUDENTS: []
+                STUDENTS: [],
+                TIMER: null,
+                MAPQUESTS: null
             };
 
             return QueryNow(`UPDATE tests SET OpenStatus = 1 WHERE TestID = ?`, [testId])
@@ -112,12 +135,19 @@ function StartTest(testId) {
                 thisTest.STATUS = 2;
                 thisTest.STARTTIME = new Date();
                 thisTest.PARTS = result.parts;
+                thisTest.TIMER = setInterval(() => {
+                    let currentTest = thisTest;
+                    CheckTestTimer(currentTest);
+                }, 1000);
+                thisTest.MAPQUESTS = TestMapQuests(thisTest);
                 
                 socketIO.to(thisTest.ID).emit('start_test', {
                     status: thisTest.STATUS,
                     startTime: thisTest.STARTTIME,
                     parts: ShuffleCheck_TestPart(thisTest.PARTS)
                 });
+
+                CheckTestTimer(thisTest);
 
                 QueryNow(`UPDATE tests SET OpenStatus = 2, StartTime = NOW() WHERE TestID = ?`, [testId]);
                 return outResolve({ status: true });
@@ -131,14 +161,100 @@ function StartTest(testId) {
     });
 }
 
+function CheckTestTimer(test) {
+    if(!test) return;
+    if(test.STATUS != 2) {
+        if(test.TIMER) clearInterval(test.TIMER);
+        return;
+    }
+    if(!socketIO) {
+        Log('[WARNING] Socket.IO is not running while a testing is taking place...');
+        return;
+    }
+    
+    var currentTime = new Date();
+    var testStartTime = new Date(test.STARTTIME);
+    var testEndTime = new Date(testStartTime.getTime() + ((test.TESTTIME * 60) * 1000));
+
+    if(currentTime < testEndTime) {
+        var remainSec = Math.round((testEndTime-currentTime) / 1000);
+        var min = Math.floor(remainSec / 60);
+        var sec = remainSec % 60;
+
+        socketIO.to(test.ID).emit('update_time', {
+            timeleft: [
+                (min < 10 ? "0" : "") + min,
+                (sec < 10 ? "0" : "") + sec
+            ]
+        });
+    } else {
+        test.STATUS = 3;
+        if(test.TIMER) clearInterval(test.TIMER);
+        
+        socketIO.to(test.ID).emit('update_time', {
+            timeleft: [ "00", "00" ]
+        });
+
+        CheckTestMarks(test);
+
+        // Transfer result to client
+        for(let st of test.STUDENTS) {
+            if(!st) continue;
+            if(socketUsers[st.UserID]) 
+                socketUsers[st.UserID].socket.emit('finish_test', {
+                    correctAnswers: st.CorrectCount,
+                    totalAnswers: test.MAPQUESTS.size
+                });
+        }
+
+        QueryNow(`UPDATE tests SET OpenStatus = 3 WHERE TestID = ?`, [test.ID]);
+        RunningTests[test.ID] = null;
+
+        return;
+    }
+}
+
+function TestMapQuests(test) {
+    var mapQuests = new Map();
+    for(let p of test.PARTS) {
+        for(let q of p.QUESTS) {
+            var correctAnswer = 0;
+            for(let a of q.ANSWERS) 
+               if(a.IsCorrect) {
+                   correctAnswer = a.AnsID
+                   break;
+               }
+            mapQuests.set(q.PARTQUESTID, correctAnswer);
+        }
+    }
+
+    return mapQuests;
+}
+
+// mapQuests.set(q.PARTQUESTID, )
+function CheckTestMarks(test) {
+    for(let st of test.STUDENTS) {
+        if(!st) continue;
+        let totalCorrect = 0;
+        for(let q of st.TestQuests) {
+            if(test.MAPQUESTS.get(q.PartQuestID) == q.AnsID)
+                totalCorrect++;
+        }
+
+        st.CorrectCount = totalCorrect;
+    }
+}
+
 function ShuffleCheck_TestPart(parts) {
     var newParts = Object.assign({}, parts);
     
     for(let p in newParts)
         for(let q of newParts[p].QUESTS)
-            for(let a of q.ANSWERS)
+            for(let a of q.ANSWERS) {
+                a = Object.assign({}, a);
                 delete a.IsCorrect;
-    
+            }
+
     return newParts;
 }
 
@@ -222,7 +338,8 @@ function Get_TestStudents(testId) {
                     JoinedDate: new Date(st.JoinedDate),
                     FirstName: st.FirstName,
                     LastName: st.LastName,
-                    TestQuests: []
+                    TestQuests: [],
+                    CorrectCount: 0
                 }
             }
 
@@ -232,6 +349,18 @@ function Get_TestStudents(testId) {
             return outReject('Không thể lấy danh sách sinh viên đang làm');
         })
     });
+}
+
+function Get_StudentSavedQuests(test) {
+    for(let st of test.STUDENTS)
+    {
+        if(!st) continue;
+        QueryNow(`SELECT stq.StuTestQuestID, stq.PartQuestID, stq.AnsID FROM studenttests st INNER JOIN testparts tp ON st.TestID = tp.TestID INNER JOIN partquests pq ON tp.TestPartID = pq.TestPartID INNER JOIN studenttestquests stq ON stq.PartQuestID = pq.PartQuestID WHERE st.UserID = ? AND st.TestID = ?;`, 
+        [st.UserID, test.ID])
+        .then((rows) => {
+            st.TestQuests = rows;
+        });
+    }
 }
 
 setInterval(function() {
@@ -368,13 +497,15 @@ function socketOnSaveTest(socket, data) {
         if(promiseTasks.length > 0) {
             Promise.all(promiseTasks)
             .then((rows) => {
-                socket.emit('save_result', { status: true, addList, updateList });
+                user.TestQuests = quests;
+                socket.emit('save_result', { status: true, savedCount: quests.length, addList, updateList });
             })
             .catch((error) => {
                 socket.emit('save_result', { status: false, message: "Không thể lưu bài do lỗi cập nhật" });
             });
         } else {
-            socket.emit('save_result', { status: true });
+            user.TestQuests = quests;
+            socket.emit('save_result', { status: true, savedCount: quests.length });
         }
     })
     .catch((error) => {

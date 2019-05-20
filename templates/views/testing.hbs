@@ -47,11 +47,11 @@
         <div v-if="testing.visible">
             <div class="card rounded-0">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="fas fa-pen-fancy mr-2"></i>Làm bài</h5>
+                    <h5 class="mb-0"><i class="fas fa-pen-fancy mr-2"></i>Bài làm</h5>
                     <button @click="saveTest" class="btn btn-info btn-sm" :disabled="testing.saveStatus >= 1">
                         <span v-if="testing.saveStatus == 0"><i class="far fa-save mr-2"></i>Lưu bài</span>
                         <div v-if="testing.saveStatus == 1" class="lds-hourglass mr-2"></div>
-                        <span v-if="testing.saveStatus == 2"><i class="far fa-save mr-2"></i>Lưu bài</span>
+                        <span v-if="testing.saveStatus == 2"><i class="far fa-check-circle mr-2"></i>Đã lưu bài ({? testing.savedCount[0] ?}/{? testing.savedCount[1] ?})</span>
                     </button>
                 </div>
                 <div class="card-body">
@@ -73,6 +73,32 @@
                             </li>
                         </ul>
                     </nav>
+                </div>
+            </div>
+        </div>
+        <div v-if="result.visible">
+            <div class="row mb-2 mt-5 d-flex justify-content-center">
+                <div class="col-md-6">
+                    <div class="white-transparent-high text-dark px-3 py-2">
+                        <h5 class="text-center my-0 py-0"><i class="far fa-check-circle mr-2"></i>Kết quả kiểm tra</h5>
+                    </div>
+                </div>
+            </div>
+            <div class="row d-flex justify-content-center">
+                <div class="col-md-6">
+                    <div class="white-transparent-high text-dark px-3 py-5 text-center">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <b>Tổng số câu đúng</b>
+                                <h1>{? result.correctAnswers ?}/{? result.totalAnswers ?}</h1>
+                            </div>
+                            <div class="col-md-6">
+                                <b>Điểm số</b>
+                                <small>(Tối đa: 10)</small>
+                                <h1>{? result.mark ?}</h1>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -109,7 +135,14 @@
                     parts: [],
                     quests: [],
                     selectedQuest: 0,
-                    saveStatus: 0
+                    saveStatus: 0,
+                    savedCount: [0, 0]
+                },
+                result: {
+                    visible: false,
+                    correctAnswers: 0,
+                    totalAnswers: 0,
+                    mark: 0
                 }
             },
             computed: {
@@ -126,6 +159,8 @@
                     this.socket.on('update_lobby', this.socketOnUpdateLobby);
                     this.socket.on('start_test', this.socketOnStartTest);
                     this.socket.on('save_result', this.socketOnSaveResult);
+                    this.socket.on('update_time', this.socketOnUpdateTime);
+                    this.socket.on('finish_test', this.socketOnFinishTest);
                 },
                 socketOnConnected() {
                     this.loadingText = "Đã kết nối, đang tải dữ liệu...";
@@ -245,8 +280,11 @@
                 },
                 socketOnSaveResult(data) {
                     if(data.status) {
+                        this.testing.savedCount = [
+                            data.savedCount,
+                            this.testing.quests.length
+                        ];
                         this.testing.saveStatus = 2;
-                        //console.log(data);
                     } else {
                         this.testing.saveStatus = 0;
                         alert(data.message);
@@ -268,31 +306,32 @@
 
                         this.header.testQuestCount = [totalAnswered, this.testing.quests.length];
                     }
+                },
+                socketOnUpdateTime(data) {
+                    if(this.clientStatus == 2) {
+                        this.header.testTimeleft = data.timeleft[0] + ":" + data.timeleft[1];
+                    }
+                },
+                socketOnFinishTest(data) {
+                    if(this.clientStatus != 3) {
+                        this.header.testStatus = "Hết giờ";
+                        this.clientStatus = 3;
+
+                        this.lobby.visible = false;
+                        this.testing.visible = false;
+                        
+
+                        this.result.correctAnswers = data.correctAnswers;
+                        this.result.totalAnswers = data.totalAnswers;
+                        this.result.mark = Math.round((data.correctAnswers / (data.totalAnswers+1) * 10) * 100) / 100;
+                        this.result.visible = true;
+                    }
                 }
             },
             mounted() {
                 // Show items after loading VueJS
-                document.getElementById('app-testing').style.display = "block";
+                document.getElementById("app-testing").style.display = "block";
                 this.socketConnect();
-
-                
-                /*
-                socket.on('connect', function() {
-                    console.log("Connected to server");
-                
-                    socket.emit('createMessage', {
-                        from: 'Noirefield',
-                        text: "Hi, that sucks"
-                    });
-                });
-
-                socket.on('disconnect', function() {
-                    console.log("Disconnected from server");
-                });
-
-                socket.on('newMessage', function(newMessage) {
-                    console.log("newMessage: ", newMessage);
-                });*/
             }
         });
     </script>
