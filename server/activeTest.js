@@ -17,10 +17,8 @@ var socketIO = null;
 /* KNOWNS BUG
     1. Must input all tags to detect questions when creating test
     2. One account multi page bug
-    3. Auto redirect to testing from homepage if in test
-    4. Statistics from Dashboard doesn't work
-    5. Disallow to join more than one test at once
-    7. Show Dashboard for Admin/Lecturer and Result page for Student
+    6. Auto Save Test
+    7. Recheck Skin and Stuff
 */
 
 function CheckStartup() {

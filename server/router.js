@@ -130,11 +130,35 @@ module.exports.register = function(app) {
         switch(page) {
             case undefined:
             case null:
-                res.render('dashboard/index', {
-                    page: 'index',
-                    head_title: 'Trang quản lý - ' + config.APP_NAME,
-                    user: req.user
+                var promiseTasks = [
+                    QueryNow('SELECT COUNT(*) Total FROM users'),
+                    QueryNow('SELECT COUNT(*) Total FROM subjects'),
+                    QueryNow('SELECT COUNT(*) Total FROM questions'),
+                    QueryNow('SELECT COUNT(*) Total FROM tests'),
+                ]; 
+                
+                Promise.all(promiseTasks).then((sets) => {
+                    res.render('dashboard/index', {
+                        page: 'index',
+                        head_title: 'Trang quản lý - ' + config.APP_NAME,
+                        user: req.user,
+                        statUsers: sets[0][0].Total,
+                        statSubjects: sets[1][0].Total,
+                        statQuests: sets[2][0].Total,
+                        statTests: sets[3][0].Total
+                    })
+                }).catch((error) => {
+                    res.render('dashboard/index', {
+                        page: 'index',
+                        head_title: 'Trang quản lý - ' + config.APP_NAME,
+                        user: req.user,
+                        statUsers: 0,
+                        statSubjects: 0,
+                        statQuests: 0,
+                        statTests: 0
+                    })
                 })
+
                 break;
             case 'users': Controller_Users(0, action, id, req, res, next); break;
             case 'subjects': Controller_Subjects(0, action, id, req, res, next); break;
@@ -172,11 +196,39 @@ module.exports.register = function(app) {
 
     // Homepage
     app.get('/', (req, res, next) => {
-        return res.render('index', {
-            head_title: 'Trang chủ - ' + config.APP_NAME,
-            isUserLogged: req.isAuthenticated(),
-            user: req.isAuthenticated() ? req.user : null
-        });
+        if(!req.isAuthenticated()) {
+            return res.render('index', {
+                head_title: 'Trang chủ - ' + config.APP_NAME,
+                isUserLogged: false
+            });
+        } else {
+            if(req.user.RoleType <= 0) { // Student
+                console.log('Check')
+                QueryNow(`SELECT t.TestID, t.PINCode FROM studenttests st INNER JOIN tests t ON st.TestID = t.TestID WHERE t.OpenStatus IN (1,2) AND st.UserID = ?`,
+                [req.user.UserID]).then((rows) => {
+                    return res.render('index', {
+                        head_title: 'Trang chủ - ' + config.APP_NAME,
+                        isUserLogged: true,
+                        user: req.user,
+                        isUserAdmin: false,
+                        isInTest: rows.length > 0 ? true : false,
+                        testPIN: rows.length > 0 ? rows[0].PINCode : ''
+                    });
+                })
+                .catch((error) => {
+                    console.log(error);
+                    return res.render('error', { message: 'Không thể kiểm tra tài khoản này.' });
+                })
+            } else { // Admin, Lecturer
+                return res.render('index', {
+                    head_title: 'Trang chủ - ' + config.APP_NAME,
+                    isUserLogged: true,
+                    user: req.user,
+                    isUserAdmin: true,
+                    isInTest: false
+                });
+            }
+        }        
     });
 
     app.get('/findroom/:pin?', (req, res, next) => {
@@ -189,7 +241,14 @@ module.exports.register = function(app) {
         if(!(new RegExp(/^\d{5}$/).test(pin)))
             return res.json({ status: false, message: "Mã pin không hợp lệ" });
 
-        QueryNow(`SELECT t.TestName, t.TestTime, u.FirstName FROM tests t INNER JOIN users u ON t.OwnerID = u.UserID WHERE t.PINCode = ? AND t.OpenStatus = 1`, [pin])
+        QueryNow(`SELECT t.TestID, t.PINCode FROM studenttests st INNER JOIN tests t ON st.TestID = t.TestID WHERE t.OpenStatus IN (1,2) AND st.UserID = ?`,
+        [req.user.UserID])
+        .then((rows) => {
+            if(rows.length > 0)
+                return res.json({ status: false, message: "Bạn đang thực hiện một bài kiểm tra, vui lòng kết thúc bài đó trước. Hãy bấm F5." });
+
+            return QueryNow(`SELECT t.TestName, t.TestTime, u.FirstName FROM tests t INNER JOIN users u ON t.OwnerID = u.UserID WHERE t.PINCode = ? AND t.OpenStatus = 1`, [pin]);
+        })
         .then((rows) => {
             if(rows.length <= 0)
                 return res.json({ status: false, message: "Bài kiểm tra không tồn tại, có thể chưa mở hoặc sai mã PIN." });
@@ -211,7 +270,14 @@ module.exports.register = function(app) {
         if(!(new RegExp(/^\d{5}$/).test(pin)))
             return res.redirect('/');
 
-        QueryNow(`SELECT t.TestID FROM tests t WHERE t.PINCode = ? AND t.OpenStatus = 1`, [pin])
+        QueryNow(`SELECT t.TestID, t.PINCode FROM studenttests st INNER JOIN tests t ON st.TestID = t.TestID WHERE t.OpenStatus IN (1,2) AND st.UserID = ?`,
+        [req.user.UserID])
+        .then((rows) => {
+            if(rows.length > 0)
+                return res.redirect('/');
+
+            return QueryNow(`SELECT t.TestID FROM tests t WHERE t.PINCode = ? AND t.OpenStatus = 1`, [pin])
+        })
         .then((rows) => {
             if(rows.length <= 0)
                 return res.redirect('/');
