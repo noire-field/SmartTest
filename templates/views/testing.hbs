@@ -15,7 +15,7 @@
 <body>
     <div id="app-testing" class="container pt-3" style="display:none;">
         <div v-if="fetchingData" class="text-center text-white loading-box"><img src="img/loading3.gif" class="icon-loading mr-2">{? loadingText ?}</div>
-        <div v-if="header.visible" class="row text-dark white-transparent-high py-3 px-2 d-flex align-items-center mb-4 fade-in">
+        <div v-if="header.visible" class="row text-dark white-transparent-high py-3 px-2 d-flex align-items-center mb-4 fade-in slide-down">
             <div class="col-md-4">
                 <h2 class="my-0 py-0">{? header.testName ?}</h2>
                 <p class="my-0 py-0"><i class="far fa-question-circle mr-2"></i>Số câu hỏi: <b>{? header.testQuestCount[0] ?}/{? header.testQuestCount[1] ?}</b></p>
@@ -29,7 +29,7 @@
                 <h2>{? header.testStatus ?}</h2>
             </div>
         </div>
-        <div v-if="lobby.visible" class="fade-in">
+        <div v-if="lobby.visible" class="fade-in slide-up">
             <div class="row mb-4 mt-5">
                 <div class="col-md-12">
                     <div class="white-transparent-high text-dark px-3 py-2 d-flex justify-content-between align-items-center">
@@ -44,7 +44,7 @@
                 </div>
             </div>
         </div>
-        <div v-if="testing.visible" class="fade-in">
+        <div v-if="testing.visible" class="fade-in slide-up">
             <div class="card rounded-0">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="fas fa-pen-fancy mr-2"></i>Bài làm</h5>
@@ -76,7 +76,7 @@
                 </div>
             </div>
         </div>
-        <div v-if="result.visible">
+        <div v-if="result.visible" class="slide-up">
             <div class="row mb-2 mt-5 d-flex justify-content-center">
                 <div class="col-md-6">
                     <div class="white-transparent-high text-dark px-3 py-2">
@@ -136,7 +136,8 @@
                     quests: [],
                     selectedQuest: 0,
                     saveStatus: 0,
-                    savedCount: [0, 0]
+                    savedCount: [0, 0],
+                    saveTimer: null
                 },
                 result: {
                     visible: false,
@@ -161,6 +162,7 @@
                     this.socket.on('save_result', this.socketOnSaveResult);
                     this.socket.on('update_time', this.socketOnUpdateTime);
                     this.socket.on('finish_test', this.socketOnFinishTest);
+                    this.socket.on('login_kick', this.socketOnLoginKick);
                 },
                 socketOnConnected() {
                     this.loadingText = "Đã kết nối, đang tải dữ liệu...";
@@ -202,6 +204,8 @@
 
                         this.loadSavedAnswers(data.preSaved);
                         this.updateQuestCount();
+
+                        this.testing.saveTimer = setInterval(this.saveTest, 60000);
                     }
 
                     this.fetchingData = false;
@@ -219,6 +223,8 @@
 
                     this.lobby.visible = false;
                     this.testing.visible = true;
+
+                    this.testing.saveTimer = setInterval(this.saveTest, 60000);
                 },
                 loadPartQuests(parts) {
                     var questList = [];
@@ -261,7 +267,6 @@
                         return;
 
                     this.testing.saveStatus = 1;
-
                     var saveQuests = [];
 
                     for(let q in this.testing.quests) {
@@ -273,6 +278,9 @@
                     }
 
                     this.socket.emit('save_test', { testId: this.testId, userId: this.userId, quests: saveQuests });
+
+                    if(this.testing.saveTimer) clearInterval(this.testing.saveTimer);
+                    this.testing.saveTimer = setInterval(this.saveTest, 60000);
                 },
                 onCheckChange() {
                     this.testing.saveStatus = 0;
@@ -319,13 +327,16 @@
 
                         this.lobby.visible = false;
                         this.testing.visible = false;
-                        
 
                         this.result.correctAnswers = data.correctAnswers;
                         this.result.totalAnswers = data.totalAnswers;
                         this.result.mark = Math.round((data.correctAnswers / (data.totalAnswers+1) * 10) * 100) / 100;
                         this.result.visible = true;
                     }
+                },
+                socketOnLoginKick() {
+                    alert("Có vẻ như bạn vừa đăng nhập ở đâu đó khác, trang này sẽ bị đóng, vui lòng chuyển tới trang mới!");
+                    setTimeout(function() { window.location = "/"; }, 1500);
                 }
             },
             mounted() {

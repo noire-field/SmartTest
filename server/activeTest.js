@@ -15,10 +15,8 @@ var socketUsers = [];
 var socketIO = null;
 
 /* KNOWNS BUG
-    1. Must input all tags to detect questions when creating test
-    2. One account multi page bug
-    6. Auto Save Test
-    7. Recheck Skin and Stuff
+    8. Account Setting page
+    9. Result page
 */
 
 function CheckStartup() {
@@ -384,6 +382,12 @@ function socketOnJoinRoom(io, socket, data) {
 
     var user = test.STUDENTS[data.userId];
     if(!user) return socket.disconnect();
+
+    // Check and kick the previous user
+    if(socketUsers[user.UserID]) {
+        socketUsers[user.UserID].socket.emit('login_kick');
+        socketUsers[user.UserID].socket.disconnect();
+    }
 
     socketUsers[user.UserID] = {
         socket: socket,

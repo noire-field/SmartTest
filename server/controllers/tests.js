@@ -345,9 +345,10 @@ module.exports = {
 
             for(let q of questList) {
                 let allowed = true;
-                for(let t of q.TAGS) {
-                    if(reqTags.indexOf(t) == -1)
+                for(let t of reqTags) {
+                    if(q.TAGS.indexOf(t) == -1) {
                         allowed = false;
+                    }
                 }
                 if(allowed) newList.push(q);
             }

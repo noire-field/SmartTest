@@ -203,7 +203,6 @@ module.exports.register = function(app) {
             });
         } else {
             if(req.user.RoleType <= 0) { // Student
-                console.log('Check')
                 QueryNow(`SELECT t.TestID, t.PINCode FROM studenttests st INNER JOIN tests t ON st.TestID = t.TestID WHERE t.OpenStatus IN (1,2) AND st.UserID = ?`,
                 [req.user.UserID]).then((rows) => {
                     return res.render('index', {
