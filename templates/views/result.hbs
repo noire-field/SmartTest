@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ head_title }}</title>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <meta content="smarttest" name="keywords">
+  <meta content="An application that makes exams easier" name="description">
+  <link href="img/favicon.png" rel="icon">
+  <link href="img/apple-touch-icon.png" rel="apple-touch-icon">
+  <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,700,700i|Poppins:300,400,500,700" rel="stylesheet">
+  <link href="lib/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="lib/font-awesome/css/font-awesome.min.css" rel="stylesheet">
+  <link href="lib/animate/animate.min.css" rel="stylesheet">
+  <link href="css/homepage.css" rel="stylesheet">
+  <link href="css/style.css" rel="stylesheet">
+  <link href="css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+  <header id="header">
+    <div class="container">
+      <div id="logo" class="pull-left">
+        <!--<a href="#hero"><img src="img/logo.png" alt="" title="" /></img></a>-->
+        <h1 class="slide-right"><a href="#hero">Smart Test</a></h1>
+      </div>
+
+      <nav id="nav-menu-container">
+        <ul class="nav-menu slide-left">
+          <li class=""><a href="/">Trang chủ</a></li>
+            <li class="menu-active menu-has-children"><a href="/account">Tài khoản</a>
+                <ul>
+                    <li><a href="/account">Cài đặt tài khoản</a></li>
+                    <li><a href="/result">Kết quả kiểm tra</a></li>
+                    <li><a href="/logout">Đăng xuất</a></li>
+                </ul>
+            </li>
+        </ul>
+      </nav><!-- #nav-menu-container -->
+    </div>
+  </header><!-- #header -->
+
+  <!--==========================
+    Hero Section
+  ============================-->
+  <section id="hero">
+    <div id="bigger-container" class="fade-in">
+      <div class="hero-container">
+        <h2 class="slide-up">Kết quả các bài kiểm tra gần đây</h2>
+        <div class="row slide-up">
+            <div class="col-md-12">
+               <div class="card">
+                   <div class="card-body p-0">
+                       <table class="table table-bordered table-hover my-0 py-0">
+                           <thead>
+                               <tr>
+                                   <th>Mã</th>
+                                   <th>Tên bài</th>
+                                   <th>Thời gian chấm</th>
+                                   <th>Số câu đúng</th>
+                                   <th>Điểm số <small>(10)</small></th>
+                               </tr>
+                           </thead>
+                           <tbody>
+                               {{#IfEqualBlock isAvailable true}}
+                                    {{#each listResults}}
+                                        <tr>
+                                            <td>{{ this.TestID }}</td>
+                                            <td>{{ this.TestName }}</td>
+                                            <td>{{ this.CheckTime }}</td>
+                                            <td>{{ this.CorrectCount }}/{{ this.TotalCount }}</td>
+                                            <td class="font-weight-bold {{ this.MarkColor}}">{{ this.Mark }}</td>
+                                        </tr>
+                                    {{/each}}
+                               {{/IfEqualBlock}}
+                               {{#IfEqualBlock isAvailable false}}
+                                    <tr>
+                                        <td colspan="4">Không có bất kỳ kết quả nào.</td>
+                                    </tr>
+                               {{/IfEqualBlock}}
+                           </tbody>
+                       </table>
+                   </div>
+               </div>
+            </div>
+        </div>
+      </div>
+    </div>
+  </section><!-- #hero -->
+
+ 
+  <!-- JavaScript Libraries -->
+  <script src="lib/jquery/jquery.min.js"></script>
+  <script src="lib/jquery/jquery-migrate.min.js"></script>
+  <script src="lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="lib/easing/easing.min.js"></script>
+  <script src="lib/wow/wow.min.js"></script>
+  <script src="lib/waypoints/waypoints.min.js"></script>
+  <script src="lib/counterup/counterup.min.js"></script>
+  <script src="lib/superfish/hoverIntent.js"></script>
+  <script src="lib/superfish/superfish.min.js"></script>
+  <script src="js/homepage.js"></script>
+</body>
+</html>

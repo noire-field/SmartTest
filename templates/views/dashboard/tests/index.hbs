@@ -47,14 +47,17 @@
                               <td>
                                 {{#IfEqualBlock this.OpenStatus 0 }}
                                   <a href="{{ GetAdminPageUrl 'Tests'}}/open/{{ this.TestID }}" class="btn btn-success btn-sm px-1 py-0" title="Sửa"><i class="fas fa-lock-open mr-2"></i>Mở vào</a>
-                                  <a href="{{ GetAdminPageUrl 'Tests'}}/edit/{{ this.TestID }}" class="btn btn-warning btn-sm px-1 py-0" title="Sửa"><i class="fas fa-edit"></i></a>
-                                  <a href="{{ GetAdminPageUrl 'Tests'}}/delete/{{ this.TestID }}" class="btn btn-danger btn-sm px-1 py-0" title="Xóa"><i class="fas fa-trash-alt"></i></a>
+                                  <a href="{{ GetAdminPageUrl 'Tests'}}/edit/{{ this.TestID }}" class="btn btn-warning btn-sm px-1 py-0" title="Sửa"><i class="fas fa-edit mr-2"></i>Sửa</a>
+                                  <a href="{{ GetAdminPageUrl 'Tests'}}/delete/{{ this.TestID }}" class="btn btn-danger btn-sm px-1 py-0" title="Xóa"><i class="fas fa-trash-alt mr-2"></i>Xóa</a>
                                 {{/IfEqualBlock}}
                                 {{#IfEqualBlock this.OpenStatus 1 }}
                                   <a href="{{ GetAdminPageUrl 'Tests'}}/start/{{ this.TestID }}" class="btn btn-primary btn-sm px-1 py-0" title="Mở cho thí sinh vào phòng"><i class="fas fa-envelope-open-text mr-2"></i>Làm bài</a>
                                 {{/IfEqualBlock}}
+                                {{#IfEqualBlock this.OpenStatus 2 }}
+                                    <a href="{{ GetAdminPageUrl 'Tests'}}/finish/{{ this.TestID }}" class="btn btn-warning btn-sm px-1 py-0" title="Thu bài trước thời hạn"><i class="far fa-arrow-alt-circle-down mr-2"></i>Thu bài ngay</a>
+                                {{/IfEqualBlock}}
                                 {{#IfEqualBlock this.OpenStatus 3 }}
-                                  <a href="{{ GetAdminPageUrl 'Tests'}}/delete/{{ this.TestID }}" class="btn btn-danger btn-sm px-1 py-0" title="Xóa"><i class="fas fa-trash-alt"></i></a>
+                                  <!--<a href="{{ GetAdminPageUrl 'Tests'}}/delete/{{ this.TestID }}" class="btn btn-danger btn-sm px-1 py-0" title="Xóa"><i class="fas fa-trash-alt mr-2"></i>Xóa</a>-->
                                 {{/IfEqualBlock}}
                               </td>
                             </tr>

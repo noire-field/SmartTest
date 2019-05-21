@@ -87,6 +87,24 @@ module.exports = {
                     })
 
                     break;
+                case 'finish': 
+                    if(!id) return res.redirect('/dashboard/tests');
+
+                    QueryNow(`SELECT t.OpenStatus FROM tests t WHERE t.TestID = ?${req.user.RoleType >= 2 ? '' : ` AND t.OwnerID = '${req.user.UserID}'`}`, [id])
+                    .then((rows) => {
+                        if(rows.length <= 0 || Number(rows[0]['OpenStatus']) != 2)
+                            return res.redirect('/dashboard/tests');
+
+                        return activeTest.CloseTest(id);
+                    })
+                    .then((rows) => {
+                        return res.redirect('/dashboard/tests');
+                    })
+                    .catch((rows) => {
+                        if(!id) return res.redirect('/dashboard/tests');
+                    })
+                    
+                    break;
                 default:
                     res.render('error', { errorMessage: 'Trang này không tồn tại.' });
                     break;
@@ -138,8 +156,10 @@ module.exports = {
                         return QueryNow(`INSERT INTO tests (PINCode, TestName, TestTime, QuestTotal, OpenStatus, OwnerID) VALUES(?,?,?,?,0,?)`, [test.PIN, test.NAME, test.TIME, totalQuest, req.user.UserID]);
                     })
                     .then((rows) => {
+                        var orderNumber = 0;
                         for(let p of testData) {
-                            QueryNow(`INSERT INTO testparts (TestID, PartName) VALUES(?, ?)`, [rows.insertId, p.NAME])
+                            orderNumber++;
+                            QueryNow(`INSERT INTO testparts (TestID, PartName, DisplayOrder) VALUES(?, ?, ?)`, [rows.insertId, p.NAME, orderNumber])
                             .then((rows) => {
                                 for(let q of p.QUESTS)
                                     QueryNow(`INSERT INTO partquests (TestPartID, QuestID) VALUES(?, ?)`, [rows.insertId, q.ID]);

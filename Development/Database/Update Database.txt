@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS TestResults (
+    UserID INT NOT NULL,
+	TestID INT NOT NULL,
+    CorrectCount INT NOT NULL,
+    TotalCount INT NOT NULL,
+    CheckedDate DATETIME,
+    
+	PRIMARY KEY(UserID, TestID)
+);
+
+ALTER TABLE TestParts ADD DisplayOrder INT NOT NULL DEFAULT '0';

@@ -7,7 +7,8 @@ module.exports = {
     StartTest,
     OpenTest,
     ActivateSocket,
-    JoinTest
+    JoinTest,
+    CloseTest
 };
 
 var RunningTests = [];
@@ -16,7 +17,6 @@ var socketIO = null;
 
 /* KNOWNS BUG
     8. Account Setting page
-    9. Result page
 */
 
 function CheckStartup() {
@@ -108,6 +108,19 @@ function OpenTest(testId) {
     });
 }
 
+function CloseTest(testId) {
+    return new Promise((resolve, reject) => {
+        var thisTest = RunningTests[testId]
+        if(!thisTest) return resolve({ status: false, message: 'Không thể tìm thấy bài kiểm tra này hoặc bài kiểm tra này không hoạt động.' });
+        if(thisTest.STATUS != 2) return resolve({ status: false, message: 'Không thể đóng bài kiểm tra này hoặc nó đã bị đóng rồi.' });
+
+        thisTest.TESTTIME = 0;
+        CheckTestTimer(thisTest);
+
+        resolve({ status: true });
+    });
+}
+
 function StartTest(testId) {
     return new Promise((outResolve, reject) => {
         var thisTest = RunningTests[testId];
@@ -193,6 +206,8 @@ function CheckTestTimer(test) {
 
         CheckTestMarks(test);
 
+        var promiseTasks = [];
+
         // Transfer result to client
         for(let st of test.STUDENTS) {
             if(!st) continue;
@@ -201,7 +216,16 @@ function CheckTestTimer(test) {
                     correctAnswers: st.CorrectCount,
                     totalAnswers: test.MAPQUESTS.size
                 });
+
+            promiseTasks.push(QueryNow(`INSERT INTO TestResults (UserID,TestID,CorrectCount,TotalCount,CheckedDate) VALUES(?,?,?,?,NOW())`,
+            [st.UserID, test.ID, st.CorrectCount, test.MAPQUESTS.size]));
         }
+
+        Promise.all(promiseTasks).then((rows) => {
+
+        }).catch((error) => {
+            Log(`[Save Test Result] ${error}`);
+        });
 
         QueryNow(`UPDATE tests SET OpenStatus = 3 WHERE TestID = ?`, [test.ID]);
         RunningTests[test.ID] = null;
@@ -256,7 +280,7 @@ function ShuffleCheck_TestPart(parts) {
 
 function Get_TestParts(testId) {
     return new Promise((outResolve, outReject) => {
-        QueryNow(`SELECT TestPartID, PartName FROM testparts WHERE TestID = ?`, [testId])
+        QueryNow(`SELECT TestPartID, PartName FROM testparts WHERE TestID = ? ORDER BY DisplayOrder ASC`, [testId])
         .then((parts) => {
             if(parts.length <= 0)
                 return outResolve({ status: false, message: 'Bài kiểm tra này không có phần nào' });
@@ -513,13 +537,6 @@ function socketOnSaveTest(socket, data) {
     .catch((error) => {
         socket.emit('save_result', { status: false, message: "Không thể lưu bài do lỗi khi tìm câu hỏi" });
     });
-}
-
-function generateMessage(from, text) {
-    return {
-        from,
-        text
-    }
 }
 
 function JoinTest(testId, user)

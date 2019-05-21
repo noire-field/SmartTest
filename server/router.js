@@ -227,7 +227,7 @@ module.exports.register = function(app) {
                     isInTest: false
                 });
             }
-        }        
+        }
     });
 
     app.get('/findroom/:pin?', (req, res, next) => {
@@ -311,5 +311,73 @@ module.exports.register = function(app) {
         .catch((error) => {
             return res.redirect('/');
         })
+    });
+
+    app.get('/result', (req, res, next) => {
+        if(!req.isAuthenticated())
+            return res.redirect('/');
+        if(req.user.RoleType != 0)
+            return res.redirect('/');
+
+        QueryNow(`SELECT t.TestID, t.TestName, tr.CorrectCount, tr.TotalCount, tr.CheckedDate FROM tests t INNER JOIN testresults tr ON t.TestID = tr.TestID WHERE tr.UserID = 6 ORDER BY t.TestID DESC LIMIT 5`, [req.user.UserID])
+        .then((rows) => {
+            for(let r of rows) {
+                if(r.TotalCount > 0 && r.CorrectCount > 0) {
+                    r.Mark = Math.round((r.CorrectCount / r.TotalCount * 10) * 100) / 100;
+                    r.MarkColor = r.Mark >= 5.0 ? "text-success" : "text-danger";
+                } else {
+                    r.Mark = 0
+                    r.MarkColor = "text-danger";
+                }
+
+                r.CheckTime = new Date(r.CheckedDate).toLocaleString();
+            }
+
+            return res.render('result', {
+                head_title: 'Kết quả kiểm tra - ' + config.APP_NAME,
+                user: req.user,
+                isAvailable: rows.length > 0 ? true : false,
+                listResults: rows
+            });
+        })
+        .catch((error) => {
+            return res.redirect('/');
+        });
+    });
+
+    app.get('/account', (req, res, next) => {
+        if(!req.isAuthenticated())
+            return res.redirect('/');
+        if(req.user.RoleType != 0)
+            return res.redirect('/');
+
+        return res.render('account', {
+            head_title: 'Cài đặt tài khoản - ' + config.APP_NAME,
+            user: req.user
+        });
+/*
+        QueryNow(`SELECT t.TestID, t.TestName, tr.CorrectCount, tr.TotalCount, tr.CheckedDate FROM tests t INNER JOIN testresults tr ON t.TestID = tr.TestID WHERE tr.UserID = 6 ORDER BY t.TestID DESC LIMIT 5`, [req.user.UserID])
+        .then((rows) => {
+            for(let r of rows) {
+                if(r.TotalCount > 0 && r.CorrectCount > 0) {
+                    r.Mark = Math.round((r.CorrectCount / r.TotalCount * 10) * 100) / 100;
+                    r.MarkColor = r.Mark >= 5.0 ? "text-success" : "text-danger";
+                } else {
+                    r.Mark = 0
+                    r.MarkColor = "text-danger";
+                }
+            }
+
+            return res.render('result', {
+                head_title: 'Kết quả kiểm tra - ' + config.APP_NAME,
+                user: req.user,
+                isAvailable: rows.length > 0 ? true : false,
+                listResults: rows,
+                isUserLogged: true,
+            });
+        })
+        .catch((error) => {
+            return res.redirect('/');
+        });*/
     });
 }
