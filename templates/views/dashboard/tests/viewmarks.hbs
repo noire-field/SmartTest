@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    {{> dashboard/meta_header }}
+  </head>
+  <body id="page-top">
+    <div id="wrapper">
+      {{> dashboard/sidebar }}
+      <div id="content-wrapper" class="d-flex flex-column">
+        <div id="content">
+          {{> dashboard/header }}
+          <div class="container-fluid">
+            <div class="d-sm-flex align-items-center justify-content-between mb-4">
+                <h1 class="h3 mb-0 text-gray-800">Xem điểm bài kiểm tra</h1>
+                <div>
+                    <!--<a href="{{ GetAdminPageUrl 'Tests'}}/download/{{ testId }}" target="_blank" class="btn btn-info btn-sm"><i class="fas fa-download mr-2"></i>Tải xuống CSV</a>-->
+                    <a href="{{ GetAdminPageUrl 'Tests'}}" class="btn btn-primary btn-sm"><i class="fas fa-arrow-circle-left mr-2"></i>Quay về</a>
+                </div>
+            </div>
+            <div class="row">
+              <div class="col-md-12">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover my-0 py-0 text-dark">
+                        <thead class="text-center">
+                            <tr>
+                                <th>UID</th>
+                                <th>Họ Tên</th>
+                                <th>Mã Sinh Viên</th>
+                                <th>Số câu đúng</th>
+                                <th>Điểm <small>(10)</small></th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-center">
+                            {{#IfEqualBlock isAvailable true}}
+                                {{#each markList}}
+                                    <tr>
+                                        <td>{{ this.UserID }}</td>
+                                        <td>{{ CombineName this.FirstName this.LastName }}</td>
+                                        <td>{{ this.StudentID }}</td>
+                                        <td>{{ this.CorrectCount }}/{{ this.TotalCount }}</td>
+                                        <td class="{{ this.MarkColor }}"><b>{{ this.Mark }}</b></td>
+                                    </tr>
+                                {{/each}}
+                            {{/IfEqualBlock}}
+                            {{#IfEqualBlock isAvailable false}}
+                                <tr>
+                                    <td colspan="5">Không có điểm nào</td>
+                                </tr>
+                            {{/IfEqualBlock}}
+                        </tbody>
+                    </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        {{> dashboard/footer }}
+        <!-- End of Footer -->
+      </div>
+    </div>
+
+    <!-- Scroll to Top Button-->
+    <a class="scroll-to-top rounded" href="#page-top">
+      <i class="fas fa-angle-up"></i>
+    </a>
+
+    {{> dashboard/meta_footer }}
+  </body>
+</html>

@@ -57,7 +57,7 @@
                                     <a href="{{ GetAdminPageUrl 'Tests'}}/finish/{{ this.TestID }}" class="btn btn-warning btn-sm px-1 py-0" title="Thu bài trước thời hạn"><i class="far fa-arrow-alt-circle-down mr-2"></i>Thu bài ngay</a>
                                 {{/IfEqualBlock}}
                                 {{#IfEqualBlock this.OpenStatus 3 }}
-                                  <!--<a href="{{ GetAdminPageUrl 'Tests'}}/delete/{{ this.TestID }}" class="btn btn-danger btn-sm px-1 py-0" title="Xóa"><i class="fas fa-trash-alt mr-2"></i>Xóa</a>-->
+                                    <a href="{{ GetAdminPageUrl 'Tests'}}/viewmarks/{{ this.TestID }}" class="btn btn-info btn-sm px-1 py-0" title="Xem điểm"><i class="fas fa-poll-h mr-2"></i>Xem điểm</a>
                                 {{/IfEqualBlock}}
                               </td>
                             </tr>

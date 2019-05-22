@@ -2,6 +2,7 @@ const config = require('./../../config');
 const { Log, ErrorHandler } = require('../utils/logger');
 const { QueryNow, GetPageLimit } = require('../database');
 const activeTest = require('./../activeTest');
+var json2csv = require('json2csv');
 
 module.exports = {
     Controller_Tests: function(type, action, id, req, res, next) {
@@ -105,6 +106,74 @@ module.exports = {
                     })
                     
                     break;
+                case 'viewmarks':
+                    if(!id) return res.redirect('/dashboard/tests');
+
+                    QueryNow(`SELECT t.OpenStatus FROM tests t WHERE t.TestID = ?${req.user.RoleType >= 2 ? '' : ` AND t.OwnerID = '${req.user.UserID}'`}`, [id])
+                    .then((rows) => {
+                        if(rows.length <= 0 || Number(rows[0]['OpenStatus']) != 3)
+                            return res.redirect('/dashboard/tests');
+
+                        return QueryNow(`SELECT tr.UserID, u.FirstName, u.LastName, u.StudentID, tr.CorrectCount, tr.TotalCount FROM testresults tr INNER JOIN users u ON tr.UserID = u.UserID WHERE tr.TestID = ? ORDER BY u.FirstName ASC`, [id]);
+                    })
+                    .then((rows) => {
+                        for(let r of rows) {
+                            if(r.TotalCount > 0 && r.CorrectCount > 0) {
+                                r.Mark = Math.round((r.CorrectCount / r.TotalCount * 10) * 100) / 100;
+                                r.MarkColor = r.Mark >= 5.0 ? "text-success" : "text-danger";
+                            } else {
+                                r.Mark = 0
+                                r.MarkColor = "text-danger";
+                            }
+                        }
+
+                        return res.render('dashboard/tests/viewmarks', {
+                            page: 'tests',
+                            head_title: `Xem điểm - ${config.APP_NAME}`,
+                            user: req.user,
+                            testId: id,
+                            isAvailable: rows.length > 0 ? true : false,
+                            markList: rows
+                        });
+                    })
+                    .catch((rows) => {
+                        if(!id) return res.redirect('/dashboard/tests');
+                    })
+
+                    break;
+                case 'download':
+                /*
+                    if(!id) return res.redirect('/dashboard/tests');
+
+                    QueryNow(`SELECT t.OpenStatus FROM tests t WHERE t.TestID = ?${req.user.RoleType >= 2 ? '' : ` AND t.OwnerID = '${req.user.UserID}'`}`, [id])
+                    .then((rows) => {
+                        if(rows.length <= 0 || Number(rows[0]['OpenStatus']) != 3)
+                            return res.redirect('/dashboard/tests');
+
+                        return QueryNow(`SELECT tr.UserID, u.FirstName, u.LastName, u.StudentID, tr.CorrectCount, tr.TotalCount FROM testresults tr INNER JOIN users u ON tr.UserID = u.UserID WHERE tr.TestID = ? ORDER BY u.FirstName ASC`, [id]);
+                    })
+                    .then((rows) => {
+                        for(let r of rows) {
+                            if(r.TotalCount > 0 && r.CorrectCount > 0) {
+                                r.Mark = Math.round((r.CorrectCount / r.TotalCount * 10) * 100) / 100;
+                            } else {
+                                r.Mark = 0
+                            }
+                        }
+
+                        var fields = ['UserID', 'FirstName', 'LastName', 'StudentID', 'CorrectCount', 'TotalCount', 'Mark'];
+                        var fieldNames = ['User ID', 'First Name', 'Last Name', 'StudentID', 'Correct Answers', 'Total Answers', 'Mark'];
+                        var data = json2csv({ data: rows, fields: fields, fieldNames: fieldNames });
+
+                        //res.attachment('marks.csv');
+                        //res.status(200).send(data);
+
+                        res.send('OK');
+                    })
+                    .catch((rows) => {
+                        if(!id) return res.redirect('/dashboard/tests');
+                    })
+                    break;*/
                 default:
                     res.render('error', { errorMessage: 'Trang này không tồn tại.' });
                     break;
