@@ -10,7 +10,7 @@ const { Controller_Subjects } = require('./controllers/subjects');
 const { Controller_Quests } = require('./controllers/quests');
 const { Controller_Tests } = require('./controllers/tests');
 
-const activeTest = require('./activeTest');
+const smartTest = require('./smartTest');
 
 module.exports.register = function(app) {
     app.get('/register', (req, res) => {
@@ -195,9 +195,10 @@ module.exports.register = function(app) {
     });
 
     // Homepage
+    /*
     app.get('/', (req, res, next) => {
         if(!req.isAuthenticated()) {
-            return res.render('index', {
+            return res.render('index_smarttest', {
                 head_title: 'Trang chủ - ' + config.APP_NAME,
                 isUserLogged: false
             });
@@ -205,7 +206,7 @@ module.exports.register = function(app) {
             if(req.user.RoleType <= 0) { // Student
                 QueryNow(`SELECT t.TestID, t.PINCode FROM studenttests st INNER JOIN tests t ON st.TestID = t.TestID WHERE t.OpenStatus IN (1,2) AND st.UserID = ?`,
                 [req.user.UserID]).then((rows) => {
-                    return res.render('index', {
+                    return res.render('index_smarttest', {
                         head_title: 'Trang chủ - ' + config.APP_NAME,
                         isUserLogged: true,
                         user: req.user,
@@ -219,7 +220,7 @@ module.exports.register = function(app) {
                     return res.render('error', { message: 'Không thể kiểm tra tài khoản này.' });
                 })
             } else { // Admin, Lecturer
-                return res.render('index', {
+                return res.render('index_smarttest', {
                     head_title: 'Trang chủ - ' + config.APP_NAME,
                     isUserLogged: true,
                     user: req.user,
@@ -281,7 +282,7 @@ module.exports.register = function(app) {
             if(rows.length <= 0)
                 return res.redirect('/');
 
-            return activeTest.JoinTest(Number(rows[0].TestID), req.user);
+            return smartTest.JoinTest(Number(rows[0].TestID), req.user);
         })
         .then((result) => {
             return res.redirect('/testing');
@@ -302,7 +303,7 @@ module.exports.register = function(app) {
             if(rows.length <= 0)
                 return res.redirect('/');
 
-            return res.render('testing', {
+            return res.render('testing_smarttest', {
                 head_title: 'Kiểm tra - ' + config.APP_NAME,
                 user: req.user,
                 testId: Number(rows[0].TestID)
@@ -355,29 +356,5 @@ module.exports.register = function(app) {
             head_title: 'Cài đặt tài khoản - ' + config.APP_NAME,
             user: req.user
         });
-/*
-        QueryNow(`SELECT t.TestID, t.TestName, tr.CorrectCount, tr.TotalCount, tr.CheckedDate FROM tests t INNER JOIN testresults tr ON t.TestID = tr.TestID WHERE tr.UserID = 6 ORDER BY t.TestID DESC LIMIT 5`, [req.user.UserID])
-        .then((rows) => {
-            for(let r of rows) {
-                if(r.TotalCount > 0 && r.CorrectCount > 0) {
-                    r.Mark = Math.round((r.CorrectCount / r.TotalCount * 10) * 100) / 100;
-                    r.MarkColor = r.Mark >= 5.0 ? "text-success" : "text-danger";
-                } else {
-                    r.Mark = 0
-                    r.MarkColor = "text-danger";
-                }
-            }
-
-            return res.render('result', {
-                head_title: 'Kết quả kiểm tra - ' + config.APP_NAME,
-                user: req.user,
-                isAvailable: rows.length > 0 ? true : false,
-                listResults: rows,
-                isUserLogged: true,
-            });
-        })
-        .catch((error) => {
-            return res.redirect('/');
-        });*/
-    });
+    }); */
 }

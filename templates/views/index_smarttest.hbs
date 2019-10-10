@@ -22,7 +22,7 @@
     <div class="container">
       <div id="logo" class="pull-left">
         <!--<a href="#hero"><img src="img/logo.png" alt="" title="" /></img></a>-->
-        <h1 class="slide-right"><a href="#hero">S-Learn</a></h1>
+        <h1 class="slide-right"><a href="#hero">Smart Test</a></h1>
       </div>
 
       <nav id="nav-menu-container">
@@ -31,12 +31,12 @@
           {{#IfEqualBlock isUserLogged true}}
           <li class="menu-has-children"><a href="/account">Tài khoản</a>
             <ul>
-              <!-- <li><a href="/account">Cài đặt tài khoản</a></li>  -->
+              <li><a href="/account">Cài đặt tài khoản</a></li>
               {{#IfEqualBlock isUserAdmin true}}
               <li><a href="/dashboard">Quản lý kiểm tra</a></li>
               {{/IfEqualBlock}}
               {{#IfEqualBlock isUserAdmin false}}
-              <!-- <li><a href="/result">Kết quả kiểm tra</a></li> -->
+              <li><a href="/result">Kết quả kiểm tra</a></li>
               {{/IfEqualBlock}}
               <li><a href="/logout">Đăng xuất</a></li>
             </ul>

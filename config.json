@@ -1,5 +1,5 @@
 {
-    "APP_NAME": "SmartTest",
+    "APP_NAME": "S-Learn",
     "HTTP_PORT": 8080,
     "SESSION_NAME": "SmartTestAuth",
     "SESSION_SECRET": "Somethingbullshit",

@@ -1,7 +1,7 @@
 const config = require('./../../config');
 const { Log, ErrorHandler } = require('../utils/logger');
 const { QueryNow, GetPageLimit } = require('../database');
-const activeTest = require('./../activeTest');
+const smartTest = require('./../smartTest');
 var json2csv = require('json2csv');
 
 module.exports = {
@@ -60,7 +60,7 @@ module.exports = {
                         if(rows.length <= 0 || Number(rows[0]['OpenStatus']) != 0)
                             return res.redirect('/dashboard/tests');
 
-                        return activeTest.OpenTest(id);
+                        return smartTest.OpenTest(id);
                     })
                     .then((rows) => {
                         return res.redirect('/dashboard/tests');
@@ -78,7 +78,7 @@ module.exports = {
                         if(rows.length <= 0 || Number(rows[0]['OpenStatus']) != 1)
                             return res.redirect('/dashboard/tests');
 
-                        return activeTest.StartTest(id);
+                        return smartTest.StartTest(id);
                     })
                     .then((status) => {
                         return res.redirect('/dashboard/tests');
@@ -96,7 +96,7 @@ module.exports = {
                         if(rows.length <= 0 || Number(rows[0]['OpenStatus']) != 2)
                             return res.redirect('/dashboard/tests');
 
-                        return activeTest.CloseTest(id);
+                        return smartTest.CloseTest(id);
                     })
                     .then((rows) => {
                         return res.redirect('/dashboard/tests');
