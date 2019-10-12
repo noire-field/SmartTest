@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    {{> dashboard/meta_header }}
+  </head>
+  <body id="page-top">
+    <div id="wrapper">
+      {{> dashboard/sidebar }}
+      <div id="content-wrapper" class="d-flex flex-column">
+        <div id="content">
+          {{> dashboard/header }}
+          <div class="container-fluid">
+            <div class="d-sm-flex align-items-center justify-content-between mb-4">
+              <h1 class="h3 mb-0 text-gray-800">Thêm bài kiểm tra</h1>
+              <a href="{{ GetAdminPageUrl 'Tests'}}" class="btn btn-primary btn-sm"><i class="fas fa-arrow-circle-left mr-2"></i>Quay về</a>
+            </div>
+            {{#IfEqualBlock status 'error'}}
+              <div class="alert alert-danger small">
+                {{#each errors}}
+                  <p class="my-0"><i class="fas fa-times mr-2"></i>{{ this }}</p>
+                {{/each}}
+              </div>
+            {{/IfEqualBlock}}
+            <div class="row">
+              <div id="vue-app" class="col-md-12">
+                <form class="mt-3">
+                  <div class="row">
+                    <div class="col-md-7">
+                      <div class="form-group">
+                        <label for="input-testname"><b>Tên bài kiểm tra:</b></label>
+                        <input type="text" class="form-control" v-model="testName" id="input-testname" name="input-testname" placeholder="Kiểm tra môn tiếng Anh cuối kỳ">
+                      </div>
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="col-md-7">
+                      <div class="form-group">
+                        <label for="input-subjectid"><b>Bộ đề:</b> <small>(Các câu hỏi sẽ được chọn ngẫu nhiên từ bộ đề này dựa trên thẻ)</small></label>
+                        <select class="custom-select" v-model="testSubjectID" name="input-subjectid">
+                        {{#each subjectList}}
+                          <option value="{{ this.SubjectID }}">{{ this.SubjectName }} ({{ CombineName this.FirstName this.LastName }})</option>
+                        {{/each}}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="col-md-3">
+                      <div class="form-group">
+                        <label for="input-testname"><b>Thời gian làm bài:</b> <small>(phút)</small></label>
+                        <input type="number" class="form-control" v-model="testTime" id="input-testtime" name="input-testtime" min="3" max="999" value="45">
+                      </div>
+                    </div>
+                    <div class="col-md-4">
+                      <div class="form-group">
+                        <label for="input-testname"><b>Mã PIN:</b> <small>(5 chữ số, hệ thống chọn ngẫu nhiên nếu bỏ trống)</small></label>
+                        <input type="text" class="form-control" v-model="testPINCode" id="input-pincode" name="input-pincode" min="10000" max="99999" placeholder="VD: 97775">
+                      </div>
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="col-md-7">
+                      <div class="form-group">
+                        <label for="input-testparts"><b>Các phần kiểm tra:</b></label> <button @click="testAddPart" class="btn btn-sm btn-primary"><i class="fas fa-plus-circle mr-2"></i>Thêm phần</button>
+                        <table class="table table-bordered">
+                          <thead>
+                            <tr class="text-center">
+                              <th>Tên phần</th>
+                              <th>Thẻ (loại câu hỏi)</th>
+                              <th>Số câu hỏi</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr v-for="p in testParts" class="text-center">
+                              <td class="py-1 my-0"><input type="text" class="form-control" v-model="p.NAME" placeholder="VD: Cơ bản"></td>
+                              <td class="py-2 my-0"><input type="text" class="form-control" v-model="p.TAGS" placeholder="VD: Maths, Basic"></td>
+                              <td class="py-2 my-0"><input type="number" class="form-control" v-model="p.COUNT" min="1" max="200" value="5"></td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <button @click="testCheck" id="submit-check" name="submit-check" type="submit" class="btn btn-primary mx-auto"><i class="fas fa-clipboard-check mr-2"></i>Xem trước</button>
+                    <button refs="btnCreate" @click="testCreate" id="submit-create" name="submit-create" type="submit" class="btn btn-info mx-auto"><i class="fas fa-plus-circle mr-2"></i>Thêm bài kiểm tra</button>
+                  </div>
+                </form>
+                <div class="modal fade" tabindex="-1" role="dialog" id="modal-preview" aria-hidden="true">
+                  <div class="modal-dialog modal-lg" role="document">
+                    <div class="modal-content">
+                      <div class="modal-header">
+                        <h5 class="modal-title text-primary" id="modal-preview"><i class="fas fa-clipboard-check mr-2"></i>Xem trước bài kiểm tra</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                          <span aria-hidden="true">&times;</span>
+                        </button>
+                      </div>
+                      <div class="modal-body">
+                        <div v-if="fetchingData" class="text-center"><img class="icon-loading mr-2" src="/img/loading2.gif"><span>Vui lòng chờ...</span></div>
+                        <div v-else="fetchingData">
+                          <div v-if="previewError.isError" class="alert alert-danger">
+                            <ul>
+                              <li v-for="e in previewError.errorText">{? e ?}</li>
+                            </ul>
+                          </div>
+                          <div v-else="previewError.isError">
+                            <p>Những câu hỏi dưới đây chỉ được dùng để xem thử, khi tạo bài kiểm tra, hệ thống sẽ chọn ngẫu nhiên một lần nữa. Và nếu bị thiếu câu, có thể bạn chọn sai thẻ hoặc bộ đề này bị thiếu câu.</p>
+                            <div v-for="p in previewParts">
+                              <h5 class="text-primary"><b><i class="fas fa-pen-nib mr-2"></i>Phần: </b>{? p.NAME ?}</h5>
+                              <ol>
+                                <li class="text-info" v-for="q in p.QUESTS">{? q.CONTENT ?}</li>
+                              </ol>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        {{> dashboard/footer }}
+        <!-- End of Footer -->
+      </div>
+    </div>
+
+    <!-- Scroll to Top Button-->
+    <a class="scroll-to-top rounded" href="#page-top">
+      <i class="fas fa-angle-up"></i>
+    </a>
+
+    {{> dashboard/meta_footer }}
+
+    <script src="/js/vue.js"></script>
+    <script src="/js/axios.min.js"></script>
+    <script>
+      var vm = new Vue({
+        el: "#vue-app",
+        delimiters: ["{?","?}"],
+        data: {
+          fetchingData: false,
+          previewed: false,
+          testName: "",
+          testSubjectID: 0,
+          testTime: 45,
+          testPINCode: "",
+          testParts: [
+            {
+              "NAME": "",
+              "TAGS": "",
+              "COUNT": 10
+            }
+          ],
+          previewParts: [],
+          previewError: {
+            isError: false,
+            errorText: []
+          }
+        },
+        methods: {
+          testAddPart: function(e) {
+            e.preventDefault();
+            vm.testParts.push({ "NAME": "", "TAGS": "", "COUNT": 0 });
+          },
+          testCheck: function(e) {
+            e.preventDefault();
+
+            if(vm.fetchingData)
+              return;
+
+            var t = {
+              "NAME": vm.testName,
+              "SUBJECTID": Number(vm.testSubjectID),
+              "TIME": Number(vm.testTime),
+              "PIN": vm.testPINCode,
+              "PARTS": vm.testParts
+            };
+
+            var checkResult = vm.checkValidTest(t);
+            if(!checkResult.result) {
+              alert(checkResult.error);
+              return;
+            }
+
+            axios.post("{{ GetAdminPageUrl 'Tests' }}/preview", { test: t })
+            .then(({ data }) => {
+              if(data.status) {
+                vm.previewed = true;
+                vm.previewParts = data.parts;
+              } else {
+                vm.previewError = {
+                  isError: true,
+                  errorText: data.errors
+                }
+              }
+
+              vm.fetchingData = false;
+            })
+            .catch((error) => {
+              vm.fetchingData = false;
+              vm.previewError = {
+                isError: true,
+                errorText: ['Không thể kết nối tới API']
+              }
+            });
+
+            vm.fetchingData = true;
+            $("#modal-preview").modal("show");
+          },
+          testCreate: function(e) {
+            e.preventDefault();
+
+            if(vm.fetchingData)
+              return;
+
+            if(!vm.previewed) {
+              alert("Vui lòng xem trước, trước khi tạo bài kiểm tra")
+              return;
+            }
+
+            var t = {
+              "NAME": vm.testName,
+              "SUBJECTID": Number(vm.testSubjectID),
+              "TIME": Number(vm.testTime),
+              "PIN": vm.testPINCode,
+              "PARTS": vm.testParts
+            };
+
+            var checkResult = vm.checkValidTest(t);
+            if(!checkResult.result) {
+              alert(checkResult.error);
+              return;
+            }
+
+            axios.post("{{ GetAdminPageUrl 'Tests' }}/add", { test: t })
+            .then(({ data }) => {
+              if(data.status) {
+                return window.location = "{{ GetAdminPageUrl 'Tests' }}";
+              } else {
+                alert(data.errors.join(', '));
+              }
+
+              vm.fetchingData = false;
+            })
+            .catch((error) => {
+              console.log(error);
+              alert("Có gì đó bị sai ở phía server, không thể tạo bài kiểm tra");
+              vm.fetchingData = false;
+            });
+
+            vm.fetchingData = true;
+          },
+          checkValidTest: function(t) {
+            if(t.NAME.length <= 0 || t.NAME.length > 128)
+              return { result: false, error: "Tên bài kiểm tra phải từ 1 đến 128 ký tự" };
+            if(t.SUBJECTID <= 0)
+              return { result: false, error: "Vui lòng chọn bộ đề" };
+            if(t.TIME <= 5 || t.TIME > 1000)
+              return { result: false, error: "Thời gian kiểm tra phải từ 5 đến 1000 phút" };
+            if(t.PIN.length > 0 && !(new RegExp(/^\d{5}$/).test(t.PIN)))
+              return { result: false, error: "Mã PIN phải là 5 chữ số (hoặc để trống)" };
+
+            var fixedParts = [];
+            for(var p of t.PARTS) {
+              if(p.NAME.length > 0)
+              {
+                if(p.TAGS.length <= 0) { return { result: false, error: "Phần '"+ p.NAME +"' chưa có thẻ" }; }
+                if(p.NAME.length > 64) { return { result: false, error: "Phần '"+ p.NAME +"' tên quá dài, vui lòng giảm xuống tối đa 64 ký tự" }; }
+                if(p.TAGS.length > 64) { return { result: false, error: "Phần '"+ p.NAME +"' có quá nhiều thẻ" }; }
+                if(Number(p.COUNT) <= 0) { return { result: false, error: "Phần '"+ p.NAME +"' chưa có số câu hỏi mong muốn" }}
+
+                fixedParts.push(p);
+              }
+            }
+
+            if(fixedParts.length <= 0)
+              return { result: false, error: "Bạn chưa thêm bất kỳ phần nào và thẻ" };
+
+            return { result: true, error: "" };
+          }
+        }
+      });
+    </script>
+  </body>
+</html>

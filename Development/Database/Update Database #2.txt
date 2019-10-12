@@ -1,0 +1,14 @@
+CREATE TABLE IF NOT EXISTS games (
+	GameID int NOT NULL AUTO_INCREMENT,
+	PINCode varchar(16) NOT NULL,
+	GameName varchar(64) NOT NULL,
+	SubjectID int NOT NULL,
+	TimePerQuest int NOT NULL,
+	CreatedDate datetime,
+	StartedDate datetime,
+	FinishedDate datetime,
+	OpenStatus int NOT NULL DEFAULT '0',
+	OwnerID int NOT NULL,
+	
+	PRIMARY KEY(GameID)
+);

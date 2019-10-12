@@ -55,6 +55,7 @@ module.exports.registerHelpers = function(hbs) {
             case 'Subjects': return dashboardUrl + '/subjects';
             case 'Quests': return dashboardUrl + '/quests';
             case 'Tests': return dashboardUrl + '/tests';
+            case 'Games': return dashboardUrl + '/games';
             default: return dashboardUrl;
         }
     });
@@ -104,7 +105,7 @@ module.exports.registerHelpers = function(hbs) {
         switch(statusCode) {
             case 0: return 'Chưa mở';
             case 1: return 'Cho phép tham dự';
-            case 2: return 'Đang kiểm tra';
+            case 2: return 'Đang chơi';
             case 3: return 'Kết thúc';
             default: return 'Không rõ';
         }

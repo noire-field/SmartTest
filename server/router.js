@@ -8,9 +8,9 @@ const User = require('./utils/user');
 const { Controller_Users } = require('./controllers/users');
 const { Controller_Subjects } = require('./controllers/subjects');
 const { Controller_Quests } = require('./controllers/quests');
-const { Controller_Tests } = require('./controllers/tests');
+const { Controller_Games } = require('./controllers/games');
 
-const smartTest = require('./smartTest');
+//const smartTest = require('./smartTest');
 
 module.exports.register = function(app) {
     app.get('/register', (req, res) => {
@@ -134,7 +134,7 @@ module.exports.register = function(app) {
                     QueryNow('SELECT COUNT(*) Total FROM users'),
                     QueryNow('SELECT COUNT(*) Total FROM subjects'),
                     QueryNow('SELECT COUNT(*) Total FROM questions'),
-                    QueryNow('SELECT COUNT(*) Total FROM tests'),
+                    QueryNow('SELECT COUNT(*) Total FROM games'),
                 ]; 
                 
                 Promise.all(promiseTasks).then((sets) => {
@@ -145,7 +145,7 @@ module.exports.register = function(app) {
                         statUsers: sets[0][0].Total,
                         statSubjects: sets[1][0].Total,
                         statQuests: sets[2][0].Total,
-                        statTests: sets[3][0].Total
+                        statGames: sets[3][0].Total
                     })
                 }).catch((error) => {
                     res.render('dashboard/index', {
@@ -155,7 +155,7 @@ module.exports.register = function(app) {
                         statUsers: 0,
                         statSubjects: 0,
                         statQuests: 0,
-                        statTests: 0
+                        statGames: 0
                     })
                 })
 
@@ -163,7 +163,7 @@ module.exports.register = function(app) {
             case 'users': Controller_Users(0, action, id, req, res, next); break;
             case 'subjects': Controller_Subjects(0, action, id, req, res, next); break;
             case 'quests': Controller_Quests(0, action, id, req, res, next); break;
-            case 'tests': Controller_Tests(0, action, id, req, res, next); break;
+            case 'games': Controller_Games(0, action, id, req, res, next); break;
             default: 
                 res.render('error', { errorMessage: 'Trang này không tồn tại.' }); 
                 break;
@@ -183,7 +183,7 @@ module.exports.register = function(app) {
             case 'users': Controller_Users(1, action, id, req, res, next); break;
             case 'subjects': Controller_Subjects(1, action, id, req, res, next); break;
             case 'quests': Controller_Quests(1, action, id, req, res, next); break;
-            case 'tests': Controller_Tests(1, action, id, req, res, next); break;
+            case 'games': Controller_Games(1, action, id, req, res, next); break;
             default:
                 return res.redirect('/');
         }

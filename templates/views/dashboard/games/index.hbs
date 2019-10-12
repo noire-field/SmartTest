@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    {{> dashboard/meta_header }}
+  </head>
+  <body id="page-top">
+    <div id="wrapper">
+      {{> dashboard/sidebar }}
+      <div id="content-wrapper" class="d-flex flex-column">
+        <div id="content">
+          {{> dashboard/header }}
+          <div class="container-fluid">
+            <div class="d-sm-flex align-items-center justify-content-between mb-4">
+              <h1 class="h3 mb-0 text-gray-800">Quản lý trò chơi</h1>
+            </div>
+            <div class="row">
+              <div class="col-md-12">
+                <div class="card text-dark">
+                  <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-chalkboard-teacher i-space mr-2"></i>Danh sách trò chơi</span>
+                    <a href="{{ GetAdminPageUrl 'Games'}}/add" class="btn btn-primary btn-sm"><i class="fas fa-plus-circle mr-2"></i>Tạo trò chơi</a>
+                  </div>
+                  <div class="card-body p-0">
+                    <div class="table-responsive">
+                      <table class="table table-striped table-bordered table-hover">
+                        <thead>
+                          <tr class="text-center">
+                            <th>ID</th>
+                            <th>Tên Trò Chơi</th>
+                            <th>Mã PIN</th>
+                            <th>Bộ đề</th>
+                            <th>Th.Gian/Câu</th>
+                            <th>Sở hữu</th>
+                            <th>Trạng thái</th>
+                            <th>Thao tác</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {{#IfNotEmptyArray testList}}
+                            {{#each testList}}
+                            <tr class="text-dark text-center {{ GetTestRowColor this.OpenStatus }}">
+                              <td>{{ this.GameID }}</td>
+                              <td>{{ this.GameName }}</td>
+                              <td>{{ this.PINCode }}</td>
+                              <td>{{ this.SubjectName }}</td>
+                              <td>{{ this.TimePerQuest }} giây</td>
+                              <td>{{ CombineName this.FirstName this.LastName }}</td>
+                              <td>{{ GetTestStatusText this.OpenStatus }}</td>
+                              <td>
+                                {{#IfEqualBlock this.OpenStatus 0 }}
+                                  <a href="{{ GetAdminPageUrl 'Games'}}/open/{{ this.GameID }}" class="btn btn-success btn-sm px-1 py-0" title="Sửa"><i class="fas fa-lock-open mr-2"></i>Mở vào</a>
+                                  <a href="{{ GetAdminPageUrl 'Games'}}/edit/{{ this.GameID }}" class="btn btn-warning btn-sm px-1 py-0" title="Sửa"><i class="fas fa-edit mr-2"></i>Sửa</a>
+                                  <a href="{{ GetAdminPageUrl 'Games'}}/delete/{{ this.GameID }}" class="btn btn-danger btn-sm px-1 py-0" title="Xóa"><i class="fas fa-trash-alt mr-2"></i>Xóa</a>
+                                {{/IfEqualBlock}}
+                                {{#IfEqualBlock this.OpenStatus 1 }}
+                                    <a href="{{ GetAdminPageUrl 'Games'}}/start/{{ this.GameID }}" class="btn btn-primary btn-sm px-1 py-0" title="Mở cho thí sinh vào phòng"><i class="fas fa-envelope-open-text mr-2"></i>Làm bài</a>
+                                {{/IfEqualBlock}}
+                                {{#IfEqualBlock this.OpenStatus 2 }}
+                                    <a href="{{ GetAdminPageUrl 'Games'}}/start/{{ this.GameID }}" class="btn btn-primary btn-sm px-1 py-0" title="Mở cho thí sinh vào phòng"><i class="fas fa-envelope-open-text mr-2"></i>Làm bài</a>
+                                {{/IfEqualBlock}}
+                                {{#IfEqualBlock this.OpenStatus 3 }}
+                                    <a href="{{ GetAdminPageUrl 'Games'}}/viewmarks/{{ this.GameID }}" class="btn btn-info btn-sm px-1 py-0" title="Xem điểm"><i class="fas fa-poll-h mr-2"></i>Xem điểm</a>
+                                {{/IfEqualBlock}}
+                              </td>
+                            </tr>
+                            {{/each}}
+                          {{else}}
+                            <tr>
+                              <td colspan="8"><h6 class="text-center">Không có bất kỳ trò chơi nào</h6></td>
+                            </tr>
+                          {{/IfNotEmptyArray}}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {{{ GeneratePagination pagination.URL pagination.CURRENT pagination.TOTAL }}}
+          </div>
+        </div>
+
+        <!-- Footer -->
+        {{> dashboard/footer }}
+        <!-- End of Footer -->
+      </div>
+    </div>
+
+    <!-- Scroll to Top Button-->
+    <a class="scroll-to-top rounded" href="#page-top">
+      <i class="fas fa-angle-up"></i>
+    </a>
+   
+    {{> dashboard/meta_footer }}
+  </body>
+</html>

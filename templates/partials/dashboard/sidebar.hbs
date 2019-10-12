@@ -7,7 +7,7 @@
             <!--<i class="fas fa-laugh-wink"></i>-->
             <!--<img src="/img/SangvisFerri.png" width="100%">-->
         </div>
-        <div class="sidebar-brand-text mx-3">Smart Test</div>
+        <div class="sidebar-brand-text mx-3">S-Learn</div>
     </a>
 
     <!-- Divider -->
@@ -19,7 +19,7 @@
     </li>
 
     <hr class="sidebar-divider">
-    <div class="sidebar-heading">Quản lý SmartTest</div>
+    <div class="sidebar-heading">Quản lý S-Learn</div>
 
     {{#IfEqualBlock user.RoleType 2 }}
     <li class="nav-item {{#IfEqual page 'users' 'active'}}{{/IfEqual}}">
@@ -42,10 +42,10 @@
         <span>Quản lý câu hỏi</span>
         </a>
     </li>
-    <li class="nav-item {{#IfEqual page 'tests' 'active'}}{{/IfEqual}}">
-        <a class="nav-link pt-1" href="{{ GetAdminPageUrl 'Tests' }}">
-        <i class="far fa-file i-space"></i>
-        <span>Quản lý bài kiểm tra</span>
+    <li class="nav-item {{#IfEqual page 'games' 'active'}}{{/IfEqual}}">
+        <a class="nav-link pt-1" href="{{ GetAdminPageUrl 'Games' }}">
+        <i class="fas fa-chalkboard-teacher i-space"></i>
+        <span>Quản lý trò chơi</span>
         </a>
     </li>
 
