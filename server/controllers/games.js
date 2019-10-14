@@ -27,9 +27,9 @@ module.exports = {
                     .then((rows) => {
                         res.render('dashboard/games/index', {
                             page: 'games',
-                            head_title: `Quản lý bài kiểm tra - ${config.APP_NAME}`,
+                            head_title: `Quản lý trò chơi - ${config.APP_NAME}`,
                             user: req.user,
-                            testList: rows,
+                            gameList: rows,
                             pagination: { 
                                 URL: '/dashboard/games?page=',
                                 CURRENT: pagination[0], 
@@ -53,70 +53,53 @@ module.exports = {
                     Render_DeletePage(id, res, req, { status: 'none' });
                     break;
                 case 'open':
-                    if(!id) return res.redirect('/dashboard/tests');
+                    if(!id) return res.redirect('/dashboard/games');
 
-                    QueryNow(`SELECT t.OpenStatus FROM tests t WHERE t.TestID = ?${req.user.RoleType >= 2 ? '' : ` AND t.OwnerID = '${req.user.UserID}'`}`, [id])
+                    QueryNow(`SELECT OpenStatus FROM games WHERE GameID = ?${req.user.RoleType >= 2 ? '' : ` AND OwnerID = '${req.user.UserID}'`}`, [id])
                     .then((rows) => {
                         if(rows.length <= 0 || Number(rows[0]['OpenStatus']) != 0)
-                            return res.redirect('/dashboard/tests');
+                            return res.redirect('/dashboard/games');
 
-                        return smartTest.OpenTest(id);
+                        //return smartTest.OpenTest(id);
                     })
                     .then((rows) => {
-                        return res.redirect('/dashboard/tests');
+                        return res.redirect('/dashboard/games');
                     })
                     .catch((rows) => {
-                        if(!id) return res.redirect('/dashboard/tests');
+                        if(!id) return res.redirect('/dashboard/games');
                     })
 
                     break;
-                case 'start':
-                    if(!id) return res.redirect('/dashboard/tests');
+                case 'present':
+                    if(!id) return res.redirect('/dashboard/games');
 
-                    QueryNow(`SELECT t.OpenStatus FROM tests t WHERE t.TestID = ?${req.user.RoleType >= 2 ? '' : ` AND t.OwnerID = '${req.user.UserID}'`}`, [id])
+                    QueryNow(`SELECT OpenStatus FROM games WHERE GameID = ?${req.user.RoleType >= 2 ? '' : ` AND OwnerID = '${req.user.UserID}'`}`, [id])
                     .then((rows) => {
-                        if(rows.length <= 0 || Number(rows[0]['OpenStatus']) != 1)
-                            return res.redirect('/dashboard/tests');
+                        if(rows.length <= 0 || !(Number(rows[0]['OpenStatus']) == 1 || Number(rows[0]['OpenStatus']) == 2))
+                            return res.redirect('/dashboard/games');
 
-                        return smartTest.StartTest(id);
+                        //return smartTest.StartTest(id);
                     })
                     .then((status) => {
-                        return res.redirect('/dashboard/tests');
+                        return res.redirect('/dashboard/games');
                     })
                     .catch((error) => {
-                        return res.redirect('/dashboard/tests');
+                        return res.redirect('/dashboard/games');
                     })
 
-                    break;
-                case 'finish': 
-                    if(!id) return res.redirect('/dashboard/tests');
-
-                    QueryNow(`SELECT t.OpenStatus FROM tests t WHERE t.TestID = ?${req.user.RoleType >= 2 ? '' : ` AND t.OwnerID = '${req.user.UserID}'`}`, [id])
-                    .then((rows) => {
-                        if(rows.length <= 0 || Number(rows[0]['OpenStatus']) != 2)
-                            return res.redirect('/dashboard/tests');
-
-                        return smartTest.CloseTest(id);
-                    })
-                    .then((rows) => {
-                        return res.redirect('/dashboard/tests');
-                    })
-                    .catch((rows) => {
-                        if(!id) return res.redirect('/dashboard/tests');
-                    })
-                    
                     break;
                 case 'viewmarks':
-                    if(!id) return res.redirect('/dashboard/tests');
+                    if(!id) return res.redirect('/dashboard/games');
 
-                    QueryNow(`SELECT t.OpenStatus FROM tests t WHERE t.TestID = ?${req.user.RoleType >= 2 ? '' : ` AND t.OwnerID = '${req.user.UserID}'`}`, [id])
+                    QueryNow(`SELECT OpenStatus FROM games WHERE GameID = ?${req.user.RoleType >= 2 ? '' : ` AND OwnerID = '${req.user.UserID}'`}`, [id])
                     .then((rows) => {
                         if(rows.length <= 0 || Number(rows[0]['OpenStatus']) != 3)
-                            return res.redirect('/dashboard/tests');
+                            return res.redirect('/dashboard/games');
 
-                        return QueryNow(`SELECT tr.UserID, u.FirstName, u.LastName, u.StudentID, tr.CorrectCount, tr.TotalCount FROM testresults tr INNER JOIN users u ON tr.UserID = u.UserID WHERE tr.TestID = ? ORDER BY u.FirstName ASC`, [id]);
+                        //return QueryNow(`SELECT tr.UserID, u.FirstName, u.LastName, u.StudentID, tr.CorrectCount, tr.TotalCount FROM testresults tr INNER JOIN users u ON tr.UserID = u.UserID WHERE tr.TestID = ? ORDER BY u.FirstName ASC`, [id]);
                     })
                     .then((rows) => {
+                        /*
                         for(let r of rows) {
                             if(r.TotalCount > 0 && r.CorrectCount > 0) {
                                 r.Mark = Math.round((r.CorrectCount / r.TotalCount * 10) * 100) / 100;
@@ -134,46 +117,15 @@ module.exports = {
                             testId: id,
                             isAvailable: rows.length > 0 ? true : false,
                             markList: rows
-                        });
+                        });*/
                     })
                     .catch((rows) => {
-                        if(!id) return res.redirect('/dashboard/tests');
+                        if(!id) return res.redirect('/dashboard/games');
                     })
 
                     break;
-                case 'download':
-                /*
-                    if(!id) return res.redirect('/dashboard/tests');
-
-                    QueryNow(`SELECT t.OpenStatus FROM tests t WHERE t.TestID = ?${req.user.RoleType >= 2 ? '' : ` AND t.OwnerID = '${req.user.UserID}'`}`, [id])
-                    .then((rows) => {
-                        if(rows.length <= 0 || Number(rows[0]['OpenStatus']) != 3)
-                            return res.redirect('/dashboard/tests');
-
-                        return QueryNow(`SELECT tr.UserID, u.FirstName, u.LastName, u.StudentID, tr.CorrectCount, tr.TotalCount FROM testresults tr INNER JOIN users u ON tr.UserID = u.UserID WHERE tr.TestID = ? ORDER BY u.FirstName ASC`, [id]);
-                    })
-                    .then((rows) => {
-                        for(let r of rows) {
-                            if(r.TotalCount > 0 && r.CorrectCount > 0) {
-                                r.Mark = Math.round((r.CorrectCount / r.TotalCount * 10) * 100) / 100;
-                            } else {
-                                r.Mark = 0
-                            }
-                        }
-
-                        var fields = ['UserID', 'FirstName', 'LastName', 'StudentID', 'CorrectCount', 'TotalCount', 'Mark'];
-                        var fieldNames = ['User ID', 'First Name', 'Last Name', 'StudentID', 'Correct Answers', 'Total Answers', 'Mark'];
-                        var data = json2csv({ data: rows, fields: fields, fieldNames: fieldNames });
-
-                        //res.attachment('marks.csv');
-                        //res.status(200).send(data);
-
-                        res.send('OK');
-                    })
-                    .catch((rows) => {
-                        if(!id) return res.redirect('/dashboard/tests');
-                    })
-                    break;*/
+                //case 'download':
+             
                 default:
                     res.render('error', { errorMessage: 'Trang này không tồn tại.' });
                     break;
@@ -182,59 +134,47 @@ module.exports = {
             switch(action)
             {
                 case 'preview': 
-                    var test = req.body.test;
-                    var errors = CheckValidTest(test);
+                    var game = req.body.game;
+                    var errors = CheckValidTest(game);
 
                     if(errors.length > 0)
                         return res.json({ status: false, errors: errors });
 
-                    var testData = GenerateTestData(test);
-                    testData.then((data) => {
-                        return res.json({ status: true, parts: data });
+                    var gameData = GenerateGameData(game);
+                    gameData.then((data) => {
+                        return res.json({ status: true, quests: data });
                     }).catch((error) => {
+                        console.log(error);
                         return res.json({ status: false, errors: ['Something went wrong with our server'] });
                     });
 
                     break;
                 case 'add':
-                    var test = req.body.test;
-                    var errors = CheckValidTest(test);
+                    var game = req.body.game;
+                    var errors = CheckValidTest(game);
 
                     if(errors.length > 0)
                         return res.json({ status: false, errors: errors });
 
-                    var testData = [];
-                    GenerateTestData(test)
+                    GenerateGameData(game)
                     .then((data) => {
-                        testData = data;
-                        return QueryNow(`SELECT PINCode FROM tests WHERE OpenStatus <= 2`);
+                        if(data.length <= 0) // No quests
+                            return res.json({ status: false, errors: ['Không tìm thấy câu hỏi nào'] });
+
+                        return QueryNow(`SELECT PINCode FROM games WHERE OpenStatus <= 2`);
                     })
                     .then((rows) => {
                         var listPIN = [];
                         for(let p of rows) listPIN.push(p.PINCode);
 
-                        if(test.PIN.length > 0 && listPIN.indexOf(test.PIN) != -1)
+                        if(game.PIN.length > 0 && listPIN.indexOf(game.PIN) != -1)
                             return res.json({ status: false, errors: ['Vui lòng chọn mã PIN khác hoặc để trống'] });
-                        while(test.PIN.length <= 0 || listPIN.indexOf(test.PIN) != -1)
-                            test.PIN = String(getRandomInt(10000, 99999));
+                        while(game.PIN.length <= 0 || listPIN.indexOf(game.PIN) != -1)
+                            game.PIN = String(getRandomInt(10000, 99999));
 
-                        var totalQuest = 0;
-                        for(let p of testData)
-                            totalQuest += p.QUESTS.length;
-
-                        return QueryNow(`INSERT INTO tests (PINCode, TestName, TestTime, QuestTotal, OpenStatus, OwnerID) VALUES(?,?,?,?,0,?)`, [test.PIN, test.NAME, test.TIME, totalQuest, req.user.UserID]);
+                        return QueryNow(`INSERT INTO games (PINCode, GameName, SubjectID, TimePerQuest, CreatedDate, OpenStatus, OwnerID) VALUES(?,?,?,?,NOW(),0,?)`, [game.PIN, game.NAME, game.SUBJECTID, game.QUESTTIME, req.user.UserID]);
                     })
                     .then((rows) => {
-                        var orderNumber = 0;
-                        for(let p of testData) {
-                            orderNumber++;
-                            QueryNow(`INSERT INTO testparts (TestID, PartName, DisplayOrder) VALUES(?, ?, ?)`, [rows.insertId, p.NAME, orderNumber])
-                            .then((rows) => {
-                                for(let q of p.QUESTS)
-                                    QueryNow(`INSERT INTO partquests (TestPartID, QuestID) VALUES(?, ?)`, [rows.insertId, q.ID]);
-                            });
-                        }
-
                         return res.json({ status: true });
                     })
                     .catch((error) => {
@@ -243,50 +183,55 @@ module.exports = {
 
                     break;
                 case 'edit':
-                    if(!id) return res.redirect('/dashboard/tests');
+                    if(!id) return res.redirect('/dashboard/games');
 
                     var errors = [];
-                    var t = [];
+                    var g = {
+                        ID: id,
+                        NAME: req.body['input-gamename'],
+                        QUESTTIME: Number(req.body['input-questtime']),
+                        SUBJECTID: Number(req.body['input-subjectid']),
+                        PIN: req.body['input-pincode'],
+                    }
 
-                    QueryNow(`SELECT t.TestID, t.PINCode, t.TestName, t.TestTime, t.OpenStatus FROM tests t WHERE t.TestID = ?${req.user.RoleType >= 2 ? '' : ` AND t.OwnerID = '${req.user.UserID}'`}`, [id])
+                    GenerateGameData(g)
+                    .then((data) => {
+                        if(data.length <= 0) // No quests
+                            return Render_EditPage(id, res, req, { status: 'error', errors: ['Không tìm thấy câu hỏi nào từ bộ đề vừa chọn'] });
+
+                        return QueryNow(`SELECT GameID, PINCode, GameName, SubjectID, TimePerQuest, OpenStatus FROM games WHERE GameID = ?${req.user.RoleType >= 2 ? '' : ` AND OwnerID = '${req.user.UserID}'`}`, [id])
+                    })
                     .then((rows) => {
                         if(rows.length <= 0)
-                            return res.redirect('/dashboard/tests');
-
-                        t = {
-                            ID: id,
-                            NAME: req.body['input-testname'],
-                            TIME: Number(req.body['input-testtime']),
-                            PIN: req.body['input-pincode'],
-                        }
+                            return res.redirect('/dashboard/games');
 
                         if(Number(rows[0]['OpenStatus']) > 0)
-                            errors.push("Bài kiểm tra này đang hoạt động, không thể chỉnh sửa");
-                        if(t.NAME.length <= 0 || t.NAME.length > 128)
-                            errors.push("Tên bài kiểm tra phải từ 1 đến 128 ký tự");
-                        if(t.TIME <= 5 || t.TIME > 1000)
-                            errors.push("Thời gian kiểm tra phải từ 5 đến 1000 phút");
-                        if(t.PIN.length > 0 && !(new RegExp(/^\d{5}$/).test(t.PIN)))
+                            errors.push("Trò chơi này đang hoạt động, không thể chỉnh sửa");
+                        if(g.NAME.length <= 0 || g.NAME.length > 128)
+                            errors.push("Tên trò chơi phải từ 1 đến 128 ký tự");
+                        if(g.QUESTTIME <= 5 || g.QUESTTIME > 1000)
+                            errors.push("Thời gian trả lời mỗi câu phải từ 5 đến 10 giây");
+                        if(g.PIN.length > 0 && !(new RegExp(/^\d{5}$/).test(g.PIN)))
                             errors.push("Mã PIN phải là 5 chữ số (hoặc để trống)");
 
                         if(errors.length > 0)
                             Render_EditPage(id, res, req, { status: 'error', errors: errors });
 
-                        return QueryNow(`SELECT PINCode FROM tests WHERE OpenStatus <= 2 AND TestID != ?`, [id]);
+                        return QueryNow(`SELECT PINCode FROM games WHERE OpenStatus <= 2 AND GameID != ?`, [id]);
                     })
                     .then((rows) => {
                         var listPIN = [];
                         for(let p of rows) listPIN.push(p.PINCode);
 
-                        if(t.PIN.length > 0 && listPIN.indexOf(t.PIN) != -1)
+                        if(g.PIN.length > 0 && listPIN.indexOf(g.PIN) != -1)
                             errors.push('Vui lòng chọn mã PIN khác hoặc để trống');
-                        while(t.PIN.length <= 0 || listPIN.indexOf(t.PIN) != -1)
-                            t.PIN = String(getRandomInt(10000, 99999));
+                        while(g.PIN.length <= 0 || listPIN.indexOf(g.PIN) != -1)
+                            g.PIN = String(getRandomInt(10000, 99999));
 
                         if(errors.length > 0)
                             return Render_EditPage(id, res, req, { status: 'error', errors: errors });
 
-                        QueryNow(`UPDATE tests SET TestName = ?, PINCode = ?, TestTime = ? WHERE TestID = ?`, [t.NAME, t.PIN, t.TIME, id])
+                        QueryNow(`UPDATE games SET GameName = ?, PINCode = ?, SubjectID = ?, TimePerQuest = ? WHERE GameID = ?`, [g.NAME, g.PIN, g.SUBJECTID, g.QUESTTIME, id])
                         .then((rows) => { 
                             return Render_EditPage(id, res, req, { status: 'success' });
                         }).catch((error) => {
@@ -301,32 +246,27 @@ module.exports = {
         
                     break;
                 case 'delete':
-                    if(!id) return res.redirect('/dashboard/tests');
+                    if(!id) return res.redirect('/dashboard/games');
 
                     var errors = [];
                     var t = [];
 
-                    QueryNow(`SELECT t.TestID, t.PINCode, t.TestName, t.TestTime, t.OpenStatus FROM tests t WHERE t.TestID = ?${req.user.RoleType >= 2 ? '' : ` AND t.OwnerID = '${req.user.UserID}'`}`, [id])
+                    QueryNow(`SELECT GameID, PINCode, GameName, SubjectID, TimePerQuest, OpenStatus FROM games WHERE GameID = ?${req.user.RoleType >= 2 ? '' : ` AND OwnerID = '${req.user.UserID}'`}`, [id])
                     .then((rows) => {
                         if(rows.length <= 0)
-                            return res.redirect('/dashboard/tests');
+                            return res.redirect('/dashboard/games');
 
                         if(Number(rows[0]['OpenStatus']) > 0)
-                            errors.push("Bài kiểm tra này đang hoạt động, không thể xóa");
+                            errors.push("Trò chơi này đang hoạt động, không thể xóa");
 
                         if(errors.length <= 0) {
-                            QueryNow(`DELETE FROM tests WHERE TestID = ?`,[id])
-                            .then((rows) => { return QueryNow(`SELECT TestPartID FROM testparts WHERE TestID = ?`, [id]) }) // Scan all parts of this test
-                            .then((rows) => { 
-                                QueryNow(`DELETE FROM testparts WHERE TestID = ?`, [id]);
-                                for(let p of rows) 
-                                    QueryNow(`DELETE FROM partquests WHERE TestPartID = ?`, [p.TestPartID]);
-
-                                return res.redirect('/dashboard/tests');
+                            QueryNow(`DELETE FROM games WHERE GameID = ?`,[id])
+                            .then((rows) => {
+                                return res.redirect('/dashboard/games');
                             })
                             .catch((error) => {
                                 Log(error);
-                                return Render_DeletePage(id, res, req, { status: 'error', errors: ['Không thể cập nhật do lỗi truy vấn #1'] });
+                                return Render_DeletePage(id, res, req, { status: 'error', errors: ['Không thể xóa do lỗi truy vấn #1'] });
                             })
                         } else {
                             return Render_DeletePage(id, res, req, { status: 'error', errors: errors });
@@ -354,25 +294,10 @@ module.exports = {
                     errors.push("Tên bài kiểm tra phải từ 1 đến 128 ký tự");
                 if(t.SUBJECTID <= 0)
                     errors.push("Vui lòng chọn bộ đề");
-                if(t.TIME <= 5 || t.TIME > 1000)
+                if(t.QUESTTIME <= 5 || t.QUESTTIME > 1000)
                     errors.push("Thời gian kiểm tra phải từ 5 đến 1000 phút");
                 if(t.PIN.length > 0 && !(new RegExp(/^\d{5}$/).test(t.PIN)))
                     errors.push("Mã PIN phải là 5 chữ số (hoặc để trống)");
-                var fixedParts = [];
-                for(var p of t.PARTS) {
-                    if(p.NAME.length > 0)
-                    {
-                        if(p.TAGS.length <= 0) { errors.push("Phần '"+ p.NAME +"' chưa có thẻ"); break; }
-                        if(p.NAME.length > 64) { errors.push("Phần '"+ p.NAME +"' tên quá dài, vui lòng giảm xuống tối đa 64 ký tự"); break; }
-                        if(p.TAGS.length > 64) { errors.push("Phần '"+ p.NAME +"' có quá nhiều thẻ"); break; }
-                        if(Number(p.COUNT) <= 0) {errors.push("Phần '"+ p.NAME +"' chưa có số câu hỏi mong muốn"); break; }
-
-                        fixedParts.push(p);
-                    }
-                }
-
-                if(fixedParts.length <= 0)
-                    errors.push("Bạn chưa thêm bất kỳ phần nào và thẻ");
             } catch(e) {
                 errors.push('Lỗi không xác định');
             }
@@ -380,39 +305,19 @@ module.exports = {
             return errors;
         }
 
-        async function GenerateTestData(test) {
-            // Pull out all questions of this subject
+        async function GenerateGameData(game) {
             return new Promise((resolve, reject) => {
-                QueryNow(`SELECT q.QuestID, q.QuestContent, GROUP_CONCAT(qt.Tag SEPARATOR ',') Tags FROM questions q INNER JOIN questtags qt ON q.QuestID = qt.QuestID WHERE q.SubjectID = ? GROUP BY q.QuestID`, [test.SUBJECTID])
+                QueryNow(`SELECT QuestID, QuestContent FROM questions WHERE SubjectID = ?`, [game.SUBJECTID])
                 .then((rows) => {
-                    var testParts = [];
                     var questList = [];
-
                     for(let t of rows) {
                         questList.push({
                             ID: t.QuestID,
-                            CONTENT: t.QuestContent,
-                            TAGS: TagStringToArray(t.Tags)
+                            CONTENT: t.QuestContent
                         });
                     }
 
-                    for(let p of test.PARTS) {
-                        if(p.NAME.length > 0)
-                            testParts.push({
-                                NAME: p.NAME,
-                                QUESTS: ScanQuestsIntoPart(p.TAGS, questList),
-                                COUNT: p.COUNT
-                            })
-                    }
-
-                    // Refresh the part
-                    for(let tp of testParts) {
-                        ShuffleArray(tp.QUESTS);
-                        while(tp.QUESTS.length > tp.COUNT)
-                            tp.QUESTS.pop();
-                    }
-
-                    resolve(testParts);
+                    resolve(questList);
                 })
                 .catch((error) => {
                     reject(error);
@@ -420,42 +325,13 @@ module.exports = {
             });
         }
 
-        function ShuffleArray(a) { // Thanks to https://stackoverflow.com/questions/6274339/how-can-i-shuffle-an-array
-            for (let i = a.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [a[i], a[j]] = [a[j], a[i]];
-            }
-            return a;
-        }
-
-        function ScanQuestsIntoPart(tags, questList) {
-            var reqTags = TagStringToArray(tags);
-            var newList = [];
-
-            for(let q of questList) {
-                let allowed = true;
-                for(let t of reqTags) {
-                    if(q.TAGS.indexOf(t) == -1) {
-                        allowed = false;
-                    }
-                }
-                if(allowed) newList.push(q);
-            }
-
-            return newList;
-        }
-
-        function TagStringToArray(strTags) {
-            return strTags.split(',').map((tag) => tag.trim()).filter((tag) => tag.length > 0 ? true : false);
-        }
-
         function Render_AddPage(id, res, req, extra={}) {
             // Find subjects first
             QueryNow(`SELECT s.SubjectID, s.SubjectName, u.FirstName, u.LastName FROM subjects s INNER JOIN users u ON s.OwnerID = u.UserID${req.user.RoleType >= 2 ? `` : ` WHERE s.OwnerID = '${req.user.UserID}'`}`)
             .then((rows) => {
-                res.render('dashboard/tests/add', {
-                    page: 'tests',
-                    head_title: `Thêm bài kiểm tra - ${config.APP_NAME}`,
+                res.render('dashboard/games/add', {
+                    page: 'games',
+                    head_title: `Tạo trò chơi - ${config.APP_NAME}`,
                     user: req.user,
                     subjectList: rows,
                     ...extra
@@ -468,18 +344,25 @@ module.exports = {
         }
 
         function Render_EditPage(id, res, req, extra={}) {
-            if(!id) return res.redirect('/dashboard/tests');
+            if(!id) return res.redirect('/dashboard/games');
 
-            QueryNow(`SELECT t.TestID, t.PINCode, t.TestName, t.TestTime, t.OpenStatus FROM tests t WHERE t.TestID = ?${req.user.RoleType >= 2 ? '' : ` AND t.OwnerID = '${req.user.UserID}'`}`, [id])
+            var subjectList = [];
+
+            QueryNow(`SELECT s.SubjectID, s.SubjectName, u.FirstName, u.LastName FROM subjects s INNER JOIN users u ON s.OwnerID = u.UserID${req.user.RoleType >= 2 ? `` : ` WHERE s.OwnerID = '${req.user.UserID}'`}`)
+            .then((rows) => {
+                subjectList = rows;
+                return QueryNow(`SELECT GameID, PINCode, GameName, SubjectID, TimePerQuest, OpenStatus FROM games WHERE GameID = ?${req.user.RoleType >= 2 ? '' : ` AND OwnerID = '${req.user.UserID}'`}`, [id]);
+            })
             .then((rows) => {
                 if(rows.length <= 0 || Number(rows[0]['OpenStatus']) > 0)
-                    return res.redirect('/dashboard/tests');
+                    return res.redirect('/dashboard/games');
   
-                res.render('dashboard/tests/edit', {
-                    page: 'tests',
-                    head_title: `Chỉnh sửa bài kiểm tra - ${config.APP_NAME}`,
+                res.render('dashboard/games/edit', {
+                    page: 'games',
+                    head_title: `Chỉnh sửa trò chơi - ${config.APP_NAME}`,
                     user: req.user,
-                    editTest: rows[0],
+                    subjectList,
+                    editGame: rows[0],
                     ...extra
                 });
             })
@@ -490,18 +373,18 @@ module.exports = {
         }
 
         function Render_DeletePage(id, res, req, extra={}) {
-            if(!id) return res.redirect('/dashboard/tests');
+            if(!id) return res.redirect('/dashboard/games');
 
-            QueryNow(`SELECT t.TestID, t.PINCode, t.TestName, t.TestTime, t.OpenStatus FROM tests t WHERE t.TestID = ?${req.user.RoleType >= 2 ? '' : ` AND t.OwnerID = '${req.user.UserID}'`}`, [id])
+            QueryNow(`SELECT GameID, PINCode, GameName, SubjectID, TimePerQuest, OpenStatus FROM games WHERE GameID = ?${req.user.RoleType >= 2 ? '' : ` AND OwnerID = '${req.user.UserID}'`}`, [id])
             .then((rows) => {
                 if(rows.length <= 0 || Number(rows[0]['OpenStatus']) > 0)
-                    return res.redirect('/dashboard/tests');
+                    return res.redirect('/dashboard/games');
   
-                res.render('dashboard/tests/delete', {
-                    page: 'tests',
-                    head_title: `Xóa bài kiểm tra - ${config.APP_NAME}`,
+                res.render('dashboard/games/delete', {
+                    page: 'games',
+                    head_title: `Xóa trò chơi - ${config.APP_NAME}`,
                     user: req.user,
-                    editTest: rows[0],
+                    editGame: rows[0],
                     ...extra
                 });
             })

@@ -36,8 +36,8 @@
                           </tr>
                         </thead>
                         <tbody>
-                          {{#IfNotEmptyArray testList}}
-                            {{#each testList}}
+                          {{#IfNotEmptyArray gameList}}
+                            {{#each gameList}}
                             <tr class="text-dark text-center {{ GetTestRowColor this.OpenStatus }}">
                               <td>{{ this.GameID }}</td>
                               <td>{{ this.GameName }}</td>

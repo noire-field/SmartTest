@@ -63,24 +63,15 @@ module.exports = {
                     let quest = {
                         SubjectID: req.body['input-subjectid'] != undefined ? req.body['input-subjectid'] : 0,
                         Content: req.body['input-questcontent'],
-                        Tags: [],
                         Answers: []
                     };
-
-                    // Tags
-                    var splitTags = req.body['input-questtags'].split(',');
-                    for(tag of splitTags) {
-                        var trimTag = tag.trim();
-                        if(trimTag.length > 0)
-                            quest.Tags.push(trimTag);
-                    }
 
                     // Answers
                     for(let i = 0; i < 4; i++) {
                         if(req.body[`input-questans[${i}][content]`].length > 0) {
                             quest.Answers.push({ 
                                 CONTENT: req.body[`input-questans[${i}][content]`],
-                                CORRECT: req.body[`input-questans[${i}][correct]`] != undefined ? true : false
+                                CORRECT: req.body[`input-questans[${i}][correct]`] != undefined ? 1 : 0
                             });
                         }
                     }
@@ -89,8 +80,6 @@ module.exports = {
                         errors.push(`Bộ đề không hợp lệ, vui lòng chọn bộ đề`);
                     if(quest.Content.length <= 0 || quest.Content.length >= 128)
                         errors.push(`Nội dung câu hỏi phải từ 1 đến 128 ký tự`);
-                    if(quest.Tags.length <= 0 || quest.Tags.length > 5)
-                        errors.push(`Câu hỏi chưa có thẻ, vui lòng thêm thẻ, tối đa 5 thẻ`);
                     if(quest.Answers.length <= 0)
                         errors.push(`Chưa có câu trả lời nào được nhập vào`);
                     else {
@@ -112,10 +101,6 @@ module.exports = {
                             // Add questions
                             for(let q of quest.Answers)
                                 QueryNow(`INSERT INTO answers (QuestID,AnsType,AnsContent,IsCorrect) VALUES(?,?,?,?)`, [rows.insertId, 0, q.CONTENT, q.CORRECT]);
-
-                            // Add tags
-                            for(let t of quest.Tags)
-                                QueryNow(`INSERT INTO questtags (QuestID,Tag) VALUES(?,?)`, [rows.insertId, t]);
 
                             return res.redirect('/dashboard/quests');
                         })
@@ -141,24 +126,15 @@ module.exports = {
                         let quest = {
                             SubjectID: req.body['input-subjectid'] != undefined ? req.body['input-subjectid'] : 0,
                             Content: req.body['input-questcontent'],
-                            Tags: [],
                             Answers: []
                         };
-        
-                        // Tags
-                        var splitTags = req.body['input-questtags'].split(',');
-                        for(tag of splitTags) {
-                            var trimTag = tag.trim();
-                            if(trimTag.length > 0)
-                                quest.Tags.push(trimTag);
-                        }
         
                         // Answers
                         for(let i = 0; i < 4; i++) {
                             if(req.body[`input-questans[${i}][content]`].length > 0) {
                                 quest.Answers.push({ 
                                     CONTENT: req.body[`input-questans[${i}][content]`],
-                                    CORRECT: req.body[`input-questans[${i}][correct]`] != undefined ? true : false
+                                    CORRECT: req.body[`input-questans[${i}][correct]`] != undefined ? 1 : 0
                                 });
                             }
                         }
@@ -167,14 +143,12 @@ module.exports = {
                             errors.push(`Bộ đề không hợp lệ, vui lòng chọn bộ đề`);
                         if(quest.Content.length <= 0 || quest.Content.length >= 128)
                             errors.push(`Nội dung câu hỏi phải từ 1 đến 128 ký tự`);
-                        if(quest.Tags.length <= 0 || quest.Tags.length > 5)
-                            errors.push(`Câu hỏi chưa có thẻ, vui lòng thêm thẻ, tối đa 5 thẻ`);
                         if(quest.Answers.length <= 0)
                             errors.push(`Chưa có câu trả lời nào được nhập vào`);
                         else {
                             let CorrectAnswer = false;
                             for(let i = 0; i < quest.Answers.length; i++) {
-                                if(quest.Answers[i].CORRECT == true) {
+                                if(quest.Answers[i].CORRECT == 1) {
                                     CorrectAnswer = true;
                                     break;
                                 }
@@ -187,14 +161,14 @@ module.exports = {
                         if(errors.length <= 0) {
                             QueryNow(`UPDATE questions SET SubjectID = ?, QuestContent = ? WHERE QuestID = ?`, [quest.SubjectID, quest.Content, id])
                             .then((rows) => { return QueryNow(`DELETE FROM answers WHERE QuestID = ?`, [id]) })
-                            .then((rows) => { return QueryNow(`DELETE FROM questtags WHERE QuestID = ?`, [id]) })
                             .then((rows) => {
+                                var allInserts = [];
                                 for(let q of quest.Answers)
-                                    QueryNow(`INSERT INTO answers (QuestID,AnsType,AnsContent,IsCorrect) VALUES(?,?,?,?)`, [id, 0, q.CONTENT, q.CORRECT]);
-                                for(let t of quest.Tags)
-                                    QueryNow(`INSERT INTO questtags (QuestID,Tag) VALUES(?,?)`, [id, t]);
-
-                                return Render_EditPage(id, res, req, { status: 'success' });
+                                    allInserts.push(QueryNow(`INSERT INTO answers (QuestID,AnsType,AnsContent,IsCorrect) VALUES(?,?,?,?)`, [id, 0, q.CONTENT, q.CORRECT]));
+                               
+                                Promise.all(allInserts).then((data) => {
+                                    return Render_EditPage(id, res, req, { status: 'success' });
+                                })
                             }).catch((error) => {
                                 Log(error);
                                 return Render_EditPage(id, res, req, { status: 'error', errors: ['Không thể cập nhật do lỗi truy vấn #1'] });
@@ -220,7 +194,6 @@ module.exports = {
                         var errors = [];
                         if(errors.length <= 0) {
                             QueryNow(`DELETE FROM questions WHERE QuestID = ?`,[id])
-                            .then((rows) => { return QueryNow(`DELETE FROM questtags WHERE QuestID = ?`, [id]) })
                             .then((rows) => { return QueryNow(`DELETE FROM answers WHERE QuestID = ?`, [id]) })
                             .then((rows) => { return res.redirect('/dashboard/quests') })
                             .catch((error) => {
@@ -263,7 +236,6 @@ module.exports = {
 
             var questInfo = null;
             var subjectList = [];
-            var questTags = [];
 
             QueryNow(`SELECT q.QuestID, q.SubjectID, q.QuestContent FROM questions q WHERE q.QuestID = ?${req.user.RoleType >= 2 ? '' : ` AND q.OwnerID = '${req.user.UserID}'`}`, [id])
             .then((rows) => {
@@ -275,20 +247,15 @@ module.exports = {
             })
             .then((rows) => {
                 subjectList = rows;
-                return QueryNow(`SELECT Tag FROM questtags WHERE QuestID = ?`, [id]);
-            })
-            .then((rows) => {
-                questTags = rows;
                 return QueryNow(`SELECT * FROM answers WHERE QuestID = ?`, [id]);
             })
             .then((rows) => {
                 var missingLenth = Math.min(4-rows.length, 4);
                 for(let i = 0; i < missingLenth; i++)
-                    rows.push({ AnsContent: '', IsCorrect: false });
+                    rows.push({ AnsContent: '', IsCorrect: 0 });
 
                 for(let i = 0; i < 4; i++) {
-                    if(typeof rows[i].IsCorrect == 'object') 
-                        rows[i].IsCorrect = JSON.parse(JSON.stringify(rows[i].IsCorrect)).data[0]
+                    rows[i].IsCorrect = rows[i].IsCorrect;
                     rows[i].Index = i;
                 }
             
@@ -297,7 +264,6 @@ module.exports = {
                     head_title: `Chỉnh sửa câu hỏi - ${config.APP_NAME}`,
                     user: req.user,
                     subjectList,
-                    questTags: questTags.map((o) => o.Tag).join(', '),
                     editQuest: questInfo,
                     answers: rows,
                     ...extra

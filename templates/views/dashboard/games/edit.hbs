@@ -11,10 +11,10 @@
           {{> dashboard/header }}
           <div class="container-fluid">
             <div class="d-sm-flex align-items-center justify-content-between mb-4">
-              <h1 class="h3 mb-0 text-gray-800">Chỉnh sửa kiểm tra</h1>
-              <a href="{{ GetAdminPageUrl 'Tests'}}" class="btn btn-primary btn-sm"><i class="fas fa-arrow-circle-left mr-2"></i>Quay về</a>
+              <h1 class="h3 mb-0 text-gray-800">Chỉnh sửa trò chơi</h1>
+              <a href="{{ GetAdminPageUrl 'Games'}}" class="btn btn-primary btn-sm"><i class="fas fa-arrow-circle-left mr-2"></i>Quay về</a>
             </div>
-            {{#IfEqualBlock status 'success'}}<div class="alert alert-success small"><i class="fas fa-user-check mr-2"></i>Bài kiểm tra đã được cập nhật!</div>{{/IfEqualBlock}}
+            {{#IfEqualBlock status 'success'}}<div class="alert alert-success small"><i class="fas fa-user-check mr-2"></i>Trò chơi đã được cập nhật!</div>{{/IfEqualBlock}}
             {{#IfEqualBlock status 'error'}}
               <div class="alert alert-danger small">
                 {{#each errors}}
@@ -24,26 +24,38 @@
             {{/IfEqualBlock}}
             <div class="row">
               <div class="col-md-12">
-                <form action="{{ GetAdminPageUrl 'Tests'}}/edit/{{ editTest.TestID }}" method="POST" class="mt-3">
+                <form action="{{ GetAdminPageUrl 'Games'}}/edit/{{ editGame.GameID }}" method="POST" class="mt-3">
                   <div class="row">
                     <div class="col-md-7">
                       <div class="form-group">
-                        <label for="input-testname"><b>Tên bài kiểm tra:</b></label>
-                        <input type="text" class="form-control" v-model="testName" id="input-testname" name="input-testname" value="{{ editTest.TestName }}">
+                        <label for="input-gamename"><b>Tên trò chơi:</b></label>
+                        <input type="text" class="form-control" v-model="gameName" id="input-gamename" name="input-gamename" value="{{ editGame.GameName }}">
+                      </div>
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="col-md-7">
+                      <div class="form-group">
+                        <label for="input-subjectid"><b>Bộ đề:</b> <small>(Toàn bộ câu hỏi của bộ đề này sẽ được thêm)</small></label>
+                        <select class="custom-select" v-model="gameSubjectID" name="input-subjectid">
+                        {{#each subjectList}}
+                            <option value="{{ this.SubjectID }}">{{ this.SubjectName }} ({{ CombineName this.FirstName this.LastName }})</option>
+                        {{/each}}
+                        </select>
                       </div>
                     </div>
                   </div>
                   <div class="row">
                     <div class="col-md-3">
                       <div class="form-group">
-                        <label for="input-testname"><b>Thời gian làm bài:</b> <small>(phút)</small></label>
-                        <input type="number" class="form-control" v-model="testTime" id="input-testtime" name="input-testtime" min="3" max="999" value="{{ editTest.TestTime }}">
+                        <label for="input-questtime"><b>Thời gian trả lời mỗi câu:</b> <small>(giây)</small></label>
+                        <input type="number" class="form-control" v-model="questTime" id="input-questtime" name="input-questtime" min="5" max="999" value="{{ editGame.TimePerQuest }}">
                       </div>
                     </div>
                     <div class="col-md-4">
                       <div class="form-group">
-                        <label for="input-testname"><b>Mã PIN:</b> <small>(5 chữ số, hệ thống chọn ngẫu nhiên nếu bỏ trống)</small></label>
-                        <input type="text" class="form-control" v-model="testPINCode" id="input-pincode" name="input-pincode" min="10000" max="99999" value="{{ editTest.PINCode }}">
+                        <label for="input-pincode"><b>Mã PIN:</b> <small>(5 chữ số, hệ thống chọn ngẫu nhiên nếu bỏ trống)</small></label>
+                        <input type="text" class="form-control" v-model="gamePINCode" id="input-pincode" name="input-pincode" min="10000" max="99999" value="{{ editGame.PINCode }}">
                       </div>
                     </div>
                   </div>
