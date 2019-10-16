@@ -22,7 +22,7 @@
     <div class="container">
       <div id="logo" class="pull-left">
         <!--<a href="#hero"><img src="img/logo.png" alt="" title="" /></img></a>-->
-        <h1 class="slide-right"><a href="#hero">S-Learn</a></h1>
+        <h1 class="slide-right"><a href="#hero">Play To Learn</a></h1>
       </div>
 
       <nav id="nav-menu-container">
@@ -33,7 +33,7 @@
             <ul>
               <!-- <li><a href="/account">Cài đặt tài khoản</a></li>  -->
               {{#IfEqualBlock isUserAdmin true}}
-              <li><a href="/dashboard">Quản lý kiểm tra</a></li>
+              <li><a href="/dashboard">Quản lý trò chơi</a></li>
               {{/IfEqualBlock}}
               {{#IfEqualBlock isUserAdmin false}}
               <!-- <li><a href="/result">Kết quả kiểm tra</a></li> -->
@@ -57,66 +57,60 @@
   <section id="hero">
     <div id="bigger-container" style="display: none;" class="fade-in">
       <div class="hero-container">
-        <h1 class="slide-up">Chào mừng!</h1>
-        {{#IfEqualBlock isUserLogged true}}
-            {{#IfEqualBlock isInTest false}}
-            <h2 class="slide-up">Vui lòng nhập mã PIN để vào phòng và thực hiện kiểm tra</h2>
-            <div class="row slide-up">
-                <div class="col-md-12">
-                    <div v-if="!isLoading" class="input-group mb-3">
-                    <input v-model="inputPIN" type="text" id="txbPINCode" class="form-control" placeholder="{{#IfEqual isUserLogged false 'Vui lòng đăng nhập'}}{{/IfEqual}}{{#IfEqual isUserLogged true 'Mã PIN bài kiểm tra'}}{{/IfEqual}}" {{#IfEqual isUserLogged false 'disabled'}}{{/IfEqual}}>
-                    <div class="input-group-append">
-                        <button @click="searchRoom" id="btnGetToRoom" class="btn btn-success" type="button" {{#IfEqual isUserLogged false 'disabled' ''}}{{/IfEqual}}>Tìm phòng</button>
-                    </div>
-                    </div>
+        <h1 class="slide-up">Chơi để học</h1>
+        {{#IfEqualBlock isInGame false}}
+        <h2 class="slide-up">Nhập mã PIN để vào phòng</h2>
+        <div class="row slide-up">
+            <div class="col-md-12">
+                <div v-if="!isLoading" class="input-group mb-3">
+                <input v-model="inputPIN" type="text" id="txbPINCode" class="form-control" placeholder="{{#IfEqual isUserLogged false 'Vui lòng đăng nhập'}}{{/IfEqual}}{{#IfEqual isUserLogged true 'Mã PIN bài kiểm tra'}}{{/IfEqual}}" {{#IfEqual isUserLogged false 'disabled'}}{{/IfEqual}}>
+                <div class="input-group-append">
+                    <button @click="searchRoom" id="btnGetToRoom" class="btn btn-success" type="button" {{#IfEqual isUserLogged false 'disabled' ''}}{{/IfEqual}}>Tìm phòng</button>
+                </div>
                 </div>
             </div>
-            {{/IfEqualBlock}}
-            {{#IfEqualBlock isInTest true}}
-            <h2 class="slide-up">Hệ thống nhận thấy bạn đang trong một bài kiểm tra, hãy bấm quay lại vào phòng</h2>
-            <div class="row slide-up">
-                <div class="col-md-12">
-                    <div v-if="!isLoading" class="input-group mb-3">
-                    <input type="text" id="txbPINCode" class="form-control" value="{{ testPIN }}" disabled>
-                    <div class="input-group-append">
-                        <button @click="backToRoom" id="btnBackToRoom" class="btn btn-success" type="button">Quay lại phòng</button>
-                    </div>
-                    </div>
+        </div>
+        {{/IfEqualBlock}}
+        {{#IfEqualBlock isInGame true}}
+        <h2 class="slide-up">Hệ thống nhận thấy bạn đang trong một bài kiểm tra, hãy bấm quay lại vào phòng</h2>
+        <div class="row slide-up">
+            <div class="col-md-12">
+                <div v-if="!isLoading" class="input-group mb-3">
+                <input type="text" id="txbPINCode" class="form-control" value="{{ testPIN }}" disabled>
+                <div class="input-group-append">
+                    <button @click="backToRoom" id="btnBackToRoom" class="btn btn-success" type="button">Quay lại phòng</button>
+                </div>
                 </div>
             </div>
-            {{/IfEqualBlock}}
-            <div class="row slide-up">
-                <div class="col-md-12">
-                    <div v-if="isLoading"><img src="img/loading3.gif" class="icon-loading"></div>
-                    <div v-if="isError" class="alert alert-warning py-2 pl-0">
-                    <ul class="m-0 y-0 text-left">
-                        <li v-for="e in errors">{? e ?}</li>
-                    </ul>
-                    </div>
-                    <div v-if="roomFound">
-                    <div class="card mt-5" style="opacity: 0.85;">
-                        <div class="card-header py-1 px-2 bg-primary text-white"><i class="fas fa-check-circle mr-2"></i><span>Đã tìm được phòng</span></div>
-                        <div class="card-body py-3 d-flex justify-content-between align-items-center text-left">
-                            <div class="pr-5">
-                                <p class="m-0 y-0 text-primary"><b>{? testName ?}</b></p>
-                                <hr class="my-1">
-                                <p class="m-0 y-0 text-primary small"><b>Thời gian làm bài:</b> {? testTime ?} phút</p>
-                                <p class="m-0 y-0 text-primary small"><b>Giảng viên:</b> {? testOwner ?}</p>
+        </div>
+        {{/IfEqualBlock}}
+        <div class="row slide-up">
+            <div class="col-md-12">
+                <div v-if="isLoading"><img src="img/loading3.gif" class="icon-loading"></div>
+                <div v-if="isError" class="alert alert-warning py-2 pl-0">
+                <ul class="m-0 y-0 text-left">
+                    <li v-for="e in errors">{? e ?}</li>
+                </ul>
+                </div>
+                <div v-if="roomFound">
+                <div class="card mt-5" style="opacity: 0.85;">
+                    <div class="card-header py-1 px-2 bg-primary text-white"><i class="fas fa-check-circle mr-2"></i><span>Đã tìm được phòng</span></div>
+                    <div class="card-body py-3 d-flex justify-content-between align-items-center text-left">
+                        <div class="pr-5">
+                            <p class="m-0 y-0 text-primary"><b>{? testName ?}</b></p>
+                            <hr class="my-1">
+                            <p class="m-0 y-0 text-primary small"><b>Thời gian làm bài:</b> {? testTime ?} phút</p>
+                            <p class="m-0 y-0 text-primary small"><b>Giảng viên:</b> {? testOwner ?}</p>
 
-                            </div>
-                            <div>
-                                <button @click="joinRoom" class="btn btn-info"><i class="fas fa-chevron-circle-right mr-2"></i>Vào phòng</button>
-                            </div>
+                        </div>
+                        <div>
+                            <button @click="joinRoom" class="btn btn-info"><i class="fas fa-chevron-circle-right mr-2"></i>Vào phòng</button>
                         </div>
                     </div>
-                    </div>
+                </div>
                 </div>
             </div>
-        {{/IfEqualBlock}}
-        {{#IfEqualBlock isUserLogged false}}
-            <h2 class="slide-up">Vui lòng đăng nhập để tiếp tục</h2>
-        {{/IfEqualBlock}}
-
+        </div>
       </div>
     </div>
   </section><!-- #hero -->

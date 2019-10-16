@@ -1,7 +1,7 @@
 const config = require('./../../config');
 const { Log, ErrorHandler } = require('../utils/logger');
 const { QueryNow, GetPageLimit } = require('../database');
-const smartTest = require('./../smartTest');
+const activeGames = require('./../activeGames');
 var json2csv = require('json2csv');
 
 module.exports = {
@@ -60,7 +60,7 @@ module.exports = {
                         if(rows.length <= 0 || Number(rows[0]['OpenStatus']) != 0)
                             return res.redirect('/dashboard/games');
 
-                        //return smartTest.OpenTest(id);
+                        return activeGames.OpenRoom(id);
                     })
                     .then((rows) => {
                         return res.redirect('/dashboard/games');

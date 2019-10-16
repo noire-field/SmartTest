@@ -18,7 +18,7 @@ const User = require('./utils/user');
 const router = require('./router');
 const { GetConnection } = require('./database');
 const { registerHelpers } = require('./utils/hbs_helpers');
-const smartTest = require('./smartTest');
+const activeGames = require('./activeGames');
 
 // Check setting
 const publicPath = path.join(__dirname, '..', '/public');
@@ -122,6 +122,8 @@ GetConnection((error, con) => {
     server.listen(httpPort, () => {
         Log("HTTP Server has started on port " + httpPort);
 
+        activeGames.Startup(io);
+        
         //smartTest.CheckStartup();
         //smartTest.ActivateSocket(io);
     });

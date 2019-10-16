@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>{{ head_title }}</title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link href="/css/bootstrap.min.css" rel="stylesheet" type="text/css">
+    <link href="/css/testing.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <link href="/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+    <div id="app-testing" class="container pt-3" style="display:none;">
+        <div v-if="fetchingData" class="text-center text-white loading-box"><img src="/img/loading3.gif" class="icon-loading mr-2">{? loadingText ?}</div>
+        <div v-if="header.visible" class="row text-dark white-transparent-high py-3 px-2 d-flex align-items-center mb-4 fade-in slide-down">
+            <div class="col-md-4">
+                <h1 class="my-0 py-0 text-uppercase">{? header.gameName ?}</h1>
+            </div>
+            <div class="col-md-4 text-center">
+                <p class="my-0 py-0 text-uppercase"><i class="far fa-question-circle mr-2"></i>Số câu hỏi</p>
+                <h2>{? header.gameQuestCount[0] ?}/{? header.gameQuestCount[1] ?}</h2>
+            </div>
+             <div class="col-md-4 text-right">
+                <button class="btn btn-danger"><span v-html="header.nextButtonText"></span></button>
+            </div>
+        </div>
+        <div v-if="lobby.visible" class="fade-in slide-up">
+            <div class="row mb-5">
+                <div class="col-md-8 offset-md-2">
+                    <div class="card rounded-0 border-0">
+                        <div class="card-header rounded-0 py-3 bg-primary text-white">
+                            <h1 class="mb-0 text-center text-uppercase"><i class="fas fa-sign-in-alt mr-2"></i>Tham gia</h1>
+                        </div>
+                        <div class="card-body pt-3 pb-0">
+                            <div class="row">
+                                <div class="col-md-7">
+                                    <h2 class="text-center mb-4">Cách A</h2>
+                                    <div class="alert alert-primary text-center"><h4 class="text-center d-inline mr-2">Truy cập</h4><h3 class="text-center d-inline font-weight-bold">{{ appFullUrl }}</h3></div>
+                                    <h1 class="text-center text-primary mb-3"><i class="fas fa-arrow-circle-down"></i></h1>
+                                    <div class="alert alert-primary text-center"><h4 class="text-center d-inline mr-2">Nhập mã PIN</h4><h3 class="text-center d-inline font-weight-bold">{{ gamePIN }}</h3></div>
+                                    <h1 class="text-center text-primary mb-3"><i class="fas fa-check-circle"></i></h1>
+                                </div>
+                                <div class="col-md-5">
+                                    <h2 class="text-center mb-4">Cách B</h2>
+                                    <div class="alert alert-info text-center">
+                                        <!-- <h5 class="text-center d-inline mr-2">Quét mã QR</h5> -->
+                                        <div id="gameQRCode" class="mt-2"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row d-flex justify-content-center">
+                <div v-for="st in lobby.users" class="col-md-3 mb-3">
+                    <div class="white-transparent-high text-dark px-3 py-2 ,x-a"><i class="fas fa-user mr-2"></i>{? st ?}</div>
+                </div>
+            </div>
+        </div>
+        <div v-if="gameBoard.visible" class="fade-in slide-up">
+            <div class="row mb-5">
+               <div class="col-md-8 offset-md-2">
+                   <div class="card">
+                       <div class="card-body">
+                            <h1 class="icon-big"><i class="far fa-question-circle"></i></h1>
+                            <h1 class="text-center">Ngọn núi cao nhất thế giới có tên là gì?</h1>
+                       </div>
+                   </div>
+               </div>
+            </div>
+            
+        </div>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/jquery-3.4.1.min.js"></script>
+    <script src="/js/qrcode.min.js"></script>
+    <script src="/js/vue.js"></script>
+    <script src="/js/babel.min.js"></script>
+    <script type="text/babel">
+        var vm = new Vue({
+            el: "#app-testing",
+            delimiters: ['{?','?}'],
+            data: {
+                siteUrl: "{{ appFullUrl }}",
+                userId: Number("{{ user.UserID }}"),
+                gameId: Number("{{ gameId }}"),
+                gamePIN: Number("{{ gamePIN }}"),
+                socket: null,
+                fetchingData: false,
+                loadingText: "Đang kết nối...",
+                gameStatus: 2,
+                header: {
+                    visible: true,
+                    gameName: "Đố vui địa lý",
+                    gameQuestCount: [0, 10],
+                    nextButtonText: "<i class='fas fa-forward mr-2'></i>Bỏ qua câu hỏi" // "<i class='fas fa-play-circle mr-2'></i>Bắt đầu trò chơi"
+                },
+                lobby: {
+                    visible: false,
+                    users: ['Noirefield', 'Cuong Vu','Noirefield', 'Cuong Vu','Noirefield', 'Cuong Vu','Noirefield']
+                },
+                gameBoard: {
+                    visible: true,
+
+                }
+            },
+            computed: {
+                
+            },
+            methods: {
+                socketConnect() {
+                    this.socket = io();
+                    this.socket.on('connect', this.socketOnConnected);
+                    this.socket.on('disconnect', this.socketOnDisconnected);
+                    this.socket.on('connect_failed', this.socketOnConnectFailed);
+                },
+                socketOnConnected() {
+                    this.loadingText = "Đã kết nối, đang tải dữ liệu...";
+                    this.socket.emit('join_room', { testId: this.testId, userId: this.userId });
+                },
+                socketOnDisconnected() {
+
+                },
+                socketOnConnectFailed() {
+                    this.loadingText = "Không thể kết nối tới máy chú, thử lại sau.";
+                }
+            },
+            mounted() {
+                document.getElementById("app-testing").style.display = "block";
+
+
+                if(this.gameStatus == 1 && this.lobby.visible)
+                    var qrcode = new QRCode("gameQRCode", { text: this.siteUrl+"/join-game/"+this.gamePIN, width: 226, height: 226 });
+
+                this.socketConnect();
+            }
+        });
+    </script>
+</body>
+</html>

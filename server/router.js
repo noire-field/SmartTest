@@ -10,7 +10,7 @@ const { Controller_Subjects } = require('./controllers/subjects');
 const { Controller_Quests } = require('./controllers/quests');
 const { Controller_Games } = require('./controllers/games');
 
-//const smartTest = require('./smartTest');
+const activeGames = require('./activeGames');
 
 module.exports.register = function(app) {
     app.get('/register', (req, res) => {
@@ -195,42 +195,52 @@ module.exports.register = function(app) {
     });
 
     // Homepage
-    /*
     app.get('/', (req, res, next) => {
-        if(!req.isAuthenticated()) {
-            return res.render('index_smarttest', {
-                head_title: 'Trang chủ - ' + config.APP_NAME,
-                isUserLogged: false
-            });
-        } else {
-            if(req.user.RoleType <= 0) { // Student
-                QueryNow(`SELECT t.TestID, t.PINCode FROM studenttests st INNER JOIN tests t ON st.TestID = t.TestID WHERE t.OpenStatus IN (1,2) AND st.UserID = ?`,
-                [req.user.UserID]).then((rows) => {
-                    return res.render('index_smarttest', {
-                        head_title: 'Trang chủ - ' + config.APP_NAME,
-                        isUserLogged: true,
-                        user: req.user,
-                        isUserAdmin: false,
-                        isInTest: rows.length > 0 ? true : false,
-                        testPIN: rows.length > 0 ? rows[0].PINCode : ''
-                    });
-                })
-                .catch((error) => {
-                    console.log(error);
-                    return res.render('error', { message: 'Không thể kiểm tra tài khoản này.' });
-                })
-            } else { // Admin, Lecturer
-                return res.render('index_smarttest', {
-                    head_title: 'Trang chủ - ' + config.APP_NAME,
-                    isUserLogged: true,
-                    user: req.user,
-                    isUserAdmin: true,
-                    isInTest: false
-                });
+        var data = {
+            head_title: 'Trang chủ - ' + config.APP_NAME,
+            isUserLogged: false,
+            isInGame: false
+        };
+
+        if(req.isAuthenticated()) {
+            data.isUserLogged = true;
+            data.user = req.user;
+            data.isUserAdmin = req.user.RoleType <= 0 ? false : true;
+
+            if(req.user.RoleType <= 0) {
+                /*
+                var gamePIN = activeGames.Get_UserInGamePIN(req.user.UserID);
+
+                data.isInGame = gamePIN ? true : false;
+                data.gamePIN = gamePIN || null;
+                */
             }
+        } else {
+            
         }
+
+        return res.render('index', data);
     });
 
+    app.get('/present/:id?', (req, res, next) => {
+        var pin = req.params.pin ? req.params.pin : -1;
+
+        if(!req.isAuthenticated())
+            return res.redirect('/');
+        if(req.user.RoleType < 1) 
+            return res.redirect('/');
+            
+        var data = {
+            head_title: 'Trình chiếu - ' + config.APP_NAME,
+            appFullUrl: config.APP_URLFULL,
+            gameId: 0,
+            gamePIN: 97775
+        };
+
+        return res.render('present', data);
+    });
+
+    /*
     app.get('/findroom/:pin?', (req, res, next) => {
         var pin = req.params.pin ? req.params.pin : -1;
 
