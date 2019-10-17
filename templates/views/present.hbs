@@ -15,7 +15,7 @@
 <body>
     <div id="app-testing" class="container pt-3" style="display:none;">
         <div v-if="fetchingData" class="text-center text-white loading-box"><img src="/img/loading3.gif" class="icon-loading mr-2">{? loadingText ?}</div>
-        <div v-if="header.visible" class="row text-dark white-transparent-high py-3 px-2 d-flex align-items-center mb-4 fade-in slide-down">
+        <div v-if="header.visible" class="row text-dark white-transparent-high py-1 px-2 d-flex align-items-center mb-4 fade-in slide-down">
             <div class="col-md-4">
                 <h1 class="my-0 py-0 text-uppercase">{? header.gameName ?}</h1>
             </div>
@@ -63,11 +63,25 @@
         </div>
         <div v-if="gameBoard.visible" class="fade-in slide-up">
             <div class="row mb-5">
-               <div class="col-md-8 offset-md-2">
+               <div class="col-md-12 offset-md-0">
                    <div class="card">
-                       <div class="card-body">
-                            <h1 class="icon-big"><i class="far fa-question-circle"></i></h1>
-                            <h1 class="text-center">Ngọn núi cao nhất thế giới có tên là gì?</h1>
+                       <div class="card-body bg-question">
+                           <div class="row mb-5">
+                               <div class="col-md-4">
+                                   <div class="cicle-info text-center">
+                                        <small class="text-uppercase">Thời gian</small>
+                                        <h1 class="game-timer-text">100</h1>
+                                   </div>
+                               </div>
+                               <div class="col-md-4 d-flex align-items-center justify-content-center"><h1 class="text-center text-white font-weight-bold"><span class="bg-dark-semi text-uppercase">Câu 1</span></h1></div>
+                               <div class="col-md-4">
+                                   <div class="square-info text-center">
+                                        <small class="text-uppercase">Đã trả lời</small>
+                                        <h1 class="answers-text">10</h1>
+                                   </div>
+                               </div>
+                           </div>
+                            <h1 class="text-center font-question text-white">Maria can ride her bike to the library in 20 minutes. The trip home, wich is all uphill, takes her half an hour . </h1>
                        </div>
                    </div>
                </div>

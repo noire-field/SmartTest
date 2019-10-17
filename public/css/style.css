@@ -135,3 +135,87 @@
 .icon-big {
     font-size: 75px;
 }
+
+.bg-question {
+    background: url('../img/bg-question.jpg');
+    background-position-x: center;
+    background-size: cover;
+    padding-bottom: 100px;
+}
+
+@font-face {
+    font-family: Lobster;
+    src: url('../fonts/Lobster_VN.ttf');
+}
+
+.bg-dark-semi {
+    background: rgba(0,0,0,.5);
+    padding: 5px 20px;
+}
+
+.font-question {
+    font-family: Lobster, Arial, Helvetica, sans-serif;
+    font-size: 3em;
+    letter-spacing: 2px;
+}
+
+.cicle-info {
+    width: 150px;
+    height: 150px;
+    position: relative;
+    background: rgba(0,0,0,.5);
+    border-radius: 50%;
+    color: white;
+    margin: 0 auto;
+}
+
+.square-info {
+    width: 150px;
+    height: 150px;
+    position: relative;
+    background: rgba(0,0,0,.5);
+    border-radius: 25%;
+    color: white;
+    margin: 0 auto;
+}
+
+.cicle-info small, .square-info small {
+    position: absolute;
+    left: 50%;
+    top: 20%;
+    transform: translateX(-50%) translateY(-50%);
+    font-weight: 600;
+}
+
+
+@keyframes Flickering {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+.game-timer-text {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translateX(-50%) translateY(-50%);
+    font-size: 4em !important;
+    animation-name: Flickering;
+    animation-duration: 1s;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+}
+
+.answers-text {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translateX(-50%) translateY(-50%);
+    font-size: 4em !important;
+}
