@@ -57,19 +57,16 @@
   <section id="hero">
     <div id="bigger-container" style="display: none;" class="fade-in">
       <div class="hero-container">
-          <img style="height:250px;" class="mb-2" src="img/LearnToPlay_Icon.png"/>
-        <h1 class="slide-up text-primary mb-3">Chơi để học</h1>
+        <h1 class="slide-up">Chơi để học</h1>
         {{#IfEqualBlock isInGame false}}
-        <div>
-            <h4 class="slide-up mb-2">Nhập mã PIN để vào phòng</h4>
-            <div class="row slide-up">
-                <div class="col-md-12">
-                    <div v-if="!isLoading" class="input-group mb-3">
-                        <input v-model="inputPIN" type="text" id="txbPINCode" class="form-control" placeholder="VD: 97775" maxlength="5">
-                        <div class="input-group-append">
-                            <button @click="searchRoom" id="btnGetToRoom" class="btn btn-success" type="button"><i class="fas fa-search mr-2"></i>Tìm phòng</button>
-                        </div>
-                    </div>
+        <h2 class="slide-up">Nhập mã PIN để vào phòng</h2>
+        <div class="row slide-up">
+            <div class="col-md-12">
+                <div v-if="!isLoading" class="input-group mb-3">
+                <input v-model="inputPIN" type="text" id="txbPINCode" class="form-control" placeholder="{{#IfEqual isUserLogged false 'Vui lòng đăng nhập'}}{{/IfEqual}}{{#IfEqual isUserLogged true 'Mã PIN bài kiểm tra'}}{{/IfEqual}}" {{#IfEqual isUserLogged false 'disabled'}}{{/IfEqual}}>
+                <div class="input-group-append">
+                    <button @click="searchRoom" id="btnGetToRoom" class="btn btn-success" type="button" {{#IfEqual isUserLogged false 'disabled' ''}}{{/IfEqual}}>Tìm phòng</button>
+                </div>
                 </div>
             </div>
         </div>

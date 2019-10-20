@@ -1,9 +1,19 @@
 body {
     width: 100%;
     height: 100vh;
-    background: url(../img/teamwork-bg-blur.jpg) top center;
-    background-size: cover;
+    background: rgb(224, 224, 224);
     position: relative;
+}
+
+#app-testing {
+    padding-left: 10px;
+    padding-right: 10px;
+    background: rgb(231, 231, 231);
+    min-height: 100%;
+
+    -webkit-box-shadow: 0px 0px 40px 7px rgba(0, 0, 0, .5);
+    -moz-box-shadow: 0px 0px 40px 7px rgba(0, 0, 0, .5);
+    box-shadow: 0px 0px 40px 7px rgba(0, 0, 0, .5);
 }
 
 .black-transparent {
@@ -30,4 +40,10 @@ body {
 
 .test-line {
     border: 1px solid black;
+}
+
+#testing-header {
+    -webkit-box-shadow: 0px 7px 17px -4px rgba(0,0,0,0.5);
+    -moz-box-shadow: 0px 7px 17px -4px rgba(0,0,0,0.5);
+    box-shadow: 0px 7px 17px -4px rgba(0,0,0,0.5);
 }

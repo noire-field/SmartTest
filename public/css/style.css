@@ -137,11 +137,11 @@
 }
 
 .bg-question {
-    background: url('../img/bg-question.jpg');
+    background: url('../img/bg-chalkboard.jpg');
     background-position-x: center;
     background-size: cover;
     padding-bottom: 100px;
-    border: 1px solid rgba(167, 122, 89, 0.61);
+    border: 1px solid rgba(145, 145, 145, 0.61);
 }
 
 @font-face {
@@ -155,7 +155,7 @@
 }
 
 .font-question {
-    font-family: Lobster, Arial, Helvetica, sans-serif;
+    font-family: Arial, Helvetica, sans-serif;
     font-size: 3em;
     letter-spacing: 2px;
 }
@@ -224,6 +224,10 @@
 .btn-answer {
     background: #25262a;
     transition: .2s all;
+
+    -webkit-box-shadow: 0px 4px 17px -4px rgba(0,0,0,0.5);
+-moz-box-shadow: 0px 4px 17px -4px rgba(0,0,0,0.5);
+box-shadow: 0px 4px 17px -4px rgba(0,0,0,0.5);
 }
 
 .btn-answer:hover {

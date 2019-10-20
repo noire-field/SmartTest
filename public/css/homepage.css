@@ -82,14 +82,15 @@ h1, h2, h3, h4, h5, h6 {
 # Header
 --------------------------------------------------------------*/
 #header {
-  padding: 30px 0;
-  height: 92px;
+  padding: 15px 0;
+  height: 75px;
   position: fixed;
   left: 0;
   top: 0;
   right: 0;
   transition: all 0.5s;
   z-index: 997;
+  background: rgb(49, 49, 49);
 }
 
 #header #logo {
@@ -138,8 +139,9 @@ h1, h2, h3, h4, h5, h6 {
 #hero {
   width: 100%;
   height: 100vh;
-  background: url(../img/play-to-learn.jpeg) top center;
-  background-size: cover;
+  background: rgb(243, 243, 243);
+  /* background: url(../img/play-to-learn.jpeg) top center;
+  background-size: cover; */
   position: relative;
 }
 
@@ -151,7 +153,7 @@ h1, h2, h3, h4, h5, h6 {
 
 #hero:before {
   content: "";
-  background: rgba(0, 0, 0, 0.6);
+  /* background: rgba(0, 0, 0, 0.6); */
   position: absolute;
   bottom: 0;
   top: 0;
@@ -178,7 +180,6 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
   line-height: 56px;
   text-transform: uppercase;
-  color: #fff;
 }
 
 @media (max-width: 768px) {
@@ -189,7 +190,6 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 #hero h2 {
-  color: #eee;
   margin-bottom: 50px;
   font-size: 24px;
 }
@@ -214,7 +214,6 @@ h1, h2, h3, h4, h5, h6 {
   transition: 0.5s;
   margin: 10px;
   border: 2px solid #fff;
-  color: #fff;
 }
 
 #hero .btn-get-started:hover {
