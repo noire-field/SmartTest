@@ -96,15 +96,14 @@
                 </ul>
                 </div>
                 <div v-if="roomFound">
-                <div class="card mt-5" style="opacity: 0.85;">
-                    <div class="card-header py-1 px-2 bg-primary text-white"><i class="fas fa-check-circle mr-2"></i><span>Đã tìm được phòng</span></div>
-                    <div class="card-body py-3 d-flex justify-content-between align-items-center text-left">
+                <div class="card rounded-0 mt-5" style="opacity: 0.85;">
+                    <div class="card-header rounded-0 py-1 px-2 bg-primary text-white"><i class="fas fa-check-circle mr-2"></i><span>Đã tìm được phòng</span></div>
+                    <div class="card-body rounded-0 py-3 d-flex justify-content-between align-items-center text-left">
                         <div class="pr-5">
                             <p class="m-0 y-0 text-primary"><b>{? testName ?}</b></p>
                             <hr class="my-1">
                             <p class="m-0 y-0 text-primary small"><b>Thời gian làm bài:</b> {? testTime ?} phút</p>
                             <p class="m-0 y-0 text-primary small"><b>Giảng viên:</b> {? testOwner ?}</p>
-
                         </div>
                         <div>
                             <button @click="joinRoom" class="btn btn-info"><i class="fas fa-chevron-circle-right mr-2"></i>Vào phòng</button>
@@ -144,7 +143,7 @@
         isLoading: false,
         isError: false,
         errors: [],
-        roomFound: false,
+        roomFound: true,
         roundFoundPIN: "",
       },
       methods: {

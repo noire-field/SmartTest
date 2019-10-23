@@ -57,7 +57,7 @@
             </div>
             <div class="row d-flex justify-content-center">
                 <div v-for="st in lobby.users" class="col-md-3 mb-3">
-                    <div class="white-transparent-high text-dark px-3 py-2 ,x-a"><i class="fas fa-user mr-2"></i>{? st ?}</div>
+                    <div class="white-transparent-high bg-dark text-white text-center px-3 py-2"><i class="fas fa-user mr-2"></i>{? st ?}</div>
                 </div>
             </div>
         </div>
@@ -117,23 +117,18 @@
             <div class="row mb-3">
                <div class="col-md-12 offset-md-0">
                    <div class="card border-0">
-                       <div class="card-body bg-question">
-                           <div class="row pt-3 mb-4">
-                               <div class="col-md-4">
-                                   <div class="cicle-info text-center">
-                                        <small class="text-uppercase">Thời gian</small>
-                                        <h1 class="game-timer-text">100</h1>
-                                   </div>
-                               </div>
-                               <div class="col-md-4 d-flex align-items-center justify-content-center"><h1 class="text-center text-white font-weight-bold"><span class="bg-dark-semi text-uppercase">Câu 1</span></h1></div>
-                               <div class="col-md-4">
-                                   <div class="square-info text-center">
-                                        <small class="text-uppercase">Đã trả lời</small>
-                                        <h1 class="answers-text">10</h1>
-                                   </div>
-                               </div>
-                           </div>
-                            <h1 class="text-center font-question text-white">Maria can ride her bike to the library in 20 minutes. The trip home, wich is all uphill, takes her half an hour . </h1>
+                       <div class="card-body bg-question pt-5">
+                            <h1 class="text-center text-white font-weight-bold mb-5"><span class="bg-dark-semi text-uppercase">Xếp hạng hiện tại</span></h1>
+                            <div class="row">
+                                <div class="col-md-6 offset-md-3">
+                                    <ul class="list-group">
+                                        <li v-for="r in ranking.rankList" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center bg-ranking-user">
+                                            <h3>{? r.name ?}</h3>
+                                            <h3 class="text-white">{? r.point ?}</h3>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
                        </div>
                    </div>
                </div>
@@ -170,10 +165,17 @@
                     users: ['Noirefield', 'Cuong Vu','Noirefield', 'Cuong Vu','Noirefield', 'Cuong Vu','Noirefield']
                 },
                 gameBoard: {
-                    visible: true,
+                    visible: false,
                 },
                 ranking: {
-                    visible: false
+                    visible: true,
+                    rankList: [
+                        { name: "Noire Bladefield", point: 99999 },
+                        { name: "Neptune Bladefield", point: 87776 },
+                        { name: "Vert Bladefield", point: 77 },
+                        { name: "Blanc Bladefield", point: 555 },
+                        { name: "Sup Bladefield", point: 55555 }
+                    ]
                 }
             },
             computed: {
@@ -199,7 +201,6 @@
             },
             mounted() {
                 document.getElementById("app-testing").style.display = "block";
-
 
                 if(this.gameStatus == 1 && this.lobby.visible)
                     var qrcode = new QRCode("gameQRCode", { text: this.siteUrl+"/join-game/"+this.gamePIN, width: 226, height: 226 });

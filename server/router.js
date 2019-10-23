@@ -240,6 +240,24 @@ module.exports.register = function(app) {
         return res.render('present', data);
     });
 
+    app.get('/play/:id?', (req, res, next) => {
+        var pin = req.params.pin ? req.params.pin : -1;
+/*
+        if(!req.isAuthenticated())
+            return res.redirect('/');
+        if(req.user.RoleType < 1) 
+            return res.redirect('/');*/
+            
+        var data = {
+            head_title: 'Chơi - ' + config.APP_NAME,
+            appFullUrl: config.APP_URLFULL,
+            gameId: 0,
+            gamePIN: 97775
+        };
+
+        return res.render('play', data);
+    });
+
     /*
     app.get('/findroom/:pin?', (req, res, next) => {
         var pin = req.params.pin ? req.params.pin : -1;
