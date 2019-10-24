@@ -5,8 +5,12 @@ const { QueryNow } = require('./database');
 module.exports = {
     Startup,
     OpenRoom,
-    Get_UserInGamePIN
+    Get_UserInGamePIN,
+    GetRoomByID,
+    RegisterRoutes,
 };
+
+var globalUserTokens = new Map();
 
 var socket = {
     status: false,
@@ -14,20 +18,75 @@ var socket = {
 };
 
 var GlobalGames = new Map();
-var UserInGame = new Map();
-var socketUsers = [];
-var socketIO = null;
+var Users = {
+    Presenters: new Map(),
+    Players: new Map()
+};
+var SocketUsers = new Map();
 
-function Startup(io) {
+var UserInGame = new Map();
+
+
+function RegisterRoutes(app) {
+    // Present
+    app.get('/present/:id?', RGet_Present);
+    app.get('/present/:id?/action/:act?', RGet_PresentAction);
+}
+
+function RGet_Present(req, res, next)
+{
+    var roomId = req.params.id ? Number(req.params.id) : -1;
+    if(!req.isAuthenticated() || req.user.RoleType < 1) 
+        return res.redirect('/');
+
+    var game = GetRoomByID(roomId);
+    if(!game || game.OWNERID != req.user.UserID) return res.redirect('/');
+
+    var data = {
+        head_title: game.NAME + ' - ' + config.APP_NAME,
+        appFullUrl: config.APP_URLFULL,
+        user: req.user,
+        gameId: game.ID,
+        gamePIN: game.PIN
+    };
+
+    return res.render('present', data);
+}
+
+function RGet_PresentAction(req, res, next)
+{
+    var roomId = req.params.id ? Number(req.params.id) : -1;
+    var act = req.params.act ? req.params.act : "";
+
+    if(!req.isAuthenticated() || req.user.RoleType < 1) 
+        return res.json({ success: false, message: "Unauthorized action."});
+    
+    var game = GetRoomByID(roomId);
+    if(!game) return res.json({ success: false, message: "Game not found in system." });
+    if(game.OWNERID != req.user.UserID) return res.json({ success: false, message: "Wrong game owner." });
+
+    return res.json({ success: true, message: "OK" });
+}
+
+function Startup(io, globalTokens) {
+    globalUserTokens = globalTokens;
+
+    // Socket Server
     socket.io = io;
     socket.status = true;
 
     io.on('connection', (socket) => {
-        //socket.on('join_room', (data) => { socketOnJoinRoom(io, socket, data); });
-        //socket.on('save_test', (data) => { socketOnSaveTest(socket, data); })
+        socket.on('present_connect', (data) => { Socket_Present_OnConnect(socket, data); });
+        socket.on('save_test', (data) => { socketOnSaveTest(socket, data); })
     });
 
     Log('[Active Games] SocketIO server is started');
+
+    // Reset Status
+    QueryNow("UPDATE games SET OpenStatus = 0 WHERE OpenStatus = 1;").then((rows) => {
+        if(rows.affectedRows <= 0) return;
+        Log(`[Active Games] Reseted ${rows.affectedRows} game(s) (Game lost when application crashed)`);
+    });
 }
 
 function OpenRoom(gameId) {
@@ -40,11 +99,13 @@ function OpenRoom(gameId) {
                 return resolve({ status: false, message: 'Không thể tìm thấy trò chơi này hoặc trò chơi đã mở.' });
 
             game = {
-                ID: rows[0].GameID,
+                ID: Number(rows[0].GameID),
                 NAME: rows[0].GameName,
                 PIN: rows[0].PINCode,
                 QUESTTIME: Number(rows[0].TimePerQuest),
-                STATUS: 1
+                STATUS: 1,
+                GAMESTATUS: 0,
+                OWNERID: Number(rows[0].OwnerID)
             };
 
             return QueryNow(`UPDATE games SET OpenStatus = 1 WHERE GameID = ?`, [gameId])
@@ -59,6 +120,13 @@ function OpenRoom(gameId) {
     });
 }
 
+function GetRoomByID(roomId) {
+    if(GlobalGames.has(roomId))
+        return GlobalGames.get(roomId);
+        
+    return null;
+}
+
 function Get_UserInGamePIN(userId) {
     if(!UserInGame.has(userId))
         return null;
@@ -69,6 +137,94 @@ function Get_UserInGamePIN(userId) {
 
     return GlobalGames.get(gameId).PIN;
 }
+
+function Socket_Present_OnConnect(client, data) {
+    if(!Validate_Request(data, ['userId', 'gameId', 'gamePIN', 'userToken'], { userId: "number", gameId: "number", gamePIN: "string", userToken: "string" }))
+    {
+        client.disconnect(); Log(`[Active Games] Presenter (S-ID: ${client.id}) has connected but then disconnected by system (missing parameters).`); 
+        return;
+    }
+    if(!Verify_UserToken(data.userId, data.userToken))
+    {
+        client.disconnect(); Log(`[Active Games] Presenter (S-ID: ${client.id}) has connected but then disconnected by system (Invalid token).`); 
+        return;
+    }
+    if(!Verify_GameInfo(data.userId, data.gameId, data.gamePIN))
+    {
+        client.disconnect(); Log(`[Active Games] Presenter (S-ID: ${client.id}) has connected but then disconnected by system (Invalid game info or not game owner).`);
+        return;
+    }
+
+    // Register disconnect event
+    client.on('disconnect', () => { Socket_Present_OnDisconnect(client); });
+
+    SocketUsers.set(client.id, data.userId);
+    if(!Users.Presenters.has(data.userId)) {
+        Users.Presenters.set(data.userId, {
+            socket: client
+        });
+    } else {
+        var presenter = Users.Presenters.get(data.userId);
+        var oldSocket = presenter.socket;
+
+        presenter.socket = client; // Replace with new socket
+        oldSocket.disconnect(); // Disconnect previous socket
+    }
+
+    Log(`[Active Games] Presenter (S-ID: ${client.id}) has connected!`);
+}
+
+function Socket_Present_OnDisconnect(client) {
+    // Check and delete the user if the final socket is disconnected
+    var userId = SocketUsers.get(client.id);
+    if(Users.Presenters.has(userId)) { 
+        var presenter = Users.Presenters.get(userId);
+        if(presenter.socket.id == client.id)
+            Users.Presenters.delete(client.id);
+    }
+
+    SocketUsers.delete(client.id);
+    Log(`[Active Games] Presenter (S-ID: ${client.id}) has disconnected!`);
+}
+
+function Verify_UserToken(userId, userToken) {
+    if(globalUserTokens.has(userId) && globalUserTokens.get(userId) == userToken)
+        return true;
+
+    return false;
+}
+
+function Verify_GameInfo(userId, gameId, gamePIN) {
+    if(GlobalGames.has(gameId) && GlobalGames.get(gameId).PIN == gamePIN && GlobalGames.get(gameId).OWNERID == userId)
+        return true;
+
+    return false;
+}
+
+function Validate_Request(data={}, require=[], type={}, size={}) {
+    if(!data)
+        return false;
+    if(typeof data !== 'object')
+        return false;
+
+    for(let p of require) {
+        if(!data.hasOwnProperty(p))
+            return false;
+    }
+
+    for(let p in type) {
+        if(typeof data[p] !== type[p])
+            return false;
+    }
+
+    for(let s in size) {
+        if(data[s].length < size[s][0] || data[s].length > size[s][1])
+            return false;
+    }
+
+    return true;
+}
+
 
 /*
 function CheckStartup() {

@@ -222,23 +222,7 @@ module.exports.register = function(app) {
         return res.render('index', data);
     });
 
-    app.get('/present/:id?', (req, res, next) => {
-        var pin = req.params.pin ? req.params.pin : -1;
-
-        if(!req.isAuthenticated())
-            return res.redirect('/');
-        if(req.user.RoleType < 1) 
-            return res.redirect('/');
-            
-        var data = {
-            head_title: 'Trình chiếu - ' + config.APP_NAME,
-            appFullUrl: config.APP_URLFULL,
-            gameId: 0,
-            gamePIN: 97775
-        };
-
-        return res.render('present', data);
-    });
+    activeGames.RegisterRoutes(app); // register routes for /present and /play
 
     app.get('/play/:id?', (req, res, next) => {
         var pin = req.params.pin ? req.params.pin : -1;

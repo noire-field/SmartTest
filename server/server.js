@@ -28,6 +28,7 @@ const httpPort = process.env.PORT || config.HTTP_PORT;
 var app = express();
 var server = http.createServer(app);
 var io = socketIO(server);
+var userTokens = new Map();
 
 // Configure Authendication
 passport.use(new LocalStrategy(
@@ -49,7 +50,10 @@ passport.use(new LocalStrategy(
 
                     if(error) return done(error);
                     if(results.length <= 0) return done(null, false, { message: "Username or password is incorrect..."});
-                    else return done(null, results[0]);
+                    else {
+                        userTokens.set(results[0].UserID, uuid())
+                        return done(null, results[0]);
+                    } 
                 }
             );
         });
@@ -71,7 +75,12 @@ passport.deserializeUser((UserID, done) => {
 
                 if(error) return done(error);
                 if(results.length <= 0) return done(null, false, { message: "Username or password is incorrect..."});
-                else return done(null, results[0]);
+                else {
+                    if(!userTokens.has(results[0].UserID)) userTokens.set(results[0].UserID, uuid());
+                    let userToken = userTokens.get(results[0].UserID);
+
+                    return done(null, {...results[0], UserToken: userToken});
+                }
             }
         );
     });
@@ -122,7 +131,7 @@ GetConnection((error, con) => {
     server.listen(httpPort, () => {
         Log("HTTP Server has started on port " + httpPort);
 
-        activeGames.Startup(io);
+        activeGames.Startup(io, userTokens);
         
         //smartTest.CheckStartup();
         //smartTest.ActivateSocket(io);

@@ -53,7 +53,7 @@
                                   <a href="{{ GetAdminPageUrl 'Games'}}/delete/{{ this.GameID }}" class="btn btn-danger btn-sm px-1 py-0" title="Xóa"><i class="fas fa-trash-alt mr-2"></i>Xóa</a>
                                 {{/IfEqualBlock}}
                                 {{#IfEqualBlock this.OpenStatus 1 }}
-                                    <a href="/present/{{ this.GameID }}" class="btn btn-primary btn-sm px-1 py-0"><i class="fas fa-chalkboard mr-2"></i>Trình chiếu</a>
+                                    <a href="/present/{{ this.GameID }}" target="_blank" class="btn btn-primary btn-sm px-1 py-0"><i class="fas fa-chalkboard mr-2"></i>Trình chiếu</a>
                                 {{/IfEqualBlock}}
                                 {{#IfEqualBlock this.OpenStatus 2 }}
                                     <a href="/present/{{ this.GameID }}" class="btn btn-primary btn-sm px-1 py-0"><i class="fas fa-chalkboard mr-2"></i>Trình chiếu</a>

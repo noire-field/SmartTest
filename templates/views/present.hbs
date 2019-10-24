@@ -148,14 +148,15 @@
             data: {
                 siteUrl: "{{ appFullUrl }}",
                 userId: Number("{{ user.UserID }}"),
+                userToken: "{{ user.UserToken }}",
                 gameId: Number("{{ gameId }}"),
-                gamePIN: Number("{{ gamePIN }}"),
+                gamePIN: "{{ gamePIN }}",
                 socket: null,
-                fetchingData: false,
+                fetchingData: true,
                 loadingText: "Đang kết nối...",
-                gameStatus: 2,
+                gameStatus: 0,
                 header: {
-                    visible: true,
+                    visible: false,
                     gameName: "Đố vui địa lý",
                     gameQuestCount: [0, 10],
                     nextButtonText: "<i class='fas fa-forward mr-2'></i>Bỏ qua câu hỏi" // "<i class='fas fa-play-circle mr-2'></i>Bắt đầu trò chơi"
@@ -168,7 +169,7 @@
                     visible: false,
                 },
                 ranking: {
-                    visible: true,
+                    visible: false,
                     rankList: [
                         { name: "Noire Bladefield", point: 99999 },
                         { name: "Neptune Bladefield", point: 87776 },
@@ -190,10 +191,12 @@
                 },
                 socketOnConnected() {
                     this.loadingText = "Đã kết nối, đang tải dữ liệu...";
-                    this.socket.emit('join_room', { testId: this.testId, userId: this.userId });
+                    this.socket.emit('present_connect', { userId: this.userId, gameId: this.gameId, gamePIN: this.gamePIN, userToken: this.userToken });
+
+                    console.log("Connected");
                 },
                 socketOnDisconnected() {
-
+                    console.log("Disconnected");
                 },
                 socketOnConnectFailed() {
                     this.loadingText = "Không thể kết nối tới máy chú, thử lại sau.";
