@@ -199,110 +199,32 @@ module.exports.register = function(app) {
         var data = {
             head_title: 'Trang chủ - ' + config.APP_NAME,
             isUserLogged: false,
-            isInGame: false
+            isInGame: false,
+            userFullName: ""
         };
 
         if(req.isAuthenticated()) {
             data.isUserLogged = true;
             data.user = req.user;
             data.isUserAdmin = req.user.RoleType <= 0 ? false : true;
-
-            if(req.user.RoleType <= 0) {
-                /*
-                var gamePIN = activeGames.Get_UserInGamePIN(req.user.UserID);
-
-                data.isInGame = gamePIN ? true : false;
-                data.gamePIN = gamePIN || null;
-                */
-            }
-        } else {
-            
+            data.userFullName = `${req.user.LastName} ${req.user.FirstName}`;
         }
+
+        // Okay, is this nigger in a god damn niggame?
+        var playerUUID = req.cookies.userGameId || "";
+        if(playerUUID.length > 0 && activeGames.IsUserInGame(playerUUID))
+            return res.redirect('/playing');
+
 
         return res.render('index', data);
     });
 
     activeGames.RegisterRoutes(app); // register routes for /present and /play
 
-    app.get('/play/:id?', (req, res, next) => {
-        var pin = req.params.pin ? req.params.pin : -1;
-/*
-        if(!req.isAuthenticated())
-            return res.redirect('/');
-        if(req.user.RoleType < 1) 
-            return res.redirect('/');*/
-            
-        var data = {
-            head_title: 'Chơi - ' + config.APP_NAME,
-            appFullUrl: config.APP_URLFULL,
-            gameId: 0,
-            gamePIN: 97775
-        };
-
-        return res.render('play', data);
-    });
-
     /*
-    app.get('/findroom/:pin?', (req, res, next) => {
-        var pin = req.params.pin ? req.params.pin : -1;
+    
 
-        if(!req.isAuthenticated())
-            return res.json({ status: false, message: "Vui lòng đăng nhập trước" });
-        if(req.user.RoleType != 0) 
-            return res.json({ status: false, message: "Chỉ có tài khoản sinh viên mới được thực hiện kiểm tra" });
-        if(!(new RegExp(/^\d{5}$/).test(pin)))
-            return res.json({ status: false, message: "Mã pin không hợp lệ" });
-
-        QueryNow(`SELECT t.TestID, t.PINCode FROM studenttests st INNER JOIN tests t ON st.TestID = t.TestID WHERE t.OpenStatus IN (1,2) AND st.UserID = ?`,
-        [req.user.UserID])
-        .then((rows) => {
-            if(rows.length > 0)
-                return res.json({ status: false, message: "Bạn đang thực hiện một bài kiểm tra, vui lòng kết thúc bài đó trước. Hãy bấm F5." });
-
-            return QueryNow(`SELECT t.TestName, t.TestTime, u.FirstName FROM tests t INNER JOIN users u ON t.OwnerID = u.UserID WHERE t.PINCode = ? AND t.OpenStatus = 1`, [pin]);
-        })
-        .then((rows) => {
-            if(rows.length <= 0)
-                return res.json({ status: false, message: "Bài kiểm tra không tồn tại, có thể chưa mở hoặc sai mã PIN." });
-
-            return res.json({ status: true, testName: rows[0].TestName, testTime: rows[0].TestTime, testOwner: rows[0].FirstName });
-        })
-        .catch((error) => {
-            return res.json({ status: false, message: "Đã xảy ra lỗi phía server" });
-        })
-    });
-
-    app.get('/joinroom/:pin?', (req, res, next) => {
-        var pin = req.params.pin ? req.params.pin : -1;
-
-        if(!req.isAuthenticated())
-            return res.redirect('/');
-        if(req.user.RoleType != 0) 
-            return res.redirect('/');
-        if(!(new RegExp(/^\d{5}$/).test(pin)))
-            return res.redirect('/');
-
-        QueryNow(`SELECT t.TestID, t.PINCode FROM studenttests st INNER JOIN tests t ON st.TestID = t.TestID WHERE t.OpenStatus IN (1,2) AND st.UserID = ?`,
-        [req.user.UserID])
-        .then((rows) => {
-            if(rows.length > 0)
-                return res.redirect('/');
-
-            return QueryNow(`SELECT t.TestID FROM tests t WHERE t.PINCode = ? AND t.OpenStatus = 1`, [pin])
-        })
-        .then((rows) => {
-            if(rows.length <= 0)
-                return res.redirect('/');
-
-            return smartTest.JoinTest(Number(rows[0].TestID), req.user);
-        })
-        .then((result) => {
-            return res.redirect('/testing');
-        })
-        .catch((error) => {
-            return res.redirect('/');
-        })
-    });
+    
 
     app.get('/testing', (req, res, next) => {
         if(!req.isAuthenticated())

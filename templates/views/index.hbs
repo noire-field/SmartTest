@@ -64,10 +64,10 @@
             <h4 class="slide-up mb-2">Nhập mã PIN để vào phòng</h4>
             <div class="row slide-up">
                 <div class="col-md-12">
-                    <div v-if="!isLoading" class="input-group mb-3">
-                        <input v-model="inputPIN" type="text" id="txbPINCode" class="form-control" placeholder="VD: 97775" maxlength="5">
+                    <div v-if="!gameSearch.isSearching" class="input-group mb-3">
+                        <input v-model="gameSearch.inputPIN" type="text" class="form-control" placeholder="VD: 97775" maxlength="5">
                         <div class="input-group-append">
-                            <button @click="searchRoom" id="btnGetToRoom" class="btn btn-success" type="button"><i class="fas fa-search mr-2"></i>Tìm phòng</button>
+                            <button @click="SearchGame" class="btn btn-success" type="button"><i class="fas fa-search mr-2"></i>Tìm phòng</button>
                         </div>
                     </div>
                 </div>
@@ -89,119 +89,157 @@
         {{/IfEqualBlock}}
         <div class="row slide-up">
             <div class="col-md-12">
-                <div v-if="isLoading"><img src="img/loading3.gif" class="icon-loading"></div>
-                <div v-if="isError" class="alert alert-warning py-2 pl-0">
-                <ul class="m-0 y-0 text-left">
-                    <li v-for="e in errors">{? e ?}</li>
-                </ul>
+                <div v-if="gameSearch.isSearching" class="py-2"><img src="img/loading3.gif" class="icon-loading"></div>
+                <div v-if="gameSearch.isError" class="alert alert-warning py-2 pl-0">
+                    <ul class="m-0 y-0 text-left">
+                        <li v-for="e in gameSearch.errorList">{? e ?}</li>
+                    </ul>
                 </div>
-                <div v-if="roomFound">
-                <div class="card rounded-0 mt-5" style="opacity: 0.85;">
-                    <div class="card-header rounded-0 py-1 px-2 bg-primary text-white"><i class="fas fa-check-circle mr-2"></i><span>Đã tìm được phòng</span></div>
-                    <div class="card-body rounded-0 py-3 d-flex justify-content-between align-items-center text-left">
-                        <div class="pr-5">
-                            <p class="m-0 y-0 text-primary"><b>{? testName ?}</b></p>
-                            <hr class="my-1">
-                            <p class="m-0 y-0 text-primary small"><b>Thời gian làm bài:</b> {? testTime ?} phút</p>
-                            <p class="m-0 y-0 text-primary small"><b>Giảng viên:</b> {? testOwner ?}</p>
-                        </div>
-                        <div>
-                            <button @click="joinRoom" class="btn btn-info"><i class="fas fa-chevron-circle-right mr-2"></i>Vào phòng</button>
+                <!--
+                <div v-if="gameFound.isFound">
+                    <div class="card rounded-0 mt-5" style="opacity: 0.85;">
+                        <div class="card-header rounded-0 py-1 px-2 bg-primary text-white"><i class="fas fa-check-circle mr-2"></i><span>Đã tìm được phòng</span></div>
+                        <div class="card-body rounded-0 py-3 d-flex justify-content-between align-items-center text-left">
+                            <div class="pr-5">
+                                <p class="m-0 y-0 text-primary"><b>{? gameFound.name ?}</b></p>
+                                <hr class="my-1">
+                                <p class="m-0 y-0 text-primary small"><b>Người dẫn:</b> {? gameFound.presenter ?}</p>
+                            </div>
+                            <div>
+                                <button @click="JoinGame" class="btn btn-primary"><i class="fas fa-chevron-circle-right mr-2"></i>Vào phòng</button>
+                            </div>
                         </div>
                     </div>
                 </div>
-                </div>
+                -->
             </div>
         </div>
       </div>
+    </div>
+    <div class="modal fade" id="modal-joingame">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title text-success"><i class="fas fa-check-circle mr-2"></i><span>Đã tìm được phòng</span></h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body py-5 text-center">
+                    <img style="height:190px;" class="mb-4" src="img/LearnToPlay_Icon.png"/>
+                    <h1 class="text-center text-uppercase text-primary mb-1">{? gameFound.name ?}</h1>
+                </div>
+                <div class="modal-footer d-flex justify-content-between align-items-center">
+                    <h5 class="text-center text-uppercase text-primary mb-0 font-weight-bold"><i class="fas fa-chalkboard-teacher mr-2"></i>{? gameFound.presenter ?}</h5>
+                    <button @click="JoinGame" class="btn btn-primary"><i class="fas fa-chevron-circle-right mr-2"></i>Vào phòng</button>
+                </div>
+            </div>
+        </div>
     </div>
   </section><!-- #hero -->
 
  
   <!-- JavaScript Libraries -->
-  <script src="lib/jquery/jquery.min.js"></script>
-  <script src="lib/jquery/jquery-migrate.min.js"></script>
-  <script src="lib/bootstrap/js/bootstrap.bundle.min.js"></script>
-  <script src="lib/easing/easing.min.js"></script>
-  <script src="lib/wow/wow.min.js"></script>
-  <script src="lib/waypoints/waypoints.min.js"></script>
-  <script src="lib/counterup/counterup.min.js"></script>
-  <script src="lib/superfish/hoverIntent.js"></script>
-  <script src="lib/superfish/superfish.min.js"></script>
-  <script src="js/homepage.js"></script>
-
-  <script src="js/vue.js"></script>
-  <script>
-    var vm = new Vue({
-      el: "#hero",
-      delimiters: ["{?","?}"],
-      data: {
-        testName: "",
-        testTime: 0,
-        testOwner: "",
-        inputPIN: "",
-        isLoading: false,
-        isError: false,
-        errors: [],
-        roomFound: true,
-        roundFoundPIN: "",
-      },
-      methods: {
-        searchRoom: function() {
-          vm.roomFound = false;
-          vm.showError(false, "");
-
-          if(!(new RegExp(/^\d{5}$/).test(vm.inputPIN)))
-            return vm.showError(true, 'Mã PIN phải là 5 chữ số');
-
-          vm.isLoading = true;
-
-          $.ajax({
-            url: "/findroom/" + vm.inputPIN,
-            method: "GET",
-            success: function(ret) {
-              vm.isLoading = false;
-              if(!ret.status)
-                return vm.showError(true, ret.message);
-
-              vm.testName = ret.testName;
-              vm.testTime = ret.testTime;
-              vm.testOwner = ret.testOwner;
-
-              vm.roundFoundPIN = vm.inputPIN;
-              vm.roomFound = true;
+    <script src="lib/jquery/jquery.min.js"></script>
+    <script src="lib/jquery/jquery-migrate.min.js"></script>
+    <script src="lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="lib/easing/easing.min.js"></script>
+    <script src="lib/wow/wow.min.js"></script>
+    <script src="lib/waypoints/waypoints.min.js"></script>
+    <script src="lib/counterup/counterup.min.js"></script>
+    <script src="lib/superfish/hoverIntent.js"></script>
+    <script src="lib/superfish/superfish.min.js"></script>
+    <script src="js/homepage.js"></script>
+    <script src="js/vue.js"></script>
+    <script src="/js/axios.min.js"></script>
+    <script src="/js/babel.min.js"></script>
+    <script type="text/babel">
+        var vm = new Vue({
+            el: "#hero",
+            delimiters: ["{?","?}"],
+            data: {
+                user: {
+                    fullName: "{{ userFullName }}"
+                },
+                gameSearch: {
+                    isSearching: false,
+                    inputPIN: "",
+                    isError: false,
+                    errorList: []
+                },
+                gameFound: {
+                    isFound: false,
+                    name: "",
+                    presenter: "",
+                    PIN: ""
+                }
             },
-            error: function(error) {
-              vm.isLoading = false;
-              vm.showError(true, "Không thể kết nối tới máy chủ");
+            methods: {
+                SearchGame() {
+                    this.gameFound.isFound = false;
+                    this.showError(false, "");
+
+                    if(!(new RegExp(/^\d{5}$/).test(this.gameSearch.inputPIN)))
+                        return this.showError(true, 'Mã PIN phải là 5 chữ số');
+
+                    this.gameSearch.isSearching = true;
+
+                    axios("/findgame/"+this.gameSearch.inputPIN)
+                    .then(({ data }) => {
+                        if(data.success) {
+                            this.gameFound.name = data.game.NAME;
+                            this.gameFound.presenter = data.game.PRESENTER;
+                            this.gameFound.PIN = this.gameSearch.inputPIN;
+                            this.gameFound.isFound = true;
+
+                            $("#modal-joingame").modal("show");
+                        } else {
+                            this.showError(true, data.message);
+                            $("#modal-joingame").modal("hide");
+                        }
+
+                        this.gameSearch.isSearching = false;
+                    }).catch((error) => {
+                        console.log(error);
+
+                        this.gameSearch.isSearching = false;
+                        this.showError(true, "Không thể kết nối tới máy chủ");
+                    });
+                },
+                JoinGame() {
+                    if(!this.gameFound.isFound)
+                        return;
+
+                    var pattern = "^[a-zA-Z_ÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂưăạảấầẩẫậắằẳẵặẹẻẽềềểỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵỷỹ\\s]+$";
+                    var fullName;
+
+                    do {
+                        fullName = prompt("Vui lòng nhập tên của bạn", this.user.fullName);
+
+                        if(fullName.length > 24)
+                            alert("Tên phải từ 1 đến 24 ký tự.");
+                        else if(fullName.length > 0 && !(new RegExp(pattern).test(fullName)))
+                            alert("Tên nhập không hợp lệ. (Vui lòng không dùng ký tự đặc biệt)");
+                        else if(fullName <= 0) {
+                            alert("Vui lòng nhập tên để vào phòng");
+                            break;
+                        }
+
+                    } while(!(new RegExp(pattern).test(fullName)) || fullName.length > 24)
+                    if(fullName.length <= 0) return;
+
+                    window.location.replace('/joingame/'+this.gameFound.PIN+'/'+encodeURI(fullName));
+                },
+                backToRoom: function() {
+                    window.location = '/playing';
+                },
+                showError(show, error) {
+                    this.gameSearch.isError = show;
+                    this.gameSearch.errorList = [error];
+                }
+            },
+            mounted() {
+                document.getElementById('bigger-container').style.display = "block";
             }
-          });
-        },
-        joinRoom: function() {
-          if(!vm.roomFound || !(new RegExp(/^\d{5}$/).test(vm.roundFoundPIN)))
-          {
-            vm.isLoading = false;
-            vm.roomFound = false;
-            vm.roundFoundPIN = "";
-            vm.showError(false, "");
-
-            return;
-          }
-
-          window.location = '/joinroom/'+vm.roundFoundPIN;
-        },
-        backToRoom: function() {
-          window.location = '/testing';
-        },
-        showError: function(show, error) {
-          vm.isError = show;
-          vm.errors = [error];
-        }
-      },
-      mounted() {
-        document.getElementById('bigger-container').style.display = "block";
-      }
-    });
-  </script>
+        });
+    </script>
 </body>
 </html>

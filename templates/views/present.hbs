@@ -14,7 +14,7 @@
 </head>
 <body>
     <div id="app-testing" class="container pt-3" style="display:none;">
-        <div v-if="fetchingData" class="text-center text-white loading-box"><img src="/img/loading3.gif" class="icon-loading mr-2">{? loadingText ?}</div>
+        <div v-if="centerMessage.show" class="text-center text-white loading-box"><img v-if="centerMessage.loadingEffect" src="/img/loading3.gif" class="icon-loading mr-2">{? centerMessage.text ?}</div>
         <div v-if="header.visible" id="testing-header" class="row bg-dark text-white py-1 px-2 d-flex align-items-center mb-4 fade-in slide-down">
             <div class="col-md-4">
                 <h1 class="my-0 py-0 text-uppercase">{? header.gameName ?}</h1>
@@ -140,6 +140,7 @@
     <script src="/js/jquery-3.4.1.min.js"></script>
     <script src="/js/qrcode.min.js"></script>
     <script src="/js/vue.js"></script>
+    <script src="/js/axios.min.js"></script>
     <script src="/js/babel.min.js"></script>
     <script type="text/babel">
         var vm = new Vue({
@@ -147,14 +148,21 @@
             delimiters: ['{?','?}'],
             data: {
                 siteUrl: "{{ appFullUrl }}",
-                userId: Number("{{ user.UserID }}"),
-                userToken: "{{ user.UserToken }}",
-                gameId: Number("{{ gameId }}"),
-                gamePIN: "{{ gamePIN }}",
+                presenter: {
+                    userId: Number("{{ user.UserID }}"),
+                    userToken: "{{ user.UserToken }}",
+                },
+                game: {
+                    id: Number("{{ gameId }}"),
+                    PIN: "{{ gamePIN }}",
+                    status: 0
+                },
+                centerMessage: {
+                    show: true,
+                    text: "Đang kết nối...",
+                    loadingEffect: true
+                },
                 socket: null,
-                fetchingData: true,
-                loadingText: "Đang kết nối...",
-                gameStatus: 0,
                 header: {
                     visible: false,
                     gameName: "Đố vui địa lý",
@@ -188,10 +196,11 @@
                     this.socket.on('connect', this.socketOnConnected);
                     this.socket.on('disconnect', this.socketOnDisconnected);
                     this.socket.on('connect_failed', this.socketOnConnectFailed);
+                    this.socket.on('presenter_verified', this.socketOnPresenterVerified);
                 },
                 socketOnConnected() {
-                    this.loadingText = "Đã kết nối, đang tải dữ liệu...";
-                    this.socket.emit('present_connect', { userId: this.userId, gameId: this.gameId, gamePIN: this.gamePIN, userToken: this.userToken });
+                    this.centerMessage.text = "Đã kết nối, đang tải dữ liệu...";
+                    this.socket.emit('present_connect', { userId: this.presenter.userId, gameId: this.game.id, gamePIN: this.game.PIN, userToken: this.presenter.userToken });
 
                     console.log("Connected");
                 },
@@ -200,14 +209,50 @@
                 },
                 socketOnConnectFailed() {
                     this.loadingText = "Không thể kết nối tới máy chú, thử lại sau.";
+                },
+                socketOnPresenterVerified(data) {
+                    console.log("Verified: "+data.success);
+                    if(data.success) {
+                        axios("/present/"+this.game.id+"/action/get_data")
+                        .then(({ data }) => {
+                            if(data.success) this.ReadPresentData(data.game);
+                            else this.ClosePresent("Không thể đọc dữ liệu từ máy chủ.");
+                        }).catch((error) => {
+                            console.log(error);
+                            this.ClosePresent("Không thể kết nối tới máy chủ.")
+                        });
+                    } else this.ClosePresent();
+                },
+                ReadPresentData: function(game) {
+                    console.log("Read Present Data - Status: "+game.STATUS)
+
+                    this.header.gameName = game.NAME;
+                    this.header.gameQuestCount = [game.DETAIL.QUEST_CURRENT, game.DETAIL.QUEST_TOTAL];
+                    this.game.status = game.STATUS;
+
+                    switch(game.STATUS) {
+                        case 1: // Opening for joining
+                            this.header.nextButtonText = "<i class='fas fa-play-circle mr-2'></i>Bắt đầu trò chơi";
+                            this.lobby.users = game.PLAYERS;
+                            this.lobby.visible = true;
+
+                            setTimeout(() => {
+                                try { var qrcode = new QRCode("gameQRCode", { text: this.siteUrl+"/joingame/"+this.game.PIN, width: 226, height: 226 }); } catch(e) { }
+
+                            }, 0);
+
+                            break;
+                    }
+
+                    this.header.visible = true;
+                    this.centerMessage.show = false;
+                },
+                ClosePresent: function(reason) {
+                    alert("Kết thúc: "+reason);
                 }
             },
             mounted() {
                 document.getElementById("app-testing").style.display = "block";
-
-                if(this.gameStatus == 1 && this.lobby.visible)
-                    var qrcode = new QRCode("gameQRCode", { text: this.siteUrl+"/join-game/"+this.gamePIN, width: 226, height: 226 });
-
                 this.socketConnect();
             }
         });

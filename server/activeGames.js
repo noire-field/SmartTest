@@ -1,3 +1,4 @@
+const uuid = require('uuid');
 const config = require('./../config');
 const { Log } = require('./utils/logger');
 const { QueryNow } = require('./database');
@@ -5,7 +6,7 @@ const { QueryNow } = require('./database');
 module.exports = {
     Startup,
     OpenRoom,
-    Get_UserInGamePIN,
+    IsUserInGame,
     GetRoomByID,
     RegisterRoutes,
 };
@@ -18,12 +19,14 @@ var socket = {
 };
 
 var GlobalGames = new Map();
+var PINToID = new Map();
+
 var Users = {
     Presenters: new Map(),
     Players: new Map()
 };
-var SocketUsers = new Map();
 
+var SocketUsers = new Map();
 var UserInGame = new Map();
 
 
@@ -31,6 +34,12 @@ function RegisterRoutes(app) {
     // Present
     app.get('/present/:id?', RGet_Present);
     app.get('/present/:id?/action/:act?', RGet_PresentAction);
+
+    // Player
+    app.get('/findgame/:pin?', RGet_FindGame);
+    app.get('/joingame/:pin?/:name?', RGet_JoinGame);
+    app.get('/playing', RGet_Playing);
+
 }
 
 function RGet_Present(req, res, next)
@@ -40,7 +49,7 @@ function RGet_Present(req, res, next)
         return res.redirect('/');
 
     var game = GetRoomByID(roomId);
-    if(!game || game.OWNERID != req.user.UserID) return res.redirect('/');
+    if(!game || game.OWNER.ID != req.user.UserID) return res.redirect('/');
 
     var data = {
         head_title: game.NAME + ' - ' + config.APP_NAME,
@@ -63,11 +72,104 @@ function RGet_PresentAction(req, res, next)
     
     var game = GetRoomByID(roomId);
     if(!game) return res.json({ success: false, message: "Game not found in system." });
-    if(game.OWNERID != req.user.UserID) return res.json({ success: false, message: "Wrong game owner." });
+    if(game.OWNER.ID != req.user.UserID) return res.json({ success: false, message: "Wrong game owner." });
 
-    return res.json({ success: true, message: "OK" });
+    switch(act) {
+        case 'get_data': return Present_GetData(roomId, res); break;
+    }
+
+    return res.json({ success: false, message: "Unknown action" });
 }
 
+function Present_GetData(roomId, res) {
+    var game = GetRoomByID(roomId);
+    game.PLAYERS.map((p) => p.NAME);
+    return res.json({ success: true, game });
+}
+
+function RGet_FindGame(req, res, next) {
+    var PIN = req.params.pin || -1;
+
+    if(!(new RegExp(/^\d{5}$/).test(PIN)))
+        return res.json({ success: false, message: "Mã PIN không hợp lệ." });
+
+    var game = GetRoomByPIN(PIN);
+    if(!game) return res.json({ success: false, message: "Không tìm thấy phòng với mã PIN này." });
+    if(game.STATUS != 1) return res.json({ success: false, message: "Phòng này đã đóng và đang chơi." });
+
+    return res.json({ success: true, game: { NAME: game.NAME, PRESENTER: game.OWNER.NAME } });
+}
+
+function RGet_JoinGame(req, res, next) {
+    var PIN = req.params.pin || -1;
+    var name = req.params.name || "";
+
+    // Check name
+    var pattern = "^[a-zA-Z_ÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂưăạảấầẩẫậắằẳẵặẹẻẽềềểỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵỷỹ\\s]{1,24}$";
+    if(!(new RegExp(pattern).test(name)))
+        return res.redirect('/');
+
+    // Valid room?
+    if(!(new RegExp(/^\d{5}$/).test(PIN)))
+        return res.redirect('/');
+
+    var game = GetRoomByPIN(PIN);
+    if(!game || game.STATUS != 1) return res.redirect('/');
+
+    // Find the secret code
+    var userGameId = req.cookies.userGameId || "";
+
+    // Is this user already in other active game (based on his/her secret id)
+    if(userGameId.length > 0 && Users.Players.has(userGameId)) {
+        var playerInfo = Users.Players.get(userGameId);
+        if(GetRoomByID(playerInfo.gameId)) return res.redirect('/'); // So his old game is still active
+        else Users.Players.delete(userGameId);
+    }
+
+    // Looks like he's a valid player
+    var playerUUID = uuid(); // Generate a random shit
+
+    Users.Players.set(playerUUID, {
+        name: name,
+        gameId: game.ID,
+        gamePIN: game.PIN
+    });
+
+    res.cookie('userGameId', playerUUID, {expire: 86400000 + Date.now()});
+    return res.redirect('/playing');
+}
+
+function RGet_Playing(req, res, next) {
+    // Retrieve user and his game from cookie
+    var playerUUID = req.cookies.userGameId || "";
+    if(playerUUID.length <= 0) return res.redirect('/');
+
+    // Check user in system
+    var userInfo = Users.Players.get(playerUUID);
+    if(!userInfo) return res.clearCookie('userGameId').redirect('/');
+    
+    // Check his active game
+    var game = GlobalGames.get(userInfo.gameId);
+    if(!game) { // Looks like this guy is in system but no game, delete his shit then.
+        Users.Players.delete(playerUUID);
+        return res.clearCookie('userGameId').redirect('/');
+    }
+/*
+
+
+    var data = {
+        head_title: 'Chơi - ' + config.APP_NAME,
+        appFullUrl: config.APP_URLFULL,
+        gameId: 0,
+        gamePIN: 97775
+    };
+
+    return res.render('play', data);*/
+
+    return res.send(`Game Name: ${game.NAME}`);
+}
+
+// ======================================================
 function Startup(io, globalTokens) {
     globalUserTokens = globalTokens;
 
@@ -93,7 +195,7 @@ function OpenRoom(gameId) {
     return new Promise((resolve, reject) => {
         var game = null;
 
-        QueryNow(`SELECT * FROM games WHERE GameID = ?`, [gameId])
+        QueryNow(`SELECT g.*, u.FirstName, u.LastName FROM games g INNER JOIN users u ON g.OwnerID = u.UserID WHERE g.GameID = ?`, [gameId])
         .then((rows) => {
             if(rows.length <= 0 || Number(rows[0]['OpenStatus']) != 0)
                 return resolve({ status: false, message: 'Không thể tìm thấy trò chơi này hoặc trò chơi đã mở.' });
@@ -104,14 +206,24 @@ function OpenRoom(gameId) {
                 PIN: rows[0].PINCode,
                 QUESTTIME: Number(rows[0].TimePerQuest),
                 STATUS: 1,
-                GAMESTATUS: 0,
-                OWNERID: Number(rows[0].OwnerID)
+                DETAIL: {
+                    STATUS: 0,
+                    QUEST_CURRENT: 0,
+                    QUEST_TOTAL: 15
+                },
+                OWNER: {
+                    ID: Number(rows[0].OwnerID),
+                    NAME: `${rows[0].FirstName} ${rows[0].LastName}`
+                },
+                PLAYERS: []
             };
 
             return QueryNow(`UPDATE games SET OpenStatus = 1 WHERE GameID = ?`, [gameId])
         })
         .then((rows) => {
             GlobalGames.set(game.ID, game);
+            PINToID.set(game.PIN, game.ID);
+
             resolve({ status: true });
         })
         .catch((error) => {
@@ -127,15 +239,28 @@ function GetRoomByID(roomId) {
     return null;
 }
 
-function Get_UserInGamePIN(userId) {
-    if(!UserInGame.has(userId))
+function GetRoomByPIN(pin) {
+    if(!PINToID.has(pin))
         return null;
-
-    var gameId = UserInGame.get(userId);
-    if(!GlobalGames.has(gameId))
+    if(!GlobalGames.has(PINToID.get(pin))) {
+        PINToID.delete(pin);
         return null;
+    }
 
-    return GlobalGames.get(gameId).PIN;
+    return GlobalGames.get(PINToID.get(pin));
+}
+
+function IsUserInGame(uuid) {
+    var userInfo = Users.Players.get(uuid);
+    if(!userInfo) return false;
+    
+    var game = GlobalGames.get(userInfo.gameId);
+    if(!game) { 
+        Users.Players.delete(uuid);
+        return false;
+    }
+
+    return true;
 }
 
 function Socket_Present_OnConnect(client, data) {
@@ -171,6 +296,7 @@ function Socket_Present_OnConnect(client, data) {
         oldSocket.disconnect(); // Disconnect previous socket
     }
 
+    client.emit('presenter_verified', { success: true });
     Log(`[Active Games] Presenter (S-ID: ${client.id}) has connected!`);
 }
 
@@ -195,7 +321,7 @@ function Verify_UserToken(userId, userToken) {
 }
 
 function Verify_GameInfo(userId, gameId, gamePIN) {
-    if(GlobalGames.has(gameId) && GlobalGames.get(gameId).PIN == gamePIN && GlobalGames.get(gameId).OWNERID == userId)
+    if(GlobalGames.has(gameId) && GlobalGames.get(gameId).PIN == gamePIN && GlobalGames.get(gameId).OWNER.ID == userId)
         return true;
 
     return false;

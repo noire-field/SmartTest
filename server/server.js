@@ -10,6 +10,7 @@ const uuid = require('uuid');
 const bodyParser = require('body-parser');
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
+const cookieParser = require('cookie-parser');
 
 // Import our things
 const config = require('./../config');
@@ -43,7 +44,7 @@ passport.use(new LocalStrategy(
             }
 
             con.query(
-                "SELECT UserID, Username, FirstName, RoleType, AvatarFile FROM Users WHERE Username = ? AND Password = ?", 
+                "SELECT UserID, Username, FirstName, LastName, RoleType, AvatarFile FROM Users WHERE Username = ? AND Password = ?", 
                 [username, password], // Auto escape string
                 function(error, results, fields) {
                     con.release();
@@ -68,7 +69,7 @@ passport.deserializeUser((UserID, done) => {
     GetConnection((error, con) => {
         if(error) return done(error)
         con.query(
-            "SELECT UserID, Username, FirstName, RoleType, AvatarFile FROM Users WHERE UserID = ?", 
+            "SELECT UserID, Username, FirstName, LastName, RoleType, AvatarFile FROM Users WHERE UserID = ?", 
             [UserID], // Auto escape string
             function(error, results, fields) {
                 con.release();
@@ -90,6 +91,7 @@ passport.deserializeUser((UserID, done) => {
 app.use(express.static(publicPath));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+app.use(cookieParser());
 app.use(session({
     genid: (req) => uuid(),
     key: config.SESSION_NAME,
