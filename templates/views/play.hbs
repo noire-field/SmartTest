@@ -14,7 +14,7 @@
 </head>
 <body>
     <div id="app-testing" class="container pt-3" :class="BackgroundColor" style="display:none;">
-        <div v-if="fetchingData" class="text-center text-white loading-box"><img src="/img/loading3.gif" class="icon-loading mr-2">{? loadingText ?}</div>
+        <div v-if="centerMessage.show" class="text-center text-white loading-box"><img v-if="centerMessage.loadingEffect" src="/img/loading3.gif" class="icon-loading mr-2">{? centerMessage.text ?}</div>
         <div v-if="header.visible" id="testing-header" class="bg-dark text-white py-1 px-2 d-flex align-items-center mb-4 fade-in slide-down">
             <div class="col-md-6 py-2">
                 <h3><i class="fab fa-product-hunt mr-2"></i>{? header.scoreNumber ?}</h3>
@@ -49,7 +49,7 @@
                 </div>
             </div>
             <div v-if="gameBoard.showMessage" class="play-fullscreen d-flex justify-content-center align-items-center">
-                <h2>{? gameBoard.messageText ?}</h2>
+                <h2 class="text-center">{? gameBoard.messageText ?}</h2>
             </div>
         </div>
     </div>
@@ -57,6 +57,7 @@
     <script src="/js/bootstrap.bundle.min.js"></script>
     <script src="/js/jquery-3.4.1.min.js"></script>
     <script src="/js/vue.js"></script>
+    <script src="/js/axios.min.js"></script>
     <script src="/js/babel.min.js"></script>
     <script type="text/babel">
         var vm = new Vue({
@@ -64,21 +65,28 @@
             delimiters: ['{?','?}'],
             data: {
                 siteUrl: "{{ appFullUrl }}",
-                userId: Number("{{ user.UserID }}"),
-                gameId: Number("{{ gameId }}"),
-                gamePIN: Number("{{ gamePIN }}"),
+                user: {
+                    userGameId: "{{ userGameId }}"
+                },
+                game: {
+                    id: Number("{{ gameId }}"),
+                    PIN: "{{ gamePIN }}",
+                    status: 0
+                },
+                centerMessage: {
+                    show: true,
+                    text: "Đang kết nối...",
+                    loadingEffect: true
+                },
                 socket: null,
-                fetchingData: false,
-                loadingText: "Đang kết nối...",
-                gameStatus: 2,
                 backgroundColor: 0,
                 header: {
-                    visible: true,
+                    visible: false,
                     scoreNumber: 111111
                 },
                 gameBoard: {
-                    visible: true,
-                    showAnswers: true,
+                    visible: false,
+                    showAnswers: false,
                     showMessage: false,
                     messageText: "Vui lòng chờ câu hỏi"
                 }
@@ -99,19 +107,75 @@
                     this.socket.on('connect', this.socketOnConnected);
                     this.socket.on('disconnect', this.socketOnDisconnected);
                     this.socket.on('connect_failed', this.socketOnConnectFailed);
+
+                    this.socket.on('player_verified', this.socketOnPlayerVerified);
                 },
                 socketOnConnected() {
-                    this.loadingText = "Đã kết nối, đang tải dữ liệu...";
-                    this.socket.emit('join_room', { testId: this.testId, userId: this.userId });
+                    this.centerMessage.text = "Đã kết nối, đang xác minh và tải dữ liệu...";
+                    this.socket.emit('player_connect', { gameId: this.game.id, gamePIN: this.game.PIN, userGameId: this.user.userGameId });
                 },
                 socketOnDisconnected() {
-
+                    this.CloseGame("Bạn đã bị ngắt kết nối khỏi máy chủ (có thể là do bạn đã truy cập ở một nơi khác)");
                 },
                 socketOnConnectFailed() {
-                    this.loadingText = "Không thể kết nối tới máy chú, thử lại sau.";
+                    this.centerMessage.text = "Không thể kết nối tới máy chú, thử lại sau.";
+                    this.centerMessage.loadingEffect = false;
+                },
+                socketOnPlayerVerified(data) {
+                    console.log("Verified: "+data.success);
+                    
+                    if(data.success) {
+                        axios("/present/"+this.game.id+"/player_act/get_data")
+                        .then(({ data }) => {
+                            if(data.success) this.ReadPlayerData(data.game);
+                            else this.ClosePresent(data.message);
+                        }).catch((error) => {
+                            console.log(error);
+                            this.ClosePresent("Không thể kết nối tới máy chủ.")
+                        });
+                    } else this.ClosePresent();
+                },
+                ReadPlayerData(game) {
+                    console.log("Read Player Data - Status: "+game.STATUS)
+
+                    this.SetCenterMessage(false, null, false);
+                    this.game.status = game.STATUS;
+
+                    switch(game.STATUS) {
+                        case 1: // Opening for joining
+                            this.backgroundColor = 1;
+
+                            this.header.visible = true;
+                            this.header.scoreNumber = 0;
+
+                            this.gameBoard.visible = true;
+                            this.gameBoard.showAnswers = false;
+                            this.gameBoard.showMessage = true;
+                            this.gameBoard.messageText = "Bạn đã vào phòng, vui lòng chờ tín hiệu kế tiếp của người dẫn.";
+
+                            break;
+                    }
+
+                    this.header.visible = true;
+                    this.centerMessage.show = false;
+                },
+                CloseGame(reason) {
+                    alert("Kết thúc: "+reason);
+                },
+                SetCenterMessage(show, text, loading) {
+                    this.centerMessage.show = show;
+                    this.centerMessage.text = text;
+                    this.centerMessage.loadingEffect = loading;
+                },
+                getCookie(name) {
+                    var value = "; " + document.cookie;
+                    var parts = value.split("; " + name + "=");
+                    if (parts.length == 2) return parts.pop().split(";").shift();
                 }
             },
             mounted() {
+                //this.userGameId = this.getCookie('userGameId');
+
                 document.getElementById("app-testing").style.display = "block";
                 this.socketConnect();
             }

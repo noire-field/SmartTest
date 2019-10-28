@@ -33,7 +33,8 @@ var UserInGame = new Map();
 function RegisterRoutes(app) {
     // Present
     app.get('/present/:id?', RGet_Present);
-    app.get('/present/:id?/action/:act?', RGet_PresentAction);
+    app.get('/present/:id?/presenter_act/:act?', RGet_PresentAction);
+    app.get('/present/:id?/player_act/:act?', RGet_PlayerAction);
 
     // Player
     app.get('/findgame/:pin?', RGet_FindGame);
@@ -69,22 +70,76 @@ function RGet_PresentAction(req, res, next)
 
     if(!req.isAuthenticated() || req.user.RoleType < 1) 
         return res.json({ success: false, message: "Unauthorized action."});
-    
+
     var game = GetRoomByID(roomId);
     if(!game) return res.json({ success: false, message: "Game not found in system." });
     if(game.OWNER.ID != req.user.UserID) return res.json({ success: false, message: "Wrong game owner." });
 
     switch(act) {
-        case 'get_data': return Present_GetData(roomId, res); break;
+        case 'get_data': return Present_GetData(game, res); 
+        case 'start_game': return Present_StartGame(game, res);
     }
 
     return res.json({ success: false, message: "Unknown action" });
 }
 
-function Present_GetData(roomId, res) {
+function RGet_PlayerAction(req, res, next)
+{
+    var roomId = req.params.id ? Number(req.params.id) : -1;
+    var act = req.params.act ? req.params.act : "";
+    
     var game = GetRoomByID(roomId);
-    game.PLAYERS.map((p) => p.NAME);
-    return res.json({ success: true, game });
+    if(!game) return res.json({ success: false, message: "Game not found in system." });
+
+    var userGameId = req.cookies.userGameId || "";
+
+    // Is this user already in other active game (based on his/her secret id)
+    if(userGameId.length > 0 && Users.Players.has(userGameId)) {
+        var playerInfo = Users.Players.get(userGameId);
+        if(playerInfo.gameId != roomId) return res.json({ success: false, message: "This is not your room." });
+    }
+
+    switch(act) {
+        case 'get_data': return Player_GetData(game, res); break;
+    }
+
+    return res.json({ success: false, message: "Unknown action" });
+}
+
+function Present_GetData(game, res) {
+    var newGame = {...game};
+    var mappedData = [];
+
+    newGame.PLAYERS.forEach((p) => { mappedData.push(Users.Players.get(p).name); });
+    newGame.PLAYERS = mappedData;
+
+    return res.json({ success: true, game: newGame });
+}
+
+function Present_StartGame(game, res) {
+    if(game.STATUS != 1)
+        return res.json({ success: false, message: "Lệnh không hợp lệ, vui lòng tải lại trang." });
+
+    // Main Status
+    game.STATUS = 2;
+    
+    // Question Status
+    game.DETAIL.STATUS = 1; // 1 = Viewing a question
+    game.DETAIL.QUEST_CURRENT = 1; // First question
+
+    var firstQuest = Get_A_Quest(game, game.DETAIL.QUEST_IDLIST[game.DETAIL.QUEST_CURRENT-1]);
+
+    return res.json({ success: true, quest: { number: game.DETAIL.QUEST_CURRENT, detail: firstQuest } });
+}
+
+function Player_GetData(game, res) {
+    var newGame = {
+        ID: game.ID,
+        NAME: game.NAME,
+        STATUS: game.STATUS
+    };
+
+    return res.json({ success: true, game: newGame });
 }
 
 function RGet_FindGame(req, res, next) {
@@ -128,12 +183,15 @@ function RGet_JoinGame(req, res, next) {
 
     // Looks like he's a valid player
     var playerUUID = uuid(); // Generate a random shit
-
     Users.Players.set(playerUUID, {
         name: name,
         gameId: game.ID,
-        gamePIN: game.PIN
+        gamePIN: game.PIN,
+        socket: null
     });
+    
+    game.PLAYERS.add(playerUUID);
+    Update_PresentPlayerList(game);
 
     res.cookie('userGameId', playerUUID, {expire: 86400000 + Date.now()});
     return res.redirect('/playing');
@@ -147,26 +205,45 @@ function RGet_Playing(req, res, next) {
     // Check user in system
     var userInfo = Users.Players.get(playerUUID);
     if(!userInfo) return res.clearCookie('userGameId').redirect('/');
-    
+
     // Check his active game
     var game = GlobalGames.get(userInfo.gameId);
     if(!game) { // Looks like this guy is in system but no game, delete his shit then.
         Users.Players.delete(playerUUID);
         return res.clearCookie('userGameId').redirect('/');
     }
-/*
 
+    var userGameId = req.cookies.userGameId || "";
 
     var data = {
-        head_title: 'Chơi - ' + config.APP_NAME,
+        head_title: game.NAME + ' - ' + config.APP_NAME,
         appFullUrl: config.APP_URLFULL,
-        gameId: 0,
-        gamePIN: 97775
+        gameId: game.ID,
+        gamePIN: game.PIN,
+        userGameId
     };
 
-    return res.render('play', data);*/
+    return res.render('play', data);
+}
 
-    return res.send(`Game Name: ${game.NAME}`);
+function Get_A_Quest(Game, QuestID) {
+    if(!Game.QUESTS.has(QuestID))
+        return null;
+
+    var quest = Game.QUESTS.get(QuestID);
+    var newQuest = {
+        Content: quest.Content,
+        Answers: []
+    }
+
+    quest.Answers.forEach((v, k) => {
+        newQuest.Answers.push({
+            AnsID: Number(k),
+            Content: v.Content
+        });
+    });
+
+    return newQuest;
 }
 
 // ======================================================
@@ -179,17 +256,26 @@ function Startup(io, globalTokens) {
 
     io.on('connection', (socket) => {
         socket.on('present_connect', (data) => { Socket_Present_OnConnect(socket, data); });
-        socket.on('save_test', (data) => { socketOnSaveTest(socket, data); })
+        socket.on('player_connect', (data) => { Socket_Player_OnConnect(socket, data); });
+        //socket.on('save_test', (data) => { socketOnSaveTest(socket, data); })
     });
 
     Log('[Active Games] SocketIO server is started');
 
     // Reset Status
     QueryNow("UPDATE games SET OpenStatus = 0 WHERE OpenStatus = 1;").then((rows) => {
-        if(rows.affectedRows <= 0) return;
+
+        // For Test purpose!
+        OpenRoom(3).then(() => {
+            Log(`[Active Games] Manually opened room 3`);
+        });
+        // End of Test
+
+        if(rows.affectedRows <= 0) return
         Log(`[Active Games] Reseted ${rows.affectedRows} game(s) (Game lost when application crashed)`);
     });
 }
+
 
 function OpenRoom(gameId) {
     return new Promise((resolve, reject) => {
@@ -209,14 +295,57 @@ function OpenRoom(gameId) {
                 DETAIL: {
                     STATUS: 0,
                     QUEST_CURRENT: 0,
-                    QUEST_TOTAL: 15
+                    QUEST_TOTAL: 0,
+                    QUEST_IDLIST: []
                 },
                 OWNER: {
                     ID: Number(rows[0].OwnerID),
                     NAME: `${rows[0].FirstName} ${rows[0].LastName}`
                 },
-                PLAYERS: []
+                PLAYERS: new Set(),
+                QUESTS: new Map()
             };
+
+            return QueryNow(`SELECT * FROM questions WHERE SubjectID = ?`, [rows[0].SubjectID]);
+        })
+        .then((rows) => {
+            if(rows.length <= 0)
+                return resolve({ status: false, message: 'Có gì đó bị sai, bộ đề của trò chơi này không có bất kỳ câu hỏi nào.' });
+        
+            var questList = new Map();
+            var questIDList = [];
+
+            rows.forEach((r) => {
+                questList.set(r.QuestID, {
+                    Content: r.QuestContent,
+                    Answers: new Map(),
+                    CorrectAns: []
+                });
+
+                questIDList.push(r.QuestID);
+            });
+
+            game.QUESTS = questList;
+
+            game.DETAIL.QUEST_CURRENT = 0;
+            game.DETAIL.QUEST_TOTAL = questIDList.length;
+            game.DETAIL.QUEST_IDLIST = questIDList;
+
+            return QueryNow(`SELECT * FROM answers WHERE QuestID IN (${questIDList.join(',')})`);
+        })
+        .then((rows) => {
+            if(rows.length <= 0)
+                return resolve({ status: false, message: 'Có gì đó bị sai, bộ đề của trò chơi này không có bất kỳ câu trả lời nào.' });
+
+            rows.forEach((r) => {
+                let quest = game.QUESTS.get(r.QuestID);
+                quest.Answers.set(r.AnsID, {
+                    Content: r.AnsContent,
+                    IsCorrect: Boolean(r.IsCorrect)
+                })
+
+                if(r.IsCorrect) quest.CorrectAns.push(r.AnsID);
+            });
 
             return QueryNow(`UPDATE games SET OpenStatus = 1 WHERE GameID = ?`, [gameId])
         })
@@ -269,21 +398,26 @@ function Socket_Present_OnConnect(client, data) {
         client.disconnect(); Log(`[Active Games] Presenter (S-ID: ${client.id}) has connected but then disconnected by system (missing parameters).`); 
         return;
     }
-    if(!Verify_UserToken(data.userId, data.userToken))
+    if(!Verify_PresenterToken(data.userId, data.userToken))
     {
         client.disconnect(); Log(`[Active Games] Presenter (S-ID: ${client.id}) has connected but then disconnected by system (Invalid token).`); 
         return;
     }
-    if(!Verify_GameInfo(data.userId, data.gameId, data.gamePIN))
+    if(!Verify_GameOwnerInfo(data.userId, data.gameId, data.gamePIN))
     {
         client.disconnect(); Log(`[Active Games] Presenter (S-ID: ${client.id}) has connected but then disconnected by system (Invalid game info or not game owner).`);
         return;
     }
 
     // Register disconnect event
-    client.on('disconnect', () => { Socket_Present_OnDisconnect(client); });
+    client.on('disconnect', () => { Socket_User_OnDisconnect(client); });
 
-    SocketUsers.set(client.id, data.userId);
+    SocketUsers.set(client.id, {
+        TYPE: 1,
+        GAMEID: data.gameId,
+        USERID: data.userId
+    });
+
     if(!Users.Presenters.has(data.userId)) {
         Users.Presenters.set(data.userId, {
             socket: client
@@ -300,31 +434,131 @@ function Socket_Present_OnConnect(client, data) {
     Log(`[Active Games] Presenter (S-ID: ${client.id}) has connected!`);
 }
 
-function Socket_Present_OnDisconnect(client) {
+function Socket_Player_OnConnect(client, data) {
+    if(!Validate_Request(data, ['gameId', 'gamePIN', 'userGameId', ], { gameId: "number", gamePIN: "string", userGameId: "string" }))
+    {
+        client.disconnect(); Log(`[Active Games] Player (S-ID: ${client.id}) has connected but then disconnected by system (missing parameters).`); 
+        return;
+    }
+    if(!Verify_GameInfo(data.gameId, data.gamePIN))
+    {
+        client.disconnect(); Log(`[Active Games] Player (S-ID: ${client.id}) has connected but then disconnected by system (Invalid game info).`);
+        return;
+    }
+    if(!Verify_PlayerInfo(data.gameId, data.userGameId))
+    {
+        client.disconnect(); Log(`[Active Games] Player (S-ID: ${client.id}) has connected but then disconnected by system (Invalid token).`); 
+        return;
+    }
+
+    // Is he connected before?
+    var userData = Users.Players.get(data.userGameId);
+    if(userData.socket) { // Is already connected
+        // Then disconnect it before making new one
+        SocketUsers.delete(userData.socket.id);
+        Log(`[Active Games] Player (New S-ID: ${client.id}) disconnected his old session (Old S-ID: ${userData.socket.id}).`); 
+
+        userData.socket.leave(data.gameId);
+        userData.socket.disconnect();
+        userData.socket = null;
+    }
+
+    // Register disconnect event
+    client.on('disconnect', () => { Socket_User_OnDisconnect(client); });
+
+    SocketUsers.set(client.id, {
+        TYPE: 0,
+        GAMEID: data.gameId,
+        UUID: data.userGameId
+    });
+
+    userData.socket = client;
+
+    // Join socket room
+    client.join(data.gameId);
+
+    client.emit('player_verified', { success: true });
+    Log(`[Active Games] Player (S-ID: ${client.id}) has connected!`);
+}
+
+function Socket_User_OnDisconnect(client) {
     // Check and delete the user if the final socket is disconnected
-    var userId = SocketUsers.get(client.id);
-    if(Users.Presenters.has(userId)) { 
-        var presenter = Users.Presenters.get(userId);
-        if(presenter.socket.id == client.id)
-            Users.Presenters.delete(client.id);
+    var userData = SocketUsers.get(client.id);
+    if(!userData) return;
+
+    if(userData.TYPE == 1) {// 1 = Lecturer
+        if(Users.Presenters.has(userData.USERID)) { 
+            var presenter = Users.Presenters.get(userData.USERID);
+            if(presenter.socket.id == client.id) {
+                Users.Presenters.delete(client.id);
+                Log(`[Active Games] Presenter (${userData.USERID}) has been deleted from Users/Presenters.`);
+            }
+        }
+
+        Log(`[Active Games] Presenter (S-ID: ${client.id}) has disconnected!`);
+    } else if(userData.TYPE == 0) { // 0 = Players
+        if(Users.Players.has(userData.UUID)) { 
+            var player = Users.Players.get(userData.UUID);
+            if(player.socket.id == client.id) {
+                player.socket = null; // We don't delete the nigger player like presenter.
+                Log(`[Active Games] Player (${userData.UUID}) has unset his final socket.`);
+            }
+        }
     }
 
     SocketUsers.delete(client.id);
-    Log(`[Active Games] Presenter (S-ID: ${client.id}) has disconnected!`);
 }
 
-function Verify_UserToken(userId, userToken) {
+
+function Update_PresentPlayerList(game) {
+    var playerList = [];
+
+    game.PLAYERS.forEach((p) => {
+        playerList.push(Users.Players.get(p).name);
+    });
+
+    var ownerId = game.OWNER.ID;
+    if(Users.Presenters.has(ownerId)) {
+        var presentSocket = Users.Presenters.get(ownerId).socket;
+        presentSocket.emit('presenter_update_playerlist', { players: playerList });
+    }
+}
+
+function Verify_PresenterToken(userId, userToken) {
     if(globalUserTokens.has(userId) && globalUserTokens.get(userId) == userToken)
         return true;
 
     return false;
 }
 
-function Verify_GameInfo(userId, gameId, gamePIN) {
+function Verify_GameOwnerInfo(userId, gameId, gamePIN) {
     if(GlobalGames.has(gameId) && GlobalGames.get(gameId).PIN == gamePIN && GlobalGames.get(gameId).OWNER.ID == userId)
         return true;
 
     return false;
+}
+
+function Verify_GameInfo(gameId, gamePIN) {
+    if(GlobalGames.has(gameId) && GlobalGames.get(gameId).PIN == gamePIN)
+        return true;
+
+    return false;
+}
+
+function Verify_PlayerInfo(gameId, userGameId) {
+    // Is she in our system?
+    if(!Users.Players.has(userGameId))
+        return false;
+
+    var userInfo = Users.Players.get(userGameId);
+    if(userInfo.gameId != gameId) // Is this UUID user's gameId right?
+        return false;
+
+    var game = GetRoomByID(gameId);
+    if(!game.PLAYERS.has(userGameId))
+        return false;
+    
+    return true;
 }
 
 function Validate_Request(data={}, require=[], type={}, size={}) {

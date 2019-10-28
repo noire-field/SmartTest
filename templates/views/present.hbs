@@ -24,7 +24,8 @@
                 <h2>{? header.gameQuestCount[0] ?}/{? header.gameQuestCount[1] ?}</h2>
             </div>
              <div class="col-md-4 text-right">
-                <button class="btn btn-danger"><span v-html="header.nextButtonText"></span></button>
+                <button v-if="!header.buttonLoading" @click="OnClick_HeaderButton" class="btn btn-danger"><span v-html="header.nextButtonText"></span></button>
+                <img v-if="header.buttonLoading" class="icon-loading" src="/img/loading3.gif"/>
             </div>
         </div>
         <div v-if="lobby.visible" class="fade-in slide-up">
@@ -167,7 +168,8 @@
                     visible: false,
                     gameName: "Đố vui địa lý",
                     gameQuestCount: [0, 10],
-                    nextButtonText: "<i class='fas fa-forward mr-2'></i>Bỏ qua câu hỏi" // "<i class='fas fa-play-circle mr-2'></i>Bắt đầu trò chơi"
+                    nextButtonText: "<i class='fas fa-forward mr-2'></i>Bỏ qua câu hỏi", // "<i class='fas fa-play-circle mr-2'></i>Bắt đầu trò chơi"
+                    buttonLoading: false
                 },
                 lobby: {
                     visible: false,
@@ -196,7 +198,9 @@
                     this.socket.on('connect', this.socketOnConnected);
                     this.socket.on('disconnect', this.socketOnDisconnected);
                     this.socket.on('connect_failed', this.socketOnConnectFailed);
+                    
                     this.socket.on('presenter_verified', this.socketOnPresenterVerified);
+                    this.socket.on('presenter_update_playerlist', this.socketOnPresenterUpdatePlayerList);
                 },
                 socketOnConnected() {
                     this.centerMessage.text = "Đã kết nối, đang tải dữ liệu...";
@@ -212,8 +216,9 @@
                 },
                 socketOnPresenterVerified(data) {
                     console.log("Verified: "+data.success);
+                    
                     if(data.success) {
-                        axios("/present/"+this.game.id+"/action/get_data")
+                        axios("/present/"+this.game.id+"/presenter_act/get_data")
                         .then(({ data }) => {
                             if(data.success) this.ReadPresentData(data.game);
                             else this.ClosePresent("Không thể đọc dữ liệu từ máy chủ.");
@@ -222,6 +227,10 @@
                             this.ClosePresent("Không thể kết nối tới máy chủ.")
                         });
                     } else this.ClosePresent();
+                },
+                socketOnPresenterUpdatePlayerList(data) {
+                    if(this.game.status == 1) // Only update when in joining state
+                        this.lobby.users = data.players;
                 },
                 ReadPresentData: function(game) {
                     console.log("Read Present Data - Status: "+game.STATUS)
@@ -249,6 +258,26 @@
                 },
                 ClosePresent: function(reason) {
                     alert("Kết thúc: "+reason);
+                },
+                OnClick_HeaderButton() {
+                    switch(this.game.status)
+                    {
+                        case 1: // Start the game
+                            this.header.buttonLoading = true;
+
+                            axios("/present/"+this.game.id+"/presenter_act/start_game")
+                            .then(({ data }) => {
+                                if(data.success) {
+
+                                } else alert(data.message);
+                            }).catch((error) => {
+                                console.log(error);
+                                this.ClosePresent("Không thể kết nối tới máy chủ.");
+                            });
+
+                            break;
+                    }
+                    
                 }
             },
             mounted() {
