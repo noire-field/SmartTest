@@ -27,22 +27,22 @@
             <div v-if="gameBoard.showAnswers" class="play-fullscreen">
                 <div class="row">
                     <div class="col-md-6 mb-4">
-                        <div class="btn-client-answer border-triangle d-flex justify-content-center align-items-center ans-triangle py-3">
+                        <div @click="OnClick_Answer(0);" class="btn-client-answer border-triangle d-flex justify-content-center align-items-center ans-triangle py-3">
                             <div class="answer-icon text-dark d-flex justify-content-center align-items-center"><span>&bigtriangleup;</span></div>
                         </div>
                     </div>
                     <div class="col-md-6 mb-4">
-                        <div class="btn-client-answer border-circle d-flex justify-content-center align-items-center ans-circle py-3">
+                        <div @click="OnClick_Answer(1);" class="btn-client-answer border-circle d-flex justify-content-center align-items-center ans-circle py-3">
                             <div class="answer-icon text-dark d-flex justify-content-center align-items-center"><span>O</span></div>
                         </div>
                     </div>
                     <div class="col-md-6 mb-4">
-                        <div class="btn-client-answer border-cross d-flex justify-content-center align-items-center ans-cross py-3">
+                        <div @click="OnClick_Answer(2);" class="btn-client-answer border-cross d-flex justify-content-center align-items-center ans-cross py-3">
                             <div class="answer-icon text-dark d-flex justify-content-center align-items-center"><span>X</span></div>
                         </div>
                     </div>
                     <div class="col-md-6 mb-4">
-                        <div class="btn-client-answer border-square d-flex justify-content-center align-items-center ans-square py-3">
+                        <div @click="OnClick_Answer(3);" class="btn-client-answer border-square d-flex justify-content-center align-items-center ans-square py-3">
                             <div class="answer-icon text-dark d-flex justify-content-center align-items-center"><span>&#9634;</span></div>
                         </div>
                     </div>
@@ -71,7 +71,8 @@
                 game: {
                     id: Number("{{ gameId }}"),
                     PIN: "{{ gamePIN }}",
-                    status: 0
+                    status: 0,
+                    detailStatus: 0
                 },
                 centerMessage: {
                     show: true,
@@ -82,13 +83,14 @@
                 backgroundColor: 0,
                 header: {
                     visible: false,
-                    scoreNumber: 111111
+                    scoreNumber: 0
                 },
                 gameBoard: {
                     visible: false,
                     showAnswers: false,
                     showMessage: false,
-                    messageText: "Vui lòng chờ câu hỏi"
+                    messageText: "Vui lòng chờ câu hỏi",
+                    questData: null
                 }
             },
             computed: {
@@ -109,6 +111,8 @@
                     this.socket.on('connect_failed', this.socketOnConnectFailed);
 
                     this.socket.on('player_verified', this.socketOnPlayerVerified);
+                    this.socket.on('game_start', this.socketOnGameStart);
+                    this.socket.on('update_quest', this.socketOnUpdateQuest);
                 },
                 socketOnConnected() {
                     this.centerMessage.text = "Đã kết nối, đang xác minh và tải dữ liệu...";
@@ -135,6 +139,33 @@
                         });
                     } else this.ClosePresent();
                 },
+                socketOnGameStart(data) {
+                    if(data.success) {
+                        this.game.status = 1;
+                        this.game.detailStatus = 0;
+
+                        this.backgroundColor = 1;
+                        this.header.scoreNumber = 0;
+
+                        this.gameBoard.visible = true;
+                        this.gameBoard.showAnswers = false;
+                        this.gameBoard.showMessage = true;
+                        this.gameBoard.messageText = "Đang tải, vui lòng chờ...";
+                    }
+                },
+                socketOnUpdateQuest(data) {
+                    if(data.success) {
+                        if(data.detailStatus == 1) {
+                            this.game.detailStatus = 1;
+
+                            this.gameBoard.visible = true;
+                            this.gameBoard.showAnswers = true;
+                            this.gameBoard.showMessage = false;
+
+                            this.gameBoard.questData = data.quest;
+                        }
+                    }
+                },
                 ReadPlayerData(game) {
                     console.log("Read Player Data - Status: "+game.STATUS)
 
@@ -158,6 +189,16 @@
 
                     this.header.visible = true;
                     this.centerMessage.show = false;
+                },
+                OnClick_Answer(orderId) {
+                    if(this.game.detailStatus != 1)
+                        return;
+
+                    var questID = this.gameBoard.questData.QuestID;
+                    var ansID = this.gameBoard.questData.Answers[orderId].AnsID;
+
+                    console.log(`Answer for ${questID} is ${ansID}`);
+                    console.log(`UserGameID is ${this.user.userGameId}`);
                 },
                 CloseGame(reason) {
                     alert("Kết thúc: "+reason);

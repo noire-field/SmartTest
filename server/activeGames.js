@@ -129,7 +129,32 @@ function Present_StartGame(game, res) {
 
     var firstQuest = Get_A_Quest(game, game.DETAIL.QUEST_IDLIST[game.DETAIL.QUEST_CURRENT-1]);
 
-    return res.json({ success: true, quest: { number: game.DETAIL.QUEST_CURRENT, detail: firstQuest } });
+    if(Player_StartGame(game))
+        Player_UpdateQuest(game, game.DETAIL.STATUS, firstQuest);
+
+    return res.json({ success: true, game: { status: game.STATUS, detailStatus: game.DETAIL.STATUS, questTime: game.QUESTTIME }, quest: { number: game.DETAIL.QUEST_CURRENT, detail: firstQuest } });
+}
+
+function Player_StartGame(game) {
+    if(!game) return false;
+
+    // Send necessary info to client before loading the first question
+    socket.io.to(game.ID).emit('game_start', { success: true });
+    return true;
+}
+
+function Player_UpdateQuest(game, detailStatus, quest) {
+    if(!game) return false;
+
+    if(detailStatus == 1) { // Send question
+        socket.io.to(game.ID).emit('update_quest', { 
+            success: true,
+            detailStatus,
+            quest
+        });
+    } else if(detailStatus == 2) { // Check answer
+
+    }
 }
 
 function Player_GetData(game, res) {
@@ -232,6 +257,7 @@ function Get_A_Quest(Game, QuestID) {
 
     var quest = Game.QUESTS.get(QuestID);
     var newQuest = {
+        QuestID: QuestID,
         Content: quest.Content,
         Answers: []
     }

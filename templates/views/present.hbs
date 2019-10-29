@@ -71,45 +71,45 @@
                                <div class="col-md-4">
                                    <div class="cicle-info text-center">
                                         <small class="text-uppercase">Thời gian</small>
-                                        <h1 class="game-timer-text">100</h1>
+                                        <h1 class="game-timer-text">{? gameBoard.timer ?}</h1>
                                    </div>
                                </div>
-                               <div class="col-md-4 d-flex align-items-center justify-content-center"><h1 class="text-center text-white font-weight-bold"><span class="bg-dark-semi text-uppercase">Câu 1</span></h1></div>
+                               <div class="col-md-4 d-flex align-items-center justify-content-center"><h1 class="text-center text-white font-weight-bold"><span class="bg-dark-semi text-uppercase">Câu {? header.gameQuestCount[0] ?}</span></h1></div>
                                <div class="col-md-4">
                                    <div class="square-info text-center">
                                         <small class="text-uppercase">Đã trả lời</small>
-                                        <h1 class="answers-text">10</h1>
+                                        <h1 class="answers-text">{? gameBoard.answered ?}</h1>
                                    </div>
                                </div>
                            </div>
-                            <h1 class="text-center font-question text-white">Maria can ride her bike to the library in 20 minutes. The trip home, wich is all uphill, takes her half an hour . </h1>
+                            <h1 class="text-center font-question text-white">{? gameBoard.questContent ?}</h1>
                        </div>
                    </div>
                </div>
             </div>
             <div class="row">
-                <div class="col-md-6 mb-4">
+                <div v-if="gameBoard.answers[0].id != null" class="col-md-6 mb-4">
                     <div class="btn-answer border-triangle d-flex justify-content-between align-items-center">
-                        <div class="answer-icon text-color-triangle d-flex justify-content-center align-items-center"><span>&bigtriangleup;</span></div>
-                        <div class="answer-text ans-triangle d-flex justify-content-center align-items-center"><span>Hola motherfucker!</span></div>
+                        <div class="answer-icon text-color-triangle d-flex justify-content-center align-items-center"><span v-if="gameBoard.answers[0].percent == -1">&bigtriangleup;</span><span v-else="gameBoard.answers[0].percent != -1">{? gameBoard.answers[0].percent ?}</span></div>
+                        <div class="answer-text ans-triangle d-flex justify-content-center align-items-center"><span>{? gameBoard.answers[0].content ?}</span></div>
                     </div>
                 </div>
-                <div class="col-md-6 mb-4">
+                <div v-if="gameBoard.answers[1].id != null" class="col-md-6 mb-4">
                     <div class="btn-answer border-circle d-flex justify-content-between align-items-center">
                         <div class="answer-icon text-color-circle d-flex justify-content-center align-items-center"><span>O</span></div>
-                        <div class="answer-text ans-circle d-flex justify-content-center align-items-center"><span>Hola motherfucker!</span></div>
+                        <div class="answer-text ans-circle d-flex justify-content-center align-items-center"><span>{? gameBoard.answers[1].content ?}</span></div>
                     </div>
                 </div>
-                <div class="col-md-6 mb-4">
+                <div v-if="gameBoard.answers[2].id != null" class="col-md-6 mb-4">
                     <div class="btn-answer border-cross d-flex justify-content-between align-items-center">
                         <div class="answer-icon text-color-cross d-flex justify-content-center align-items-center"><span>X</span></div>
-                        <div class="answer-text ans-cross d-flex justify-content-center align-items-center"><span>Hola motherfucker!</span></div>
+                        <div class="answer-text ans-cross d-flex justify-content-center align-items-center"><span>{? gameBoard.answers[2].content ?}</span></div>
                     </div>
                 </div>
-                <div class="col-md-6 mb-4">
+                <div v-if="gameBoard.answers[3].id != null" class="col-md-6 mb-4">
                     <div class="btn-answer border-square d-flex justify-content-between align-items-center">
                         <div class="answer-icon text-color-square d-flex justify-content-center align-items-center"><span>&#9634;</span></div>
-                        <div class="answer-text ans-square d-flex justify-content-center align-items-center"><span>Hola motherfucker!</span></div>
+                        <div class="answer-text ans-square d-flex justify-content-center align-items-center"><span>{? gameBoard.answers[3].content ?}</span></div>
                     </div>
                 </div>
             </div>
@@ -156,7 +156,8 @@
                 game: {
                     id: Number("{{ gameId }}"),
                     PIN: "{{ gamePIN }}",
-                    status: 0
+                    status: 0,
+                    questTime: 0
                 },
                 centerMessage: {
                     show: true,
@@ -177,6 +178,15 @@
                 },
                 gameBoard: {
                     visible: false,
+                    timer: 0,
+                    answered: 0,
+                    questContent: "",
+                    answers: [
+                        { id: null, content: "", percent: -1 },
+                        { id: null, content: "", percent: -1 },
+                        { id: null, content: "", percent: -1 },
+                        { id: null, content: "", percent: -1 }
+                    ]
                 },
                 ranking: {
                     visible: false,
@@ -267,17 +277,49 @@
 
                             axios("/present/"+this.game.id+"/presenter_act/start_game")
                             .then(({ data }) => {
+                                console.log(data);
                                 if(data.success) {
+                                    this.lobby.visible = false;
+                                    this.game.questTime = data.game.questTime;
 
-                                } else alert(data.message);
+                                    this.Set_GameDetailStatus(data.game.detailStatus, data.quest);
+                                    this.gameBoard.visible = true;
+
+                                    // Update the button
+                                    this.header.buttonLoading = false;
+                                } else {
+                                    this.header.buttonLoading = false;
+                                    alert(data.message);
+                                }
                             }).catch((error) => {
+                                this.header.buttonLoading = false;
                                 console.log(error);
                                 this.ClosePresent("Không thể kết nối tới máy chủ.");
                             });
 
                             break;
                     }
-                    
+                },
+                Set_GameDetailStatus(detailStatus, data) {
+                    if(detailStatus == 1) { // Viewing a question and time counting
+                        this.header.nextButtonText = "<i class='fas fa-forward mr-2'></i>Kết thúc nhanh câu hỏi";
+                        this.header.gameQuestCount[0] = data.number;
+
+                        this.gameBoard.timer = this.game.questTime;
+                        this.gameBoard.answered = 0;
+                        this.gameBoard.questContent = data.detail.Content;
+
+                        for(var i = 0; i < this.gameBoard.answers.length; i++) {
+                            var answer = data.detail.Answers[i];
+
+                            this.gameBoard.answers[i].id = answer ? answer.AnsID : -1;
+                            this.gameBoard.answers[i].content = answer ? answer.Content : "";
+                            this.gameBoard.answers[i].percent = -1;
+                        }
+
+                        
+
+                    }
                 }
             },
             mounted() {
