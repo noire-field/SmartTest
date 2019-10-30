@@ -89,26 +89,26 @@
             </div>
             <div class="row">
                 <div v-if="gameBoard.answers[0].id != null" class="col-md-6 mb-4">
-                    <div class="btn-answer border-triangle d-flex justify-content-between align-items-center">
-                        <div class="answer-icon text-color-triangle d-flex justify-content-center align-items-center"><span v-if="gameBoard.answers[0].percent == -1">&bigtriangleup;</span><span v-else="gameBoard.answers[0].percent != -1">{? gameBoard.answers[0].percent ?}</span></div>
+                    <div class="btn-answer border-triangle d-flex justify-content-between align-items-center" :class="{ 'answer-wrong': (!gameBoard.answers[0].isCorrect && game.detailStatus == 2) }">
+                        <div class="answer-icon text-color-triangle d-flex justify-content-center align-items-center"><span v-if="gameBoard.answers[0].percent == -1">&bigtriangleup;</span><span v-html="gameBoard.answers[0].percent" v-else="gameBoard.answers[0].percent != -1"></span></div>
                         <div class="answer-text ans-triangle d-flex justify-content-center align-items-center"><span>{? gameBoard.answers[0].content ?}</span></div>
                     </div>
                 </div>
                 <div v-if="gameBoard.answers[1].id != null" class="col-md-6 mb-4">
-                    <div class="btn-answer border-circle d-flex justify-content-between align-items-center">
-                        <div class="answer-icon text-color-circle d-flex justify-content-center align-items-center"><span>O</span></div>
+                    <div class="btn-answer border-circle d-flex justify-content-between align-items-center" :class="{ 'answer-wrong': (!gameBoard.answers[1].isCorrect && game.detailStatus == 2) }">
+                        <div class="answer-icon text-color-circle d-flex justify-content-center align-items-center"><span v-if="gameBoard.answers[1].percent == -1">O</span><span v-html="gameBoard.answers[1].percent" v-else="gameBoard.answers[1].percent != -1"></span></div>
                         <div class="answer-text ans-circle d-flex justify-content-center align-items-center"><span>{? gameBoard.answers[1].content ?}</span></div>
                     </div>
                 </div>
                 <div v-if="gameBoard.answers[2].id != null" class="col-md-6 mb-4">
-                    <div class="btn-answer border-cross d-flex justify-content-between align-items-center">
-                        <div class="answer-icon text-color-cross d-flex justify-content-center align-items-center"><span>X</span></div>
+                    <div class="btn-answer border-cross d-flex justify-content-between align-items-center" :class="{ 'answer-wrong': (!gameBoard.answers[2].isCorrect && game.detailStatus == 2) }">
+                        <div class="answer-icon text-color-cross d-flex justify-content-center align-items-center"><span v-if="gameBoard.answers[2].percent == -1">X</span><span v-html="gameBoard.answers[2].percent" v-else="gameBoard.answers[2].percent != -1"></span></div>
                         <div class="answer-text ans-cross d-flex justify-content-center align-items-center"><span>{? gameBoard.answers[2].content ?}</span></div>
                     </div>
                 </div>
                 <div v-if="gameBoard.answers[3].id != null" class="col-md-6 mb-4">
-                    <div class="btn-answer border-square d-flex justify-content-between align-items-center">
-                        <div class="answer-icon text-color-square d-flex justify-content-center align-items-center"><span>&#9634;</span></div>
+                    <div class="btn-answer border-square d-flex justify-content-between align-items-center" :class="{ 'answer-wrong': (!gameBoard.answers[3].isCorrect && game.detailStatus == 2) }">
+                        <div class="answer-icon text-color-square d-flex justify-content-center align-items-center"><span v-if="gameBoard.answers[3].percent == -1">&#9634;</span><span v-html="gameBoard.answers[3].percent" v-else="gameBoard.answers[3].percent != -1"></span></div>
                         <div class="answer-text ans-square d-flex justify-content-center align-items-center"><span>{? gameBoard.answers[3].content ?}</span></div>
                     </div>
                 </div>
@@ -157,6 +157,7 @@
                     id: Number("{{ gameId }}"),
                     PIN: "{{ gamePIN }}",
                     status: 0,
+                    detailStatus: 0,
                     questTime: 0
                 },
                 centerMessage: {
@@ -182,10 +183,10 @@
                     answered: 0,
                     questContent: "",
                     answers: [
-                        { id: null, content: "", percent: -1 },
-                        { id: null, content: "", percent: -1 },
-                        { id: null, content: "", percent: -1 },
-                        { id: null, content: "", percent: -1 }
+                        { id: null, content: "", percent: -1, isCorrect: false },
+                        { id: null, content: "", percent: -1, isCorrect: false },
+                        { id: null, content: "", percent: -1, isCorrect: false },
+                        { id: null, content: "", percent: -1, isCorrect: false }
                     ]
                 },
                 ranking: {
@@ -200,7 +201,7 @@
                 }
             },
             computed: {
-                
+               
             },
             methods: {
                 socketConnect() {
@@ -230,7 +231,7 @@
                     if(data.success) {
                         axios("/present/"+this.game.id+"/presenter_act/get_data")
                         .then(({ data }) => {
-                            if(data.success) this.ReadPresentData(data.game);
+                            if(data.success) this.ReadPresentData(data);
                             else this.ClosePresent("Không thể đọc dữ liệu từ máy chủ.");
                         }).catch((error) => {
                             console.log(error);
@@ -242,12 +243,17 @@
                     if(this.game.status == 1) // Only update when in joining state
                         this.lobby.users = data.players;
                 },
-                ReadPresentData: function(game) {
+                ReadPresentData: function(data) {
+                    var game = data.game;
                     console.log("Read Present Data - Status: "+game.STATUS)
+
+                    console.log(game);
+
+                    this.game.status = game.STATUS;
+                    this.game.detailStatus = 0;
 
                     this.header.gameName = game.NAME;
                     this.header.gameQuestCount = [game.DETAIL.QUEST_CURRENT, game.DETAIL.QUEST_TOTAL];
-                    this.game.status = game.STATUS;
 
                     switch(game.STATUS) {
                         case 1: // Opening for joining
@@ -259,6 +265,22 @@
                                 try { var qrcode = new QRCode("gameQRCode", { text: this.siteUrl+"/joingame/"+this.game.PIN, width: 226, height: 226 }); } catch(e) { }
 
                             }, 0);
+
+                            break;
+                        case 2: // This room is playing
+                            if(game.DETAIL.STATUS == 1) { // Viewing question
+                                this.game.detailStatus = game.DETAIL.STATUS;
+                                this.game.questTime = game.QUESTTIME;
+
+                                this.Set_GameDetailStatus(game.DETAIL.STATUS, { number: game.DETAIL.QUEST_CURRENT, detail: game.CUR_QUEST_DATA });
+                                this.gameBoard.visible = true;
+                            } else if(game.DETAIL.STATUS == 2) { // Check result
+                                this.game.detailStatus = game.DETAIL.STATUS;
+                                this.game.questTime = game.QUESTTIME;
+
+                                this.Set_GameDetailStatus(game.DETAIL.STATUS, { number: game.DETAIL.QUEST_CURRENT, detail: game.CUR_QUEST_DATA, correctAnswers: data.correctAnswers, answersCount: data.answersCount });
+                                this.gameBoard.visible = true;
+                            }
 
                             break;
                     }
@@ -277,9 +299,11 @@
 
                             axios("/present/"+this.game.id+"/presenter_act/start_game")
                             .then(({ data }) => {
-                                console.log(data);
                                 if(data.success) {
                                     this.lobby.visible = false;
+
+                                    this.game.status = data.game.status;
+                                    this.game.detailStatus = data.game.detailStatus;
                                     this.game.questTime = data.game.questTime;
 
                                     this.Set_GameDetailStatus(data.game.detailStatus, data.quest);
@@ -298,7 +322,47 @@
                             });
 
                             break;
+                        case 2: // Playing
+                            if(this.game.detailStatus == 1) { // Now check for result
+                                var niggerButton = this.header.buttonLoading;
+                                niggerButton = true;
+
+                                this.Check_QuestionAnswer(function(success, reason) {
+                                    niggerButton = false;
+                                    if(!success) alert(reason);
+                                });
+                            } else if(this.game.detailStatus == 2) { // Go to next question
+
+                            }
+
+                            break;
                     }
+                },
+                Check_QuestionAnswer(callback) {
+                    axios("/present/"+this.game.id+"/presenter_act/check_answer")
+                        .then(({ data }) => {
+                            if(data.success) {
+                                this.game.detailStatus = data.game.detailStatus;
+
+                                for(var i = 0; i < data.answersCount.length; i++) {
+                                    var ans = this.gameBoard.answers[i];
+                                    if(data.correctAnswers.indexOf(ans.id) != -1) {
+                                        ans.isCorrect = true;
+                                        ans.percent = "<i class='far fa-check-circle'></i>";
+                                    } else {
+                                        ans.isCorrect = false;
+                                        ans.percent = -1;
+                                    }
+                                }
+
+                                callback(true, null);
+                            } else {
+                                callback(false, data.reason);
+                            }
+                        }).catch((error) => {
+                            console.log(error);
+                            callback(false, "Không thể kết nối tới máy chủ");
+                        });
                 },
                 Set_GameDetailStatus(detailStatus, data) {
                     if(detailStatus == 1) { // Viewing a question and time counting
@@ -316,9 +380,31 @@
                             this.gameBoard.answers[i].content = answer ? answer.Content : "";
                             this.gameBoard.answers[i].percent = -1;
                         }
+                    } else if(detailStatus == 2) {
+                        this.header.nextButtonText = "<i class='fas fa-forward mr-2'></i>Câu hỏi kế tiếp";
+                   
+                        this.gameBoard.timer = 0;
+                        this.gameBoard.answered = 999;
+                        this.gameBoard.questContent = data.detail.Content;
 
-                        
+                        for(var i = 0; i < this.gameBoard.answers.length; i++) {
+                            var answer = data.detail.Answers[i];
 
+                            this.gameBoard.answers[i].id = answer ? answer.AnsID : -1;
+                            this.gameBoard.answers[i].content = answer ? answer.Content : "";
+                            this.gameBoard.answers[i].percent = -1;
+                        }
+
+                        for(var i = 0; i < data.answersCount.length; i++) {
+                            var ans = this.gameBoard.answers[i];
+                            if(data.correctAnswers.indexOf(ans.id) != -1) {
+                                ans.isCorrect = true;
+                                ans.percent = "<i class='far fa-check-circle'></i>";
+                            } else {
+                                ans.isCorrect = false;
+                                ans.percent = -1;
+                            }
+                        }
                     }
                 }
             },

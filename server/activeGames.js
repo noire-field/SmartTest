@@ -1,4 +1,6 @@
 const uuid = require('uuid');
+const moment = require('moment');
+
 const config = require('./../config');
 const { Log } = require('./utils/logger');
 const { QueryNow } = require('./database');
@@ -34,7 +36,7 @@ function RegisterRoutes(app) {
     // Present
     app.get('/present/:id?', RGet_Present);
     app.get('/present/:id?/presenter_act/:act?', RGet_PresentAction);
-    app.get('/present/:id?/player_act/:act?', RGet_PlayerAction);
+    app.get('/play/:id?/player_act/:act?', RGet_PlayerAction);
 
     // Player
     app.get('/findgame/:pin?', RGet_FindGame);
@@ -78,6 +80,7 @@ function RGet_PresentAction(req, res, next)
     switch(act) {
         case 'get_data': return Present_GetData(game, res); 
         case 'start_game': return Present_StartGame(game, res);
+        case 'check_answer': return Present_CheckAnswer(game, res);
     }
 
     return res.json({ success: false, message: "Unknown action" });
@@ -100,7 +103,8 @@ function RGet_PlayerAction(req, res, next)
     }
 
     switch(act) {
-        case 'get_data': return Player_GetData(game, res); break;
+        case 'get_data': return Player_GetData(game, res, userGameId);
+        case 'send_answer': return Player_SendAnswer(game, req, res);
     }
 
     return res.json({ success: false, message: "Unknown action" });
@@ -113,7 +117,19 @@ function Present_GetData(game, res) {
     newGame.PLAYERS.forEach((p) => { mappedData.push(Users.Players.get(p).name); });
     newGame.PLAYERS = mappedData;
 
-    return res.json({ success: true, game: newGame });
+    var retData = { success: true, game: newGame };
+
+    if(game.DETAIL.STATUS == 2) {
+        var quest = game.QUESTS.get(game.DETAIL.QUEST_IDLIST[game.DETAIL.QUEST_CURRENT-1]);
+        var answersCount = [];
+
+        game.CUR_QUEST_DATA.Answers.forEach(function(c) { answersCount.push(c.Count); });
+
+        retData.correctAnswers = quest.CorrectAns
+        retData.answersCount = answersCount;
+    }
+
+    return res.json(retData);
 }
 
 function Present_StartGame(game, res) {
@@ -128,11 +144,27 @@ function Present_StartGame(game, res) {
     game.DETAIL.QUEST_CURRENT = 1; // First question
 
     var firstQuest = Get_A_Quest(game, game.DETAIL.QUEST_IDLIST[game.DETAIL.QUEST_CURRENT-1]);
+    game.CUR_QUEST_DATA = firstQuest;
 
-    if(Player_StartGame(game))
+    if(Player_StartGame(game)) 
         Player_UpdateQuest(game, game.DETAIL.STATUS, firstQuest);
 
     return res.json({ success: true, game: { status: game.STATUS, detailStatus: game.DETAIL.STATUS, questTime: game.QUESTTIME }, quest: { number: game.DETAIL.QUEST_CURRENT, detail: firstQuest } });
+}
+
+function Present_CheckAnswer(game, res) {
+    if(game.STATUS != 2 || game.DETAIL.STATUS != 1)
+        return res.json({ success: false, message: "Lệnh không hợp lệ, vui lòng tải lại trang." });
+
+    // Question Status
+    game.DETAIL.STATUS = 2; // 2 = Checking result
+
+    var quest = game.QUESTS.get(game.DETAIL.QUEST_IDLIST[game.DETAIL.QUEST_CURRENT-1]);
+    var answersCount = [];
+
+    game.CUR_QUEST_DATA.Answers.forEach(function(c) { answersCount.push(c.Count); });
+
+    return res.json({ success: true, game: { detailStatus: game.DETAIL.STATUS }, correctAnswers: quest.CorrectAns, answersCount });
 }
 
 function Player_StartGame(game) {
@@ -141,6 +173,56 @@ function Player_StartGame(game) {
     // Send necessary info to client before loading the first question
     socket.io.to(game.ID).emit('game_start', { success: true });
     return true;
+}
+
+function Player_SendAnswer(game, req, res) {
+    var data = req.query;
+
+    // Validate the nigger data
+    if(data.questID) data.questID = Number(data.questID);
+    if(data.ansID) data.ansID = Number(data.ansID);
+
+    if(!Validate_Request(data, ['userGameId', 'questID', 'ansID'], { userGameId: 'string', questID: 'number', ansID: 'number' }))
+        return res.json({ success: false, message: "Dữ liệu đáp án gửi đi không hợp lệ." });
+
+    var userGameId = req.cookies.userGameId || "";
+    if(userGameId != data.userGameId) return res.json({ success: false, message: "Danh tính không hợp lệ." });
+    if(!game.PLAYERS.has(userGameId)) return res.json({ success: false, message: "Bạn không hề có trong phòng chơi này." });
+    if(game.STATUS != 2 || game.DETAIL.STATUS != 1) return res.json({ success: false, message: "Không thể trả lời vào lúc này." });
+    if(!game.CUR_QUEST_DATA) return res.json({ success: false, message: "Hiện tại không có câu hỏi nào." });
+    if(game.CUR_QUEST_DATA.QuestID != data.questID) return res.json({ success: false, message: "Dữ liệu của bạn đã lỗi thời, hãy làm mới lại trang." });
+
+    var thisQuest = game.QUESTS.get(data.questID);
+    if(!thisQuest.Answers.has(data.ansID)) return res.json({ success: false, message: "Câu trả lời không hợp lệ." });
+
+    var userPlay = Users.Players.get(userGameId).play;
+    if(userPlay.latestAnswer.questID == data.questID) return res.json({ success: false, message: "Bạn đã trả lời câu hỏi này rồi." });
+
+    userPlay.latestAnswer.questID = data.questID;
+
+    if(thisQuest.CorrectAns.indexOf(data.ansID) != -1) { // Correct!
+        userPlay.latestAnswer.isCorrect = true;
+
+        // Calculate the point (WE ONLY CALCUALTE HERE, BUT WE WILL ADD WHEN THE QUESTION IS CLOSED)
+        var duration = moment.duration(moment().diff(game.CUR_QUEST_DATA.GetTime)).asSeconds();
+        var addPoint = 120 - Math.round(duration / game.QUESTTIME * 120);
+
+        addPoint = addPoint > 100 ? 100 : addPoint < 50 ? 50 : addPoint;
+        userPlay.latestAnswer.pointAdd = addPoint;
+    } else { // Wrong bitch!
+        userPlay.latestAnswer.isCorrect = false;
+        userPlay.latestAnswer.pointAdd = 0;
+    }
+
+    for(let i = 0; i < game.CUR_QUEST_DATA.Answers.length; i++) {
+        let thisAns = game.CUR_QUEST_DATA.Answers[i];
+        if(thisAns.AnsID != data.ansID)
+            continue;
+
+        thisAns.Count++;
+    }
+
+    return res.json({ success: true, questID: data.questID });
 }
 
 function Player_UpdateQuest(game, detailStatus, quest) {
@@ -157,12 +239,24 @@ function Player_UpdateQuest(game, detailStatus, quest) {
     }
 }
 
-function Player_GetData(game, res) {
+function Player_GetData(game, res, userGameId) {
     var newGame = {
         ID: game.ID,
         NAME: game.NAME,
-        STATUS: game.STATUS
+        STATUS: game.STATUS,
+        DETAIL_STATUS: game.DETAIL.STATUS
     };
+
+    if(game.STATUS == 2) {
+        if(game.DETAIL.STATUS == 1) {
+            newGame.CUR_QUEST_DATA = {...game.CUR_QUEST_DATA};
+
+            for(let i = 0; i < newGame.CUR_QUEST_DATA.Answers.length; i++)
+                delete(newGame.CUR_QUEST_DATA.Answers[i].Count);
+            
+            newGame.isAnswered = Users.Players.get(userGameId).play.latestAnswer.questID == newGame.CUR_QUEST_DATA.QuestID ? newGame.CUR_QUEST_DATA.QuestID : 0
+        }
+    }
 
     return res.json({ success: true, game: newGame });
 }
@@ -212,7 +306,16 @@ function RGet_JoinGame(req, res, next) {
         name: name,
         gameId: game.ID,
         gamePIN: game.PIN,
-        socket: null
+        socket: null,
+        play: {
+            point: 0,
+            correctAnswers: 0,
+            latestAnswer: {
+                questID: null,
+                isCorrect: false,
+                pointAdd: 0
+            }
+        }
     });
     
     game.PLAYERS.add(playerUUID);
@@ -259,13 +362,15 @@ function Get_A_Quest(Game, QuestID) {
     var newQuest = {
         QuestID: QuestID,
         Content: quest.Content,
-        Answers: []
+        Answers: [],
+        GetTime: moment()
     }
 
     quest.Answers.forEach((v, k) => {
         newQuest.Answers.push({
             AnsID: Number(k),
-            Content: v.Content
+            Content: v.Content,
+            Count: 0
         });
     });
 
@@ -302,7 +407,6 @@ function Startup(io, globalTokens) {
     });
 }
 
-
 function OpenRoom(gameId) {
     return new Promise((resolve, reject) => {
         var game = null;
@@ -329,7 +433,8 @@ function OpenRoom(gameId) {
                     NAME: `${rows[0].FirstName} ${rows[0].LastName}`
                 },
                 PLAYERS: new Set(),
-                QUESTS: new Map()
+                QUESTS: new Map(),
+                CUR_QUEST_DATA: null
             };
 
             return QueryNow(`SELECT * FROM questions WHERE SubjectID = ?`, [rows[0].SubjectID]);

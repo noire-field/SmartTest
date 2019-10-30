@@ -49,7 +49,7 @@
                 </div>
             </div>
             <div v-if="gameBoard.showMessage" class="play-fullscreen d-flex justify-content-center align-items-center">
-                <h2 class="text-center">{? gameBoard.messageText ?}</h2>
+                <h2 v-html="gameBoard.messageText" class="text-center"></h2>
             </div>
         </div>
     </div>
@@ -90,7 +90,9 @@
                     showAnswers: false,
                     showMessage: false,
                     messageText: "Vui lòng chờ câu hỏi",
-                    questData: null
+                    questData: null,
+                    busyAnswering: false,
+                    isAnswered: 0
                 }
             },
             computed: {
@@ -129,15 +131,15 @@
                     console.log("Verified: "+data.success);
                     
                     if(data.success) {
-                        axios("/present/"+this.game.id+"/player_act/get_data")
+                        axios("/play/"+this.game.id+"/player_act/get_data")
                         .then(({ data }) => {
                             if(data.success) this.ReadPlayerData(data.game);
-                            else this.ClosePresent(data.message);
+                            else this.CloseGame(data.message);
                         }).catch((error) => {
                             console.log(error);
-                            this.ClosePresent("Không thể kết nối tới máy chủ.")
+                            this.CloseGame("Không thể kết nối tới máy chủ.")
                         });
-                    } else this.ClosePresent();
+                    } else this.CloseGame("Không thể xác minh danh tính.");
                 },
                 socketOnGameStart(data) {
                     if(data.success) {
@@ -185,6 +187,25 @@
                             this.gameBoard.messageText = "Bạn đã vào phòng, vui lòng chờ tín hiệu kế tiếp của người dẫn.";
 
                             break;
+                        case 2: // Playing
+                            if(game.DETAIL_STATUS == 1) {
+                                this.game.detailStatus = 1;
+
+                                this.gameBoard.visible = true;
+                                this.gameBoard.showAnswers = true;
+                                this.gameBoard.showMessage = false;
+
+                                this.gameBoard.questData = game.CUR_QUEST_DATA;
+                                this.gameBoard.isAnswered = game.isAnswered;
+
+                                if(this.gameBoard.isAnswered) {
+                                     this.backgroundColor = 1;
+                                    this.gameBoard.showAnswers = false;
+                                    this.gameBoard.showMessage = true;
+                                    this.gameBoard.messageText = "<i class='far fa-check-circle mr-2'></i>Bạn đã trả lời xong, bây giờ hãy chờ kết quả.";
+                                }
+                            }
+                            break;
                     }
 
                     this.header.visible = true;
@@ -193,12 +214,40 @@
                 OnClick_Answer(orderId) {
                     if(this.game.detailStatus != 1)
                         return;
+                    if(this.gameBoard.busyAnswering)
+                        return;
+
+                    this.gameBoard.busyAnswering = true;
 
                     var questID = this.gameBoard.questData.QuestID;
                     var ansID = this.gameBoard.questData.Answers[orderId].AnsID;
 
-                    console.log(`Answer for ${questID} is ${ansID}`);
-                    console.log(`UserGameID is ${this.user.userGameId}`);
+                    axios("/play/"+this.game.id+"/player_act/send_answer", {
+                            params: {
+                                userGameId: this.user.userGameId,
+                                questID: questID,
+                                ansID: ansID
+                            }
+                        })
+                        .then(({ data }) => {
+                            if(data.success) {
+                                this.backgroundColor = 1;
+                                this.gameBoard.showAnswers = false;
+                                this.gameBoard.showMessage = true;
+                                this.gameBoard.messageText = "<i class='far fa-check-circle mr-2'></i>Bạn đã trả lời xong, bây giờ hãy chờ kết quả.";
+
+                                this.gameBoard.isAnswered = data.questID;
+                            } else {
+                                alert(data.message);
+                            }
+
+                            this.gameBoard.busyAnswering = false;
+                        }).catch((error) => {
+                            this.gameBoard.busyAnswering = false;
+
+                            console.log(error);
+                            this.CloseGame("Không thể kết nối tới máy chủ.")
+                        });
                 },
                 CloseGame(reason) {
                     alert("Kết thúc: "+reason);
