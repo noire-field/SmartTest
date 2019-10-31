@@ -29,8 +29,6 @@ var Users = {
 };
 
 var SocketUsers = new Map();
-var UserInGame = new Map();
-
 
 function RegisterRoutes(app) {
     // Present
@@ -42,7 +40,6 @@ function RegisterRoutes(app) {
     app.get('/findgame/:pin?', RGet_FindGame);
     app.get('/joingame/:pin?/:name?', RGet_JoinGame);
     app.get('/playing', RGet_Playing);
-
 }
 
 function RGet_Present(req, res, next)
@@ -82,6 +79,7 @@ function RGet_PresentAction(req, res, next)
         case 'start_game': return Present_StartGame(game, res);
         case 'check_answer': return Present_CheckAnswer(game, res);
         case 'next_question': return Present_NextQuestion(game, res);
+        case 'end_game': return Present_EndGame(game, res);
     }
 
     return res.json({ success: false, message: "Unknown action" });
@@ -106,6 +104,7 @@ function RGet_PlayerAction(req, res, next)
     switch(act) {
         case 'get_data': return Player_GetData(game, res, userGameId);
         case 'send_answer': return Player_SendAnswer(game, req, res);
+        case 'quit': return Player_Quit(game, req, res, userGameId);
     }
 
     return res.json({ success: false, message: "Unknown action" });
@@ -120,7 +119,14 @@ function Present_GetData(game, res) {
 
     var retData = { success: true, game: newGame };
 
-    if(game.DETAIL.STATUS == 2) {
+    if(game.DETAIL.STATUS == 1) {
+        var quest = game.CUR_QUEST_DATA;
+        var remainTime = game.QUESTTIME - moment.duration(moment().diff(game.CUR_QUEST_DATA.GetTime)).asSeconds();
+        
+        remainTime = Math.round(Math.max(3, Math.min(game.QUESTTIME, remainTime)));
+        retData.remainTime = remainTime;
+        retData.Answered = quest.Answered;
+    } else if(game.DETAIL.STATUS == 2) {
         var quest = game.QUESTS.get(game.DETAIL.QUEST_IDLIST[game.DETAIL.QUEST_CURRENT-1]);
         var answersCount = [];
 
@@ -128,6 +134,7 @@ function Present_GetData(game, res) {
 
         retData.correctAnswers = quest.CorrectAns
         retData.answersCount = answersCount;
+        retData.Answered =  game.CUR_QUEST_DATA.Answered;
     }
 
     return res.json(retData);
@@ -183,40 +190,101 @@ function Present_NextQuestion(game, res) {
         Player_UpdateQuest(game, game.DETAIL.STATUS, nextQuest);
         return res.json({ success: true, game: { status: game.STATUS, detailStatus: game.DETAIL.STATUS, questTime: game.QUESTTIME }, quest: { number: game.DETAIL.QUEST_CURRENT, detail: nextQuest } });
     } else { // No more quest
-        game.STATUS = 3;
-        game.DETAIL.STATUS = 0;
+        // This game is finished, save to database.
+        QueryNow("UPDATE games SET OpenStatus = 3, FinishedDate = NOW() WHERE GameID = ?;", [game.ID])
+        .then((rows) => {
+            game.STATUS = 3;
+            game.DETAIL.STATUS = 0;
 
-        var resultPlayers = [];
-        var rankCount = 0;
+            var resultPlayers = [];
+            var rankCount = 0;
 
-        game.PLAYERS.forEach(function(p, k) {
-            var player = Users.Players.get(p);
-            if(!player) return;
+            game.PLAYERS.forEach(function(p, k) {
+                var player = Users.Players.get(p);
+                if(!player) return;
 
-            resultPlayers.push({
-                id: k,
-                rank: 0, // Will be set later
-                name: player.name,
-                point: player.play.point,
-                correctAnswers: player.play.correctAnswers
+                resultPlayers.push({
+                    id: k,
+                    rank: 0, // Will be set later
+                    name: player.name,
+                    point: player.play.point,
+                    correctAnswers: player.play.correctAnswers
+                });
             });
+
+            resultPlayers.sort(function(a, b) { return b.point - a.point; });
+            resultPlayers.forEach(function(p) {
+                p.rank = ++rankCount; 
+
+                var player = Users.Players.get(p.id);
+                if(!player) return;
+                player.play.rank = p.rank;
+            });
+
+            game.END_RESULT = resultPlayers;
+            Player_UpdateQuest(game, game.DETAIL.STATUS, resultPlayers);
+
+            return res.json({ success: true, game: { status: game.STATUS, detailStatus: game.DETAIL.STATUS }, ranking: resultPlayers.slice(0, 5) });
+        })
+        .catch((error) => {
+            console.log(error);
+            return res.json({ success: false, message: "Có lỗi ở máy chủ, không thể tải bảng xếp hạng." });
         });
-
-        resultPlayers.sort(function(a, b) { return b.point - a.point; });
-        resultPlayers.forEach(function(p) {
-            p.rank = ++rankCount; 
-
-            var player = Users.Players.get(p.id);
-            if(!player) return;
-            player.play.rank = p.rank;
-        });
-
-        game.END_RESULT = resultPlayers;
-
-        Player_UpdateQuest(game, game.DETAIL.STATUS, resultPlayers);
-
-        return res.json({ success: true, game: { status: game.STATUS, detailStatus: game.DETAIL.STATUS }, ranking: resultPlayers.slice(0, 5) });
     }
+}
+
+function Present_EndGame(game, res) {
+    if(game.STATUS != 3)
+        return res.json({ success: false, message: "Lệnh không hợp lệ, vui lòng tải lại trang." });
+
+    QueryNow("UPDATE games SET OpenStatus = 3, FinishedDate = NOW() WHERE GameID = ?;", [game.ID])
+    .then((rows) => {
+        var queryArray = [];
+
+        game.END_RESULT.forEach(function(p) {
+            queryArray.push(
+                QueryNow("INSERT INTO games_marks (GameID,PlayerName,CorrectAnswers,TotalAnswers,TotalPoint,Ranking,CreatedDate) VALUES(?,?,?,?,?,?,NOW());",
+                [game.ID, p.name, p.correctAnswers, game.DETAIL.QUEST_TOTAL, p.point, p.rank])
+            );
+        });
+
+        var tempData = {
+            ID: game.ID,
+            NAME: game.NAME
+        };
+
+        Promise.all(queryArray).then((rows) => {
+            Log(`[Active Games] As game ${tempData.ID} (${tempData.NAME}) is ended, ${rows.length} mark${rows.length > 1 ? 's have' : ' has'} been saved.`);
+        }).catch((error) => {
+            console.log(error);
+        });
+
+        // Kick all players
+        game.PLAYERS.forEach(function(p) {
+            game.PLAYERS.delete(p);
+
+            if(Users.Players.has(p)) {
+                var player = Users.Players.get(p);
+                var socket = player.socket;
+        
+                Users.Players.delete(p);
+                if(socket) socket.disconnect();
+            }
+        });
+
+        Log(`[Active Games] Game ${game.ID} (${game.NAME}) has ended.`);
+
+        // Delete Game
+        GlobalGames.delete(game.ID);
+        PINToID.delete(game.PIN);
+        game = null;
+
+        return res.json({ success: true });
+    })
+    .catch((error) => {
+        console.log(error);
+        return res.json({ success: false, message: "Có lỗi ở máy chủ, không thể kết thúc trò chơi." });
+    });
 }
 
 function Player_StartGame(game) {
@@ -274,7 +342,42 @@ function Player_SendAnswer(game, req, res) {
         thisAns.Count++;
     }
 
+    game.CUR_QUEST_DATA.Answered++;
+
+    if(Users.Presenters.has(game.OWNER.ID)) {
+        var presenter = Users.Presenters.get(game.OWNER.ID);
+        if(presenter.socket)
+            presenter.socket.emit('update_answered', { answered: game.CUR_QUEST_DATA.Answered });
+    }
+
     return res.json({ success: true, questID: data.questID });
+}
+
+function Player_Quit(game, req, res, userGameId) {
+    var data = req.query;
+
+    if(!Validate_Request(data, ['userGameId'], { userGameId: 'string' }))
+        return res.json({ success: false, message: "Dữ liệu đáp án gửi đi không hợp lệ." });
+
+    var userGameId = req.cookies.userGameId || "";
+    if(userGameId != data.userGameId) return res.json({ success: false, message: "Danh tính không hợp lệ." });
+    if(!game.PLAYERS.has(userGameId)) return res.json({ success: false, message: "Bạn không hề có trong phòng chơi này." });
+
+    game.PLAYERS.delete(userGameId);
+
+    if(Users.Players.has(userGameId)) {
+        var player = Users.Players.get(userGameId);
+        var socket = player.socket;
+
+        Users.Players.delete(userGameId);
+        if(socket) socket.disconnect();
+    }
+
+    if(game.STATUS == 1) Update_PresentPlayerList(game);
+    
+    res.clearCookie('userGameId');
+    
+    return res.json({ success: true });
 }
 
 function Player_UpdateQuest(game, detailStatus, data) {
@@ -517,7 +620,8 @@ function Get_A_Quest(Game, QuestID) {
         QuestID: QuestID,
         Content: quest.Content,
         Answers: [],
-        GetTime: moment()
+        GetTime: moment(),
+        Answered: 0
     }
 
     quest.Answers.forEach((v, k) => {
@@ -633,7 +737,7 @@ function OpenRoom(gameId) {
                 if(r.IsCorrect) quest.CorrectAns.push(r.AnsID);
             });
 
-            return QueryNow(`UPDATE games SET OpenStatus = 1 WHERE GameID = ?`, [gameId])
+            return QueryNow(`UPDATE games SET OpenStatus = 1, StartedDate = NOW() WHERE GameID = ?`, [gameId])
         })
         .then((rows) => {
             GlobalGames.set(game.ID, game);

@@ -12,3 +12,16 @@ CREATE TABLE IF NOT EXISTS games (
 	
 	PRIMARY KEY(GameID)
 );
+
+CREATE TABLE IF NOT EXISTS games_marks (
+    MarkID int NOT NULL AUTO_INCREMENT,
+	GameID int NOT NULL,
+	PlayerName varchar(128) NOT NULL,
+    CorrectAnswers int NOT NULL,
+    TotalAnswers int NOT NULL,
+    TotalPoint int NOT NULL,
+    Ranking int NOT NULL,
+	CreatedDate datetime,
+
+	PRIMARY KEY(MarkID)
+)

@@ -63,7 +63,7 @@
             </div>
         </div>
         <div v-if="gameBoard.visible" class="fade-in slide-up">
-            <div class="row mb-3">
+            <div v-if="gameBoard.showContent" class="row mb-3">
                <div class="col-md-12 offset-md-0">
                    <div class="card border-0">
                        <div class="card-body bg-question">
@@ -87,7 +87,7 @@
                    </div>
                </div>
             </div>
-            <div class="row">
+            <div v-if="gameBoard.showContent" class="row">
                 <div v-if="gameBoard.answers[0].id != null" class="col-md-6 mb-4">
                     <div class="btn-answer border-triangle d-flex justify-content-between align-items-center" :class="{ 'answer-wrong': (!gameBoard.answers[0].isCorrect && game.detailStatus == 2) }">
                         <div class="answer-icon text-color-triangle d-flex justify-content-center align-items-center"><span v-if="gameBoard.answers[0].percent == -1">&bigtriangleup;</span><span v-html="gameBoard.answers[0].percent" v-else="gameBoard.answers[0].percent != -1"></span></div>
@@ -112,6 +112,9 @@
                         <div class="answer-text ans-square d-flex justify-content-center align-items-center"><span>{? gameBoard.answers[3].content ?}</span></div>
                     </div>
                 </div>
+            </div>
+            <div v-if="gameBoard.showMessage" class="play-fullscreen d-flex justify-content-center align-items-center">
+                <h2 v-html="gameBoard.messageText" class="text-center"></h2>
             </div>
         </div>
         <div v-if="ranking.visible" class="fade-in slide-up">
@@ -187,7 +190,10 @@
                         { id: null, content: "", percent: -1, isCorrect: false },
                         { id: null, content: "", percent: -1, isCorrect: false },
                         { id: null, content: "", percent: -1, isCorrect: false }
-                    ]
+                    ],
+                    showContent: true,
+                    showMessage: false,
+                    messageText: ""
                 },
                 ranking: {
                     visible: false,
@@ -198,6 +204,9 @@
                         { name: "Blanc Bladefield", point: 555 },
                         { name: "Sup Bladefield", point: 55555 }
                     ]
+                },
+                timer: {
+                    quest: null
                 }
             },
             computed: {
@@ -212,6 +221,7 @@
                     
                     this.socket.on('presenter_verified', this.socketOnPresenterVerified);
                     this.socket.on('presenter_update_playerlist', this.socketOnPresenterUpdatePlayerList);
+                    this.socket.on('update_answered', this.socketOnUpdateAnswered);
                 },
                 socketOnConnected() {
                     this.centerMessage.text = "Đã kết nối, đang tải dữ liệu...";
@@ -220,7 +230,11 @@
                     console.log("Connected");
                 },
                 socketOnDisconnected() {
-                    console.log("Disconnected");
+                    if(this.game.status == 3) {
+                        location.reload();
+                        return;
+                    }
+                    this.ClosePresent('Không thể kết nối tới máy chủ.');
                 },
                 socketOnConnectFailed() {
                     this.loadingText = "Không thể kết nối tới máy chú, thử lại sau.";
@@ -243,11 +257,12 @@
                     if(this.game.status == 1) // Only update when in joining state
                         this.lobby.users = data.players;
                 },
+                socketOnUpdateAnswered(data) {
+                    this.gameBoard.answered = data.answered;
+                },
                 ReadPresentData: function(data) {
                     var game = data.game;
                     console.log("Read Present Data - Status: "+game.STATUS)
-
-                    console.log(game);
 
                     this.game.status = game.STATUS;
                     this.game.detailStatus = 0;
@@ -270,15 +285,15 @@
                         case 2: // This room is playing
                             if(game.DETAIL.STATUS == 1) { // Viewing question
                                 this.game.detailStatus = game.DETAIL.STATUS;
-                                this.game.questTime = game.QUESTTIME;
+                                this.game.questTime = data.remainTime;
 
-                                this.Set_GameDetailStatus(game.DETAIL.STATUS, { number: game.DETAIL.QUEST_CURRENT, detail: game.CUR_QUEST_DATA });
+                                this.Set_GameDetailStatus(game.DETAIL.STATUS, { number: game.DETAIL.QUEST_CURRENT, detail: game.CUR_QUEST_DATA, answered: data.Answered });
                                 this.gameBoard.visible = true;
                             } else if(game.DETAIL.STATUS == 2) { // Check result
                                 this.game.detailStatus = game.DETAIL.STATUS;
                                 this.game.questTime = game.QUESTTIME;
 
-                                this.Set_GameDetailStatus(game.DETAIL.STATUS, { number: game.DETAIL.QUEST_CURRENT, detail: game.CUR_QUEST_DATA, correctAnswers: data.correctAnswers, answersCount: data.answersCount });
+                                this.Set_GameDetailStatus(game.DETAIL.STATUS, { number: game.DETAIL.QUEST_CURRENT, detail: game.CUR_QUEST_DATA, correctAnswers: data.correctAnswers, answersCount: data.answersCount, answered: data.Answered });
                                 this.gameBoard.visible = true;
                             }
 
@@ -296,7 +311,16 @@
                     this.centerMessage.show = false;
                 },
                 ClosePresent: function(reason) {
-                    alert("Kết thúc: "+reason);
+                    this.header.visible = false;
+                    this.lobby.visible = false;
+                    this.ranking.visible = false;
+                    
+                    this.gameBoard.visible = true;
+                    this.gameBoard.showContent = false;
+                    this.gameBoard.showMessage = true;
+                    this.gameBoard.messageText = "<h1 class='text-center'>Mất kết nối!</h1><h6 class='d-block small'>"+reason+".</h6><a href='#' class='d-block mt-5 small' onclick='location.reload();'>Bấm vào đây để kết nối lại</a>";
+
+                    if(this.socket) socket.disconnect();
                 },
                 OnClick_HeaderButton() {
                     switch(this.game.status)
@@ -313,7 +337,7 @@
                                     this.game.detailStatus = data.game.detailStatus;
                                     this.game.questTime = data.game.questTime;
 
-                                    this.Set_GameDetailStatus(data.game.detailStatus, data.quest);
+                                    this.Set_GameDetailStatus(data.game.detailStatus, {...data.quest, answered: 0});
                                     this.gameBoard.visible = true;
 
                                     // Update the button
@@ -349,6 +373,28 @@
                             }
 
                             break;
+                        case 3: // End Game
+                            var result = confirm('Bạn có muốn kết thúc trò chơi?');
+                            if(result) {
+                                var niggerButton = this.header.buttonLoading;
+                                niggerButton = true;
+
+                                axios("/present/"+this.game.id+"/presenter_act/end_game")
+                                .then(({ data }) => {
+                                    niggerButton = false;
+                                    if(data.success) {
+                                        location.reload();
+                                    } else {
+                                        alert(data.message);
+                                    }
+                                }).catch((error) => {
+                                    niggerButton = false;
+                                    console.log(error);
+                                    this.ClosePresent("Không thể kết nối tới máy chủ.");
+                                });
+                            }
+
+                            break; 
                     }
                 },
                 Check_QuestionAnswer(callback) {
@@ -372,7 +418,7 @@
 
                                 callback(true, null);
                             } else {
-                                callback(false, data.reason);
+                                callback(false, data.message);
                             }
                         }).catch((error) => {
                             console.log(error);
@@ -389,7 +435,7 @@
                                 if(this.game.status == 2) {
                                     this.game.questTime = data.game.questTime;
 
-                                    this.Set_GameDetailStatus(data.game.detailStatus, data.quest);
+                                    this.Set_GameDetailStatus(data.game.detailStatus, {...data.quest, answered: 0});
                                     this.gameBoard.visible = true;
                                 } else if(this.game.status == 3) {
                                     this.gameBoard.visible = false;
@@ -401,7 +447,7 @@
                                 }
                                 callback(true, null);
                             } else {
-                                callback(false, data.reason);
+                                callback(false, data.message);
                             }
                         }).catch((error) => {
                             console.log(error);
@@ -414,7 +460,7 @@
                         this.header.gameQuestCount[0] = data.number;
 
                         this.gameBoard.timer = this.game.questTime;
-                        this.gameBoard.answered = 0;
+                        this.gameBoard.answered = data.answered;
                         this.gameBoard.questContent = data.detail.Content;
 
                         for(var i = 0; i < this.gameBoard.answers.length; i++) {
@@ -424,11 +470,13 @@
                             this.gameBoard.answers[i].content = answer ? answer.Content : "";
                             this.gameBoard.answers[i].percent = -1;
                         }
+
+
                     } else if(detailStatus == 2) {
                         this.header.nextButtonText = "<i class='fas fa-forward mr-2'></i>Câu hỏi kế tiếp";
                    
                         this.gameBoard.timer = 0;
-                        this.gameBoard.answered = 999;
+                        this.gameBoard.answered = data.answered;
                         this.gameBoard.questContent = data.detail.Content;
 
                         for(var i = 0; i < this.gameBoard.answers.length; i++) {
@@ -450,10 +498,27 @@
                             }
                         }
                     }
+                },
+                OnTime_Run() {
+                    if(this.game.status == 2 && this.game.detailStatus == 1 && this.gameBoard.timer > 0) {
+                        this.gameBoard.timer--;
+                        if(this.gameBoard.timer <= 0) { // One run
+                            var niggerButton = this.header.buttonLoading;
+                            niggerButton = true;
+
+                            this.Check_QuestionAnswer(function(success, reason) {
+                                niggerButton = false;
+                                if(!success) alert(reason);
+                            });
+                        }
+                    }
                 }
             },
             mounted() {
                 document.getElementById("app-testing").style.display = "block";
+
+                this.timer.quest = setInterval(this.OnTime_Run, 1000);
+
                 this.socketConnect();
             }
         });

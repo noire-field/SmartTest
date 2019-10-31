@@ -20,7 +20,7 @@
                 <h3><i class="fab fa-product-hunt mr-2"></i>{? header.scoreNumber ?}</h3>
             </div>
              <div class="col-md-6 text-right">
-                <button class="btn btn-danger"><i class="far fa-times-circle mr-2"></i>Thoát</button>
+                <button @click="OnClick_Quit" class="btn btn-danger"><i class="far fa-times-circle mr-2"></i>Thoát</button>
             </div>
         </div>
         <div v-if="gameBoard.visible" class="fade-in slide-up">
@@ -83,7 +83,8 @@
                 backgroundColor: 0,
                 header: {
                     visible: false,
-                    scoreNumber: 0
+                    scoreNumber: 0,
+                    isQuitting: false
                 },
                 gameBoard: {
                     visible: false,
@@ -122,7 +123,13 @@
                     this.socket.emit('player_connect', { gameId: this.game.id, gamePIN: this.game.PIN, userGameId: this.user.userGameId });
                 },
                 socketOnDisconnected() {
-                    this.CloseGame("Bạn đã bị ngắt kết nối khỏi máy chủ (có thể là do bạn đã truy cập ở một nơi khác)");
+                    if(this.header.isQuitting || this.game.status == 3)
+                    {
+                        location.reload(); 
+                        return;
+                    }
+
+                    this.CloseGame("Bạn đã bị ngắt kết nối khỏi máy chủ<br/>(có thể là do bạn đã truy cập ở một nơi khác)");
                 },
                 socketOnConnectFailed() {
                     this.centerMessage.text = "Không thể kết nối tới máy chú, thử lại sau.";
@@ -204,7 +211,7 @@
                             this.gameBoard.visible = true;
                             this.gameBoard.showAnswers = false;
                             this.gameBoard.showMessage = true;
-                            this.gameBoard.messageText = "Bạn đã vào phòng, vui lòng chờ tín hiệu kế tiếp của người dẫn.";
+                            this.gameBoard.messageText = "<h1 class='text-center'>Bạn đã vào phòng!</h1><span class='d-block small'>Trò chơi sắp bắt đầu.</span>";;
 
                             break;
                         case 2: // Playing
@@ -222,7 +229,7 @@
                                     this.backgroundColor = 1;
                                     this.gameBoard.showAnswers = false;
                                     this.gameBoard.showMessage = true;
-                                    this.gameBoard.messageText = "<i class='far fa-check-circle mr-2'></i>Bạn đã trả lời xong, bây giờ hãy chờ kết quả.";
+                                    this.gameBoard.messageText = "<h1 class='text-center'><i class='far fa-check-circle mr-2'></i>Bạn vừa trả lời xong!</h1><span class='d-block small'>Bây giờ hãy chờ đợi kết quả.</span>";
                                 }
                             } else if(game.DETAIL_STATUS == 2) {
                                 this.game.detailStatus = 2;
@@ -279,7 +286,7 @@
                                 this.backgroundColor = 1;
                                 this.gameBoard.showAnswers = false;
                                 this.gameBoard.showMessage = true;
-                                this.gameBoard.messageText = "<i class='far fa-check-circle mr-2'></i>Bạn đã trả lời xong, bây giờ hãy chờ kết quả.";
+                                this.gameBoard.messageText = "<h1 class='text-center'><i class='far fa-check-circle mr-2'></i>Bạn vừa trả lời xong!</h1><span class='d-block small'>Bây giờ hãy chờ đợi kết quả.</span>";
 
                                 this.gameBoard.isAnswered = data.questID;
                             } else {
@@ -294,8 +301,39 @@
                             this.CloseGame("Không thể kết nối tới máy chủ.")
                         });
                 },
+                OnClick_Quit() {
+                    if(this.header.isQuitting) 
+                        return;
+
+                    var result = confirm('Bạn thực sự muốn thoát kể cả khi không thể quay lại phòng?');
+                    if(result) {
+                        this.header.isQuitting = true;
+                        axios("/play/"+this.game.id+"/player_act/quit", {
+                            params: { userGameId: this.user.userGameId }
+                        })
+                        .then(({ data }) => {
+                            this.header.isQuitting = false;
+                            if(data.success) {
+                                location.reload(); 
+                            } else {
+                                alert(data.message);
+                            }
+                        }).catch((error) => {
+                            console.log(error);
+                            this.CloseGame("Không thể kết nối tới máy chủ.");
+                        });
+                    }
+                },
                 CloseGame(reason) {
-                    alert("Kết thúc: "+reason);
+                    this.header.visible = false;
+                    this.backgroundColor = 1;
+                    
+                    this.gameBoard.visible = true;
+                    this.gameBoard.showAnswers = false;
+                    this.gameBoard.showMessage = true;
+                    this.gameBoard.messageText = "<h1 class='text-center'>Mất kết nối!</h1><h6 class='d-block small'>"+reason+".</h6><a href='#' class='d-block mt-5 small' onclick='location.reload();'>Bấm vào đây để kết nối lại</a>";
+
+                    if(this.socket) socket.disconnect();
                 },
                 SetCenterMessage(show, text, loading) {
                     this.centerMessage.show = show;
