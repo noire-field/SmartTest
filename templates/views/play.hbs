@@ -115,6 +115,7 @@
                     this.socket.on('player_verified', this.socketOnPlayerVerified);
                     this.socket.on('game_start', this.socketOnGameStart);
                     this.socket.on('update_quest', this.socketOnUpdateQuest);
+                    this.socket.on('update_result', this.socketOnUpdateResult);
                 },
                 socketOnConnected() {
                     this.centerMessage.text = "Đã kết nối, đang xác minh và tải dữ liệu...";
@@ -133,7 +134,7 @@
                     if(data.success) {
                         axios("/play/"+this.game.id+"/player_act/get_data")
                         .then(({ data }) => {
-                            if(data.success) this.ReadPlayerData(data.game);
+                            if(data.success) this.ReadPlayerData(data);
                             else this.CloseGame(data.message);
                         }).catch((error) => {
                             console.log(error);
@@ -159,16 +160,35 @@
                     if(data.success) {
                         if(data.detailStatus == 1) {
                             this.game.detailStatus = 1;
+                            this.backgroundColor = 1;
 
                             this.gameBoard.visible = true;
                             this.gameBoard.showAnswers = true;
                             this.gameBoard.showMessage = false;
 
                             this.gameBoard.questData = data.quest;
+                        } else if(data.detailStatus == 2) {
+                            this.gameBoard.showAnswers = false;
+                            this.gameBoard.showMessage = true;
+
+                            this.header.scoreNumber = data.result.point;
+                            this.SetAnswerStatus(data.result);
                         }
                     }
                 },
-                ReadPlayerData(game) {
+                socketOnUpdateResult(data) {
+                    this.game.status = data.status;
+                    this.game.detailStatus = data.detailStatus;
+  
+                    this.gameBoard.visible = true;
+                    this.gameBoard.showAnswers = false;
+                    this.gameBoard.showMessage = true;
+
+                    this.backgroundColor = 2;
+                    this.gameBoard.messageText = "<h1 class='text-center'><i class='far fa-check-circle mr-2'></i>Trò chơi kết thúc! (Hạng "+data.result.rank+")</h1><span class='d-block small'>Bạn trả lời đúng "+data.result.correctAnswers+"/"+data.questTotal+" câu với tổng "+data.result.point+" điểm.</span>";
+                },
+                ReadPlayerData(data) {
+                    var { game, endGame } = data;
                     console.log("Read Player Data - Status: "+game.STATUS)
 
                     this.SetCenterMessage(false, null, false);
@@ -199,12 +219,37 @@
                                 this.gameBoard.isAnswered = game.isAnswered;
 
                                 if(this.gameBoard.isAnswered) {
-                                     this.backgroundColor = 1;
+                                    this.backgroundColor = 1;
                                     this.gameBoard.showAnswers = false;
                                     this.gameBoard.showMessage = true;
                                     this.gameBoard.messageText = "<i class='far fa-check-circle mr-2'></i>Bạn đã trả lời xong, bây giờ hãy chờ kết quả.";
                                 }
+                            } else if(game.DETAIL_STATUS == 2) {
+                                this.game.detailStatus = 2;
+
+                                this.gameBoard.visible = true;
+                                this.gameBoard.showAnswers = false;
+                                this.gameBoard.showMessage = true;
+
+                                this.gameBoard.questData = game.CUR_QUEST_DATA;
+                                this.gameBoard.isAnswered = game.isAnswered;
+
+                                this.header.scoreNumber = game.result.point;
+                                this.SetAnswerStatus(game.result);
                             }
+
+                            break;
+                        case 3:
+                            this.game.detailStatus = 0;
+        
+                            this.gameBoard.visible = true;
+                            this.gameBoard.showAnswers = false;
+                            this.gameBoard.showMessage = true;
+
+                            this.backgroundColor = 2;
+                            this.header.scoreNumber = endGame.result.point;
+                            this.gameBoard.messageText = "<h1 class='text-center'><i class='far fa-check-circle mr-2'></i>Trò chơi kết thúc! (Hạng "+endGame.result.rank+")</h1><span class='d-block small'>Bạn trả lời đúng "+endGame.result.correctAnswers+"/"+endGame.questTotal+" câu với tổng "+endGame.result.point+" điểm.</span>";
+                            
                             break;
                     }
 
@@ -256,6 +301,22 @@
                     this.centerMessage.show = show;
                     this.centerMessage.text = text;
                     this.centerMessage.loadingEffect = loading;
+                },
+                SetAnswerStatus(result) {
+                    switch(result.detail) {
+                        case 0:
+                            this.backgroundColor = 3;
+                            this.gameBoard.messageText = "<h1 class='text-center'><i class='far fa-times-circle mr-2'></i>Bạn chưa trả lời!</h1><span class='d-block small'>Bạn không được cộng điểm.</span>";
+                            break;
+                        case 1:
+                            this.backgroundColor = 2;
+                            this.gameBoard.messageText = "<h1 class='text-center'><i class='far fa-check-circle mr-2'></i>Chính xác!</h1><span class='d-block small'>Bạn được cộng +"+result.pointAdd+" điểm.</span>";
+                            break;
+                        case 2:
+                            this.backgroundColor = 3;
+                            this.gameBoard.messageText = "<h1 class='text-center'><i class='far fa-times-circle mr-2'></i>Sai!</h1><span class='d-block small'>Bạn không được cộng điểm.</span>";
+                            break;
+                    }
                 },
                 getCookie(name) {
                     var value = "; " + document.cookie;

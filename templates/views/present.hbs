@@ -283,6 +283,13 @@
                             }
 
                             break;
+                        case 3: // Done
+                            this.ranking.rankList = game.END_RESULT.slice(0, 5);
+                            this.ranking.visible = true;
+
+                            this.header.nextButtonText = "<i class='far fa-check-circle mr-2'></i>Kết thúc trò chơi";
+
+                            break;
                     }
 
                     this.header.visible = true;
@@ -332,7 +339,13 @@
                                     if(!success) alert(reason);
                                 });
                             } else if(this.game.detailStatus == 2) { // Go to next question
+                                var niggerButton = this.header.buttonLoading;
+                                niggerButton = true;
 
+                                this.Check_NextQuestion(function(success, reason) {
+                                    niggerButton = false;
+                                    if(!success) alert(reason);
+                                });
                             }
 
                             break;
@@ -355,6 +368,37 @@
                                     }
                                 }
 
+                                this.header.nextButtonText = "<i class='fas fa-forward mr-2'></i>Câu hỏi kế tiếp";
+
+                                callback(true, null);
+                            } else {
+                                callback(false, data.reason);
+                            }
+                        }).catch((error) => {
+                            console.log(error);
+                            callback(false, "Không thể kết nối tới máy chủ");
+                        });
+                },
+                Check_NextQuestion(callback) {
+                    axios("/present/"+this.game.id+"/presenter_act/next_question")
+                        .then(({ data }) => {
+                            if(data.success) {
+                                this.game.status = data.game.status;
+                                this.game.detailStatus = data.game.detailStatus;
+
+                                if(this.game.status == 2) {
+                                    this.game.questTime = data.game.questTime;
+
+                                    this.Set_GameDetailStatus(data.game.detailStatus, data.quest);
+                                    this.gameBoard.visible = true;
+                                } else if(this.game.status == 3) {
+                                    this.gameBoard.visible = false;
+
+                                    this.ranking.rankList = data.ranking;
+                                    this.ranking.visible = true;
+
+                                    this.header.nextButtonText = "<i class='far fa-check-circle mr-2'></i>Kết thúc trò chơi";
+                                }
                                 callback(true, null);
                             } else {
                                 callback(false, data.reason);

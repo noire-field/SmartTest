@@ -81,6 +81,7 @@ function RGet_PresentAction(req, res, next)
         case 'get_data': return Present_GetData(game, res); 
         case 'start_game': return Present_StartGame(game, res);
         case 'check_answer': return Present_CheckAnswer(game, res);
+        case 'next_question': return Present_NextQuestion(game, res);
     }
 
     return res.json({ success: false, message: "Unknown action" });
@@ -163,8 +164,59 @@ function Present_CheckAnswer(game, res) {
     var answersCount = [];
 
     game.CUR_QUEST_DATA.Answers.forEach(function(c) { answersCount.push(c.Count); });
+    Player_UpdateQuest(game, game.DETAIL.STATUS, null);
 
     return res.json({ success: true, game: { detailStatus: game.DETAIL.STATUS }, correctAnswers: quest.CorrectAns, answersCount });
+}
+
+function Present_NextQuestion(game, res) {
+    if(game.STATUS != 2 || game.DETAIL.STATUS != 2)
+        return res.json({ success: false, message: "Lệnh không hợp lệ, vui lòng tải lại trang." });
+
+    if(game.DETAIL.QUEST_CURRENT < game.DETAIL.QUEST_TOTAL) { // Next quest plox!
+        game.DETAIL.STATUS = 1;
+        game.DETAIL.QUEST_CURRENT++; // First question
+
+        var nextQuest = Get_A_Quest(game, game.DETAIL.QUEST_IDLIST[game.DETAIL.QUEST_CURRENT-1]);
+        game.CUR_QUEST_DATA = nextQuest;
+
+        Player_UpdateQuest(game, game.DETAIL.STATUS, nextQuest);
+        return res.json({ success: true, game: { status: game.STATUS, detailStatus: game.DETAIL.STATUS, questTime: game.QUESTTIME }, quest: { number: game.DETAIL.QUEST_CURRENT, detail: nextQuest } });
+    } else { // No more quest
+        game.STATUS = 3;
+        game.DETAIL.STATUS = 0;
+
+        var resultPlayers = [];
+        var rankCount = 0;
+
+        game.PLAYERS.forEach(function(p, k) {
+            var player = Users.Players.get(p);
+            if(!player) return;
+
+            resultPlayers.push({
+                id: k,
+                rank: 0, // Will be set later
+                name: player.name,
+                point: player.play.point,
+                correctAnswers: player.play.correctAnswers
+            });
+        });
+
+        resultPlayers.sort(function(a, b) { return b.point - a.point; });
+        resultPlayers.forEach(function(p) {
+            p.rank = ++rankCount; 
+
+            var player = Users.Players.get(p.id);
+            if(!player) return;
+            player.play.rank = p.rank;
+        });
+
+        game.END_RESULT = resultPlayers;
+
+        Player_UpdateQuest(game, game.DETAIL.STATUS, resultPlayers);
+
+        return res.json({ success: true, game: { status: game.STATUS, detailStatus: game.DETAIL.STATUS }, ranking: resultPlayers.slice(0, 5) });
+    }
 }
 
 function Player_StartGame(game) {
@@ -225,17 +277,72 @@ function Player_SendAnswer(game, req, res) {
     return res.json({ success: true, questID: data.questID });
 }
 
-function Player_UpdateQuest(game, detailStatus, quest) {
+function Player_UpdateQuest(game, detailStatus, data) {
     if(!game) return false;
 
-    if(detailStatus == 1) { // Send question
-        socket.io.to(game.ID).emit('update_quest', { 
-            success: true,
-            detailStatus,
-            quest
-        });
-    } else if(detailStatus == 2) { // Check answer
+    if(game.STATUS == 2) {
+        if(detailStatus == 1) { // Send question
+            socket.io.to(game.ID).emit('update_quest', { 
+                success: true,
+                detailStatus,
+                quest: data
+            });
+        } else if(detailStatus == 2) { // Check answer
+            // Send result to clients
+            game.PLAYERS.forEach(function(p) {
+                var player = Users.Players.get(p);
+                if(!player) {
+                    game.PLAYERS.delete(p);
+                    return;
+                }
 
+                var { play } = player;
+                var ansResult = 0;
+
+                if(play.latestAnswer.questID == game.CUR_QUEST_DATA.QuestID) { // Answered
+                    if(play.latestAnswer.isCorrect) {
+                        play.point += play.latestAnswer.pointAdd;
+                        play.correctAnswers++;
+                        ansResult = 1;
+                    } else {
+                        ansResult = 2;
+                    }
+                } else ansResult = 0;
+
+                if(player.socket)
+                    player.socket.emit('update_quest', {
+                        success: true,
+                        detailStatus,
+                        result: {
+                            point: play.point,
+                            pointAdd: play.latestAnswer.pointAdd,
+                            detail: ansResult
+                        }
+                    });
+            });
+        }
+    } else if(game.STATUS == 3) {
+        game.PLAYERS.forEach(function(p) {
+            var player = Users.Players.get(p);
+            if(!player) {
+                game.PLAYERS.delete(p);
+                return;
+            }
+
+            var { play } = player;
+          
+            if(player.socket)
+                player.socket.emit('update_result', {
+                    status: 3,
+                    detailStatus: 0,
+                    questTotal: game.DETAIL.QUEST_TOTAL,
+                    result: {
+                        point: play.point,
+                        rank: play.rank,
+                        correctAnswers: play.correctAnswers
+                    }
+                });
+        });
     }
 }
 
@@ -247,18 +354,65 @@ function Player_GetData(game, res, userGameId) {
         DETAIL_STATUS: game.DETAIL.STATUS
     };
 
+    var playerResult;
+
     if(game.STATUS == 2) {
         if(game.DETAIL.STATUS == 1) {
             newGame.CUR_QUEST_DATA = {...game.CUR_QUEST_DATA};
 
             for(let i = 0; i < newGame.CUR_QUEST_DATA.Answers.length; i++)
                 delete(newGame.CUR_QUEST_DATA.Answers[i].Count);
-            
+
             newGame.isAnswered = Users.Players.get(userGameId).play.latestAnswer.questID == newGame.CUR_QUEST_DATA.QuestID ? newGame.CUR_QUEST_DATA.QuestID : 0
+        } else if(game.DETAIL.STATUS == 2) {
+            newGame.CUR_QUEST_DATA = {...game.CUR_QUEST_DATA};
+
+            for(let i = 0; i < newGame.CUR_QUEST_DATA.Answers.length; i++)
+                delete(newGame.CUR_QUEST_DATA.Answers[i].Count);
+
+            var player = Users.Players.get(userGameId);
+            var { play } = player;
+
+            newGame.isAnswered = play.latestAnswer.questID == newGame.CUR_QUEST_DATA.QuestID ? newGame.CUR_QUEST_DATA.QuestID : 0
+
+            var ansResult = 0;
+
+            if(play.latestAnswer.questID == game.CUR_QUEST_DATA.QuestID) { // Answered
+                if(play.latestAnswer.isCorrect) ansResult = 1;
+                else ansResult = 2;
+            } else ansResult = 0;
+
+            var result = {
+                point: play.point,
+                pointAdd: play.latestAnswer.pointAdd,
+                detail: ansResult
+            }
+
+            newGame.result = result;
         }
+    } else if(game.STATUS == 3) {
+        game.PLAYERS.forEach(function(p) {
+            var player = Users.Players.get(p);
+            if(!player) {
+                game.PLAYERS.delete(p);
+                return;
+            }
+
+            var { play } = player;
+            playerResult = {
+                status: 3,
+                detailStatus: 0,
+                questTotal: game.DETAIL.QUEST_TOTAL,
+                result: {
+                    point: play.point,
+                    rank: play.rank,
+                    correctAnswers: play.correctAnswers
+                }
+            }
+        });
     }
 
-    return res.json({ success: true, game: newGame });
+    return res.json({ success: true, game: newGame, endGame: playerResult });
 }
 
 function RGet_FindGame(req, res, next) {
@@ -434,7 +588,8 @@ function OpenRoom(gameId) {
                 },
                 PLAYERS: new Set(),
                 QUESTS: new Map(),
-                CUR_QUEST_DATA: null
+                CUR_QUEST_DATA: null,
+                END_RESULT: null
             };
 
             return QueryNow(`SELECT * FROM questions WHERE SubjectID = ?`, [rows[0].SubjectID]);
