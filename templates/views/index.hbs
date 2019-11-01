@@ -54,88 +54,90 @@
   <!--==========================
     Hero Section
   ============================-->
-  <section id="hero">
-    <div id="bigger-container" style="display: none;" class="fade-in">
-      <div class="hero-container">
-          <img style="height:250px;" class="mb-2" src="img/LearnToPlay_Icon.png"/>
-        <h1 class="slide-up text-primary mb-3">Chơi để học</h1>
-        {{#IfEqualBlock isInGame false}}
-        <div>
-            <h4 class="slide-up mb-2">Nhập mã PIN để vào phòng</h4>
+  <div id="nigger-app">
+    <section id="hero">
+        <div id="bigger-container" style="display: none;" class="fade-in">
+        <div class="hero-container">
+            <img style="height:250px;" class="mb-2" src="img/LearnToPlay_Icon.png"/>
+            <h1 class="slide-up text-primary mb-3">Chơi để học</h1>
+            {{#IfEqualBlock isInGame false}}
+            <div>
+                <h4 class="slide-up mb-2">Nhập mã PIN để vào phòng</h4>
+                <div class="row slide-up">
+                    <div class="col-md-12">
+                        <div v-if="!gameSearch.isSearching" class="input-group mb-3">
+                            <input v-model="gameSearch.inputPIN" type="text" class="form-control" placeholder="VD: 97775" maxlength="5">
+                            <div class="input-group-append">
+                                <button @click="SearchGame" class="btn btn-success" type="button"><i class="fas fa-search mr-2"></i>Tìm phòng</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {{/IfEqualBlock}}
+            {{#IfEqualBlock isInGame true}}
+            <h2 class="slide-up">Hệ thống nhận thấy bạn đang trong một bài kiểm tra, hãy bấm quay lại vào phòng</h2>
             <div class="row slide-up">
                 <div class="col-md-12">
-                    <div v-if="!gameSearch.isSearching" class="input-group mb-3">
-                        <input v-model="gameSearch.inputPIN" type="text" class="form-control" placeholder="VD: 97775" maxlength="5">
-                        <div class="input-group-append">
-                            <button @click="SearchGame" class="btn btn-success" type="button"><i class="fas fa-search mr-2"></i>Tìm phòng</button>
+                    <div v-if="!isLoading" class="input-group mb-3">
+                    <input type="text" id="txbPINCode" class="form-control" value="{{ testPIN }}" disabled>
+                    <div class="input-group-append">
+                        <button @click="backToRoom" id="btnBackToRoom" class="btn btn-success" type="button">Quay lại phòng</button>
+                    </div>
+                    </div>
+                </div>
+            </div>
+            {{/IfEqualBlock}}
+            <div class="row slide-up">
+                <div class="col-md-12">
+                    <div v-if="gameSearch.isSearching" class="py-2"><img src="img/loading3.gif" class="icon-loading"></div>
+                    <div v-if="gameSearch.isError" class="alert alert-warning py-2 pl-0">
+                        <ul class="m-0 y-0 text-left">
+                            <li v-for="e in gameSearch.errorList">{? e ?}</li>
+                        </ul>
+                    </div>
+                    <!--
+                    <div v-if="gameFound.isFound">
+                        <div class="card rounded-0 mt-5" style="opacity: 0.85;">
+                            <div class="card-header rounded-0 py-1 px-2 bg-primary text-white"><i class="fas fa-check-circle mr-2"></i><span>Đã tìm được phòng</span></div>
+                            <div class="card-body rounded-0 py-3 d-flex justify-content-between align-items-center text-left">
+                                <div class="pr-5">
+                                    <p class="m-0 y-0 text-primary"><b>{? gameFound.name ?}</b></p>
+                                    <hr class="my-1">
+                                    <p class="m-0 y-0 text-primary small"><b>Người dẫn:</b> {? gameFound.presenter ?}</p>
+                                </div>
+                                <div>
+                                    <button @click="JoinGame" class="btn btn-primary"><i class="fas fa-chevron-circle-right mr-2"></i>Vào phòng</button>
+                                </div>
+                            </div>
                         </div>
+                    </div>
+                    -->
+                </div>
+            </div>
+        </div>
+        </div>
+    </section><!-- #hero -->
+        <div class="modal fade" id="modal-joingame">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title text-success"><i class="fas fa-check-circle mr-2"></i><span>Đã tìm được phòng</span></h4>
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    </div>
+                    <div class="modal-body py-5 text-center">
+                        <img style="height:190px;" class="mb-4" src="img/LearnToPlay_Icon.png"/>
+                        <h6 class="text-center font-weight-bold text-uppercase mb-2 text-muted">Chủ đề</h6>
+                        <h2 class="text-center text-success mb-1">{? gameFound.name ?}</h2>
+                    </div>
+                    <div class="modal-footer d-flex justify-content-between align-items-center">
+                        <h6 class="text-center p-2 mb-0"><i class="fas fa-chalkboard-teacher mr-2"></i>{? gameFound.presenter ?}</h6>
+                        <button @click="JoinGame" class="btn btn-success font-weight-bold text-uppercase"><i class="fas fa-chevron-circle-right mr-2"></i>Vào phòng</button>
                     </div>
                 </div>
             </div>
         </div>
-        {{/IfEqualBlock}}
-        {{#IfEqualBlock isInGame true}}
-        <h2 class="slide-up">Hệ thống nhận thấy bạn đang trong một bài kiểm tra, hãy bấm quay lại vào phòng</h2>
-        <div class="row slide-up">
-            <div class="col-md-12">
-                <div v-if="!isLoading" class="input-group mb-3">
-                <input type="text" id="txbPINCode" class="form-control" value="{{ testPIN }}" disabled>
-                <div class="input-group-append">
-                    <button @click="backToRoom" id="btnBackToRoom" class="btn btn-success" type="button">Quay lại phòng</button>
-                </div>
-                </div>
-            </div>
-        </div>
-        {{/IfEqualBlock}}
-        <div class="row slide-up">
-            <div class="col-md-12">
-                <div v-if="gameSearch.isSearching" class="py-2"><img src="img/loading3.gif" class="icon-loading"></div>
-                <div v-if="gameSearch.isError" class="alert alert-warning py-2 pl-0">
-                    <ul class="m-0 y-0 text-left">
-                        <li v-for="e in gameSearch.errorList">{? e ?}</li>
-                    </ul>
-                </div>
-                <!--
-                <div v-if="gameFound.isFound">
-                    <div class="card rounded-0 mt-5" style="opacity: 0.85;">
-                        <div class="card-header rounded-0 py-1 px-2 bg-primary text-white"><i class="fas fa-check-circle mr-2"></i><span>Đã tìm được phòng</span></div>
-                        <div class="card-body rounded-0 py-3 d-flex justify-content-between align-items-center text-left">
-                            <div class="pr-5">
-                                <p class="m-0 y-0 text-primary"><b>{? gameFound.name ?}</b></p>
-                                <hr class="my-1">
-                                <p class="m-0 y-0 text-primary small"><b>Người dẫn:</b> {? gameFound.presenter ?}</p>
-                            </div>
-                            <div>
-                                <button @click="JoinGame" class="btn btn-primary"><i class="fas fa-chevron-circle-right mr-2"></i>Vào phòng</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                -->
-            </div>
-        </div>
-      </div>
     </div>
-    <div class="modal fade" id="modal-joingame">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h4 class="modal-title text-success"><i class="fas fa-check-circle mr-2"></i><span>Đã tìm được phòng</span></h4>
-                    <button type="button" class="close" data-dismiss="modal">&times;</button>
-                </div>
-                <div class="modal-body py-5 text-center">
-                    <img style="height:190px;" class="mb-4" src="img/LearnToPlay_Icon.png"/>
-                    <h1 class="text-center text-uppercase text-primary mb-1">{? gameFound.name ?}</h1>
-                </div>
-                <div class="modal-footer d-flex justify-content-between align-items-center">
-                    <h5 class="text-center text-uppercase text-primary mb-0 font-weight-bold"><i class="fas fa-chalkboard-teacher mr-2"></i>{? gameFound.presenter ?}</h5>
-                    <button @click="JoinGame" class="btn btn-primary"><i class="fas fa-chevron-circle-right mr-2"></i>Vào phòng</button>
-                </div>
-            </div>
-        </div>
-    </div>
-  </section><!-- #hero -->
-
  
   <!-- JavaScript Libraries -->
     <script src="lib/jquery/jquery.min.js"></script>
@@ -153,15 +155,16 @@
     <script src="/js/babel.min.js"></script>
     <script type="text/babel">
         var vm = new Vue({
-            el: "#hero",
+            el: "#nigger-app",
             delimiters: ["{?","?}"],
             data: {
                 user: {
                     fullName: "{{ userFullName }}"
                 },
+                quickJoin: "{{ quickJoin }}",
                 gameSearch: {
                     isSearching: false,
-                    inputPIN: "79111",
+                    inputPIN: "",
                     isError: false,
                     errorList: []
                 },
@@ -191,6 +194,10 @@
                             this.gameFound.isFound = true;
 
                             $("#modal-joingame").modal("show");
+                            if(this.GetQuickJoin()) {
+                                var niggerThis = this;
+                                setTimeout(function() { niggerThis.JoinGame(); }, 500);
+                            }
                         } else {
                             this.showError(true, data.message);
                             $("#modal-joingame").modal("hide");
@@ -234,10 +241,21 @@
                 showError(show, error) {
                     this.gameSearch.isError = show;
                     this.gameSearch.errorList = [error];
+                },
+                GetQuickJoin() {
+                    if(this.quickJoin.length == 5)
+                        return true;
+
+                    return false;
                 }
             },
             mounted() {
                 document.getElementById('bigger-container').style.display = "block";
+
+                if(this.GetQuickJoin()) {
+                    this.gameSearch.inputPIN = this.quickJoin;
+                    this.SearchGame();
+                }
             }
         });
     </script>

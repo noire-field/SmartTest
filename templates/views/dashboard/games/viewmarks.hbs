@@ -11,10 +11,10 @@
           {{> dashboard/header }}
           <div class="container-fluid">
             <div class="d-sm-flex align-items-center justify-content-between mb-4">
-                <h1 class="h3 mb-0 text-gray-800">Xem điểm bài kiểm tra</h1>
+                <h1 class="h3 mb-0 text-gray-800">Xem điểm trò chơi</h1>
                 <div>
                     <!--<a href="{{ GetAdminPageUrl 'Tests'}}/download/{{ testId }}" target="_blank" class="btn btn-info btn-sm"><i class="fas fa-download mr-2"></i>Tải xuống CSV</a>-->
-                    <a href="{{ GetAdminPageUrl 'Tests'}}" class="btn btn-primary btn-sm"><i class="fas fa-arrow-circle-left mr-2"></i>Quay về</a>
+                    <a href="{{ GetAdminPageUrl 'Games'}}" class="btn btn-primary btn-sm"><i class="fas fa-arrow-circle-left mr-2"></i>Quay về</a>
                 </div>
             </div>
             <div class="row">
@@ -23,28 +23,26 @@
                     <table class="table table-bordered table-hover my-0 py-0 text-dark">
                         <thead class="text-center">
                             <tr>
-                                <th>UID</th>
+                                <th>Hạng</th>
                                 <th>Họ Tên</th>
-                                <th>Mã Sinh Viên</th>
-                                <th>Số câu đúng</th>
-                                <th>Điểm <small>(10)</small></th>
+                                <th>Số Câu Đúng</th>
+                                <th>Điểm Số</th>
                             </tr>
                         </thead>
                         <tbody class="text-center">
                             {{#IfEqualBlock isAvailable true}}
                                 {{#each markList}}
                                     <tr>
-                                        <td>{{ this.UserID }}</td>
-                                        <td>{{ CombineName this.FirstName this.LastName }}</td>
-                                        <td>{{ this.StudentID }}</td>
-                                        <td>{{ this.CorrectCount }}/{{ this.TotalCount }}</td>
-                                        <td class="{{ this.MarkColor }}"><b>{{ this.Mark }}</b></td>
+                                        <td>{{ this.Ranking }}</td>
+                                        <td>{{ this.PlayerName }}</td>
+                                        <td>{{ this.CorrectAnswers }}/{{ this.TotalAnswers }}</td>
+                                        <td>{{ this.TotalPoint }}</td>
                                     </tr>
                                 {{/each}}
                             {{/IfEqualBlock}}
                             {{#IfEqualBlock isAvailable false}}
                                 <tr>
-                                    <td colspan="5">Không có điểm nào</td>
+                                    <td colspan="4">Không có điểm nào</td>
                                 </tr>
                             {{/IfEqualBlock}}
                         </tbody>

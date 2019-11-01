@@ -215,6 +215,7 @@ module.exports.register = function(app) {
         if(playerUUID.length > 0 && activeGames.IsUserInGame(playerUUID))
             return res.redirect('/playing');
 
+        data.quickJoin = req.query.quickjoin || "";
 
         return res.render('index', data);
     });

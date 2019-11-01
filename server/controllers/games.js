@@ -70,54 +70,24 @@ module.exports = {
                     })
 
                     break;
-                case 'present':
-                    if(!id) return res.redirect('/dashboard/games');
-
-                    QueryNow(`SELECT OpenStatus FROM games WHERE GameID = ?${req.user.RoleType >= 2 ? '' : ` AND OwnerID = '${req.user.UserID}'`}`, [id])
-                    .then((rows) => {
-                        if(rows.length <= 0 || !(Number(rows[0]['OpenStatus']) == 1 || Number(rows[0]['OpenStatus']) == 2))
-                            return res.redirect('/dashboard/games');
-
-                        //return smartTest.StartTest(id);
-                    })
-                    .then((status) => {
-                        return res.redirect('/dashboard/games');
-                    })
-                    .catch((error) => {
-                        return res.redirect('/dashboard/games');
-                    })
-
-                    break;
                 case 'viewmarks':
                     if(!id) return res.redirect('/dashboard/games');
 
                     QueryNow(`SELECT OpenStatus FROM games WHERE GameID = ?${req.user.RoleType >= 2 ? '' : ` AND OwnerID = '${req.user.UserID}'`}`, [id])
                     .then((rows) => {
                         if(rows.length <= 0 || Number(rows[0]['OpenStatus']) != 3)
-                            return res.redirect('/dashboard/games');
-
-                        //return QueryNow(`SELECT tr.UserID, u.FirstName, u.LastName, u.StudentID, tr.CorrectCount, tr.TotalCount FROM testresults tr INNER JOIN users u ON tr.UserID = u.UserID WHERE tr.TestID = ? ORDER BY u.FirstName ASC`, [id]);
+                            res.redirect('/dashboard/games');
+                        else return QueryNow(`SELECT * FROM games_marks WHERE GameID = ? ORDER BY Ranking DESC`, [id]);
                     })
                     .then((rows) => {
-                        /*
-                        for(let r of rows) {
-                            if(r.TotalCount > 0 && r.CorrectCount > 0) {
-                                r.Mark = Math.round((r.CorrectCount / r.TotalCount * 10) * 100) / 100;
-                                r.MarkColor = r.Mark >= 5.0 ? "text-success" : "text-danger";
-                            } else {
-                                r.Mark = 0
-                                r.MarkColor = "text-danger";
-                            }
-                        }
-
-                        return res.render('dashboard/tests/viewmarks', {
+                        return res.render('dashboard/games/viewmarks', {
                             page: 'tests',
-                            head_title: `Xem điểm - ${config.APP_NAME}`,
+                            head_title: `Xem điểm số - ${config.APP_NAME}`,
                             user: req.user,
-                            testId: id,
+                            gameId: id,
                             isAvailable: rows.length > 0 ? true : false,
                             markList: rows
-                        });*/
+                        });
                     })
                     .catch((rows) => {
                         if(!id) return res.redirect('/dashboard/games');

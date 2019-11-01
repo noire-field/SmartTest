@@ -122,21 +122,21 @@ module.exports = {
                     QueryNow(`SELECT s.SubjectID, s.SubjectName, u.FirstName, u.LastName FROM subjects s INNER JOIN users u ON s.OwnerID = u.UserID WHERE s.SubjectID = ?${req.user.RoleType >= 2 ? '' : ` AND s.OwnerID = '${req.user.UserID}'`}`, [id])
                     .then((rows) => {
                         if(rows.length <= 0)
-                            return res.redirect('/dashboard/subjects');
-
-                        var errors = [];
-
-                        if(errors.length <= 0) {
+                            res.redirect('/dashboard/subjects');
+                        else return QueryNow(`SELECT GameID FROM games WHERE SubjectID = ? AND OpenStatus IN (1,2)`, [id])
+                    })
+                    .then((rows) => {
+                        if(rows.length > 0)
+                            Render_DeletePage(id, res, req, { status: 'error', errors: ['Hiện đang có trò chơi sử dụng bộ đề này, không thể xóa.'] });
+                        else {
                             var q = QueryNow(`DELETE FROM subjects WHERE SubjectID = ?`,[id]);
 
                             q.then((rows) => {
                                 return res.redirect('/dashboard/subjects');
                             }).catch((error) => {
-                                Log(error);
-                                return Render_DeletePage(id, res, req, { status: 'error', errors: ['Không thể cập nhật do lỗi truy vấn #1'] });
+                                console.log(error);
+                                return Render_DeletePage(id, res, req, { status: 'error', errors: ['Không thể xóa do lỗi truy vấn #1'] });
                             })
-                        } else {
-                            return Render_DeletePage(id, res, req, { status: 'error', errors: errors });
                         }
                     })
                     .catch((error) => {

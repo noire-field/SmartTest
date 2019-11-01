@@ -91,25 +91,25 @@
                 <div v-if="gameBoard.answers[0].id != null" class="col-md-6 mb-4">
                     <div class="btn-answer border-triangle d-flex justify-content-between align-items-center" :class="{ 'answer-wrong': (!gameBoard.answers[0].isCorrect && game.detailStatus == 2) }">
                         <div class="answer-icon text-color-triangle d-flex justify-content-center align-items-center"><span v-if="gameBoard.answers[0].percent == -1">&bigtriangleup;</span><span v-html="gameBoard.answers[0].percent" v-else="gameBoard.answers[0].percent != -1"></span></div>
-                        <div class="answer-text ans-triangle d-flex justify-content-center align-items-center"><span>{? gameBoard.answers[0].content ?}</span></div>
+                        <div class="answer-text ans-triangle d-flex justify-content-center align-items-center text-center p-2" data-answerid="1"><div><span>{? gameBoard.answers[0].content ?}</span></div></div>
                     </div>
                 </div>
                 <div v-if="gameBoard.answers[1].id != null" class="col-md-6 mb-4">
                     <div class="btn-answer border-circle d-flex justify-content-between align-items-center" :class="{ 'answer-wrong': (!gameBoard.answers[1].isCorrect && game.detailStatus == 2) }">
                         <div class="answer-icon text-color-circle d-flex justify-content-center align-items-center"><span v-if="gameBoard.answers[1].percent == -1">O</span><span v-html="gameBoard.answers[1].percent" v-else="gameBoard.answers[1].percent != -1"></span></div>
-                        <div class="answer-text ans-circle d-flex justify-content-center align-items-center"><span>{? gameBoard.answers[1].content ?}</span></div>
+                        <div class="answer-text ans-circle d-flex justify-content-center align-items-center text-center p-2" data-answerid="2"><div><span>{? gameBoard.answers[1].content ?}</span></div></div>
                     </div>
                 </div>
                 <div v-if="gameBoard.answers[2].id != null" class="col-md-6 mb-4">
                     <div class="btn-answer border-cross d-flex justify-content-between align-items-center" :class="{ 'answer-wrong': (!gameBoard.answers[2].isCorrect && game.detailStatus == 2) }">
                         <div class="answer-icon text-color-cross d-flex justify-content-center align-items-center"><span v-if="gameBoard.answers[2].percent == -1">X</span><span v-html="gameBoard.answers[2].percent" v-else="gameBoard.answers[2].percent != -1"></span></div>
-                        <div class="answer-text ans-cross d-flex justify-content-center align-items-center"><span>{? gameBoard.answers[2].content ?}</span></div>
+                        <div class="answer-text ans-cross d-flex justify-content-center align-items-center text-center p-2" data-answerid="3"><div><span>{? gameBoard.answers[2].content ?}</span></div></div>
                     </div>
                 </div>
                 <div v-if="gameBoard.answers[3].id != null" class="col-md-6 mb-4">
                     <div class="btn-answer border-square d-flex justify-content-between align-items-center" :class="{ 'answer-wrong': (!gameBoard.answers[3].isCorrect && game.detailStatus == 2) }">
                         <div class="answer-icon text-color-square d-flex justify-content-center align-items-center"><span v-if="gameBoard.answers[3].percent == -1">&#9634;</span><span v-html="gameBoard.answers[3].percent" v-else="gameBoard.answers[3].percent != -1"></span></div>
-                        <div class="answer-text ans-square d-flex justify-content-center align-items-center"><span>{? gameBoard.answers[3].content ?}</span></div>
+                        <div class="answer-text ans-square d-flex justify-content-center align-items-center text-center p-2" data-answerid="4"><div><span>{? gameBoard.answers[3].content ?}</span></div></div>
                     </div>
                 </div>
             </div>
@@ -193,7 +193,8 @@
                     ],
                     showContent: true,
                     showMessage: false,
-                    messageText: ""
+                    messageText: "",
+                    defaultFontSize: 0
                 },
                 ranking: {
                     visible: false,
@@ -277,7 +278,7 @@
                             this.lobby.visible = true;
 
                             setTimeout(() => {
-                                try { var qrcode = new QRCode("gameQRCode", { text: this.siteUrl+"/joingame/"+this.game.PIN, width: 226, height: 226 }); } catch(e) { }
+                                try { var qrcode = new QRCode("gameQRCode", { text: this.siteUrl+"/?quickjoin="+this.game.PIN, width: 226, height: 226 }); } catch(e) { }
 
                             }, 0);
 
@@ -471,7 +472,7 @@
                             this.gameBoard.answers[i].percent = -1;
                         }
 
-
+                        setTimeout(this.Check_ResizeAnswer, 100);
                     } else if(detailStatus == 2) {
                         this.header.nextButtonText = "<i class='fas fa-forward mr-2'></i>Câu hỏi kế tiếp";
                    
@@ -497,6 +498,8 @@
                                 ans.percent = -1;
                             }
                         }
+
+                        setTimeout(this.Check_ResizeAnswer, 100);
                     }
                 },
                 OnTime_Run() {
@@ -510,6 +513,23 @@
                                 niggerButton = false;
                                 if(!success) alert(reason);
                             });
+                        }
+                    }
+                },
+                Check_ResizeAnswer() {
+                    if(this.gameBoard.defaultFontSize <= 0)
+                        this.gameBoard.defaultFontSize = parseFloat($(".answer-text[data-answerid='1'] div").css('font-size')); // Make a copy of font-size
+                    
+                    for(var i = 1; i <= 4; i++) {
+                        var outside = ".answer-text[data-answerid='"+i+"']";
+                        var inside = ".answer-text[data-answerid='"+i+"'] div";
+
+                        if(this.gameBoard.defaultFontSize > 0)
+                            $(inside).css('fontSize', this.gameBoard.defaultFontSize);
+
+                        while($(inside).height() >= $(outside).height()) {
+                            var fontsize = $(inside).css('font-size');
+                            $(inside).css('fontSize', parseFloat(fontsize) - 1);
                         }
                     }
                 }
