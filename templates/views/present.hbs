@@ -16,39 +16,43 @@
     <div id="app-testing" class="container pt-3" style="display:none;">
         <div v-if="centerMessage.show" class="text-center text-white loading-box"><img v-if="centerMessage.loadingEffect" src="/img/loading3.gif" class="icon-loading mr-2">{? centerMessage.text ?}</div>
         <div v-if="header.visible" id="testing-header" class="row bg-dark text-white py-1 px-2 d-flex align-items-center mb-4 fade-in slide-down">
-            <div class="col-md-4">
+            <div class="col-md-5">
                 <h1 class="my-0 py-0 text-uppercase">{? header.gameName ?}</h1>
             </div>
-            <div class="col-md-4 text-center">
+            <div class="col-md-2 text-center">
                 <p class="my-0 py-0 text-uppercase"><i class="far fa-question-circle mr-2"></i>Số câu hỏi</p>
                 <h2>{? header.gameQuestCount[0] ?}/{? header.gameQuestCount[1] ?}</h2>
             </div>
-             <div class="col-md-4 text-right">
+             <div class="col-md-5 text-right">
                 <button v-if="!header.buttonLoading" @click="OnClick_HeaderButton" class="btn btn-danger"><span v-html="header.nextButtonText"></span></button>
                 <img v-if="header.buttonLoading" class="icon-loading" src="/img/loading3.gif"/>
             </div>
         </div>
         <div v-if="lobby.visible" class="fade-in slide-up">
             <div class="row mb-5">
-                <div class="col-md-8 offset-md-2">
+                <div class="col-md-10 offset-md-1">
                     <div class="card rounded-0 border-0">
-                        <div class="card-header rounded-0 py-3 bg-primary text-white">
+                        <div class="card-header rounded-0 py-2 bg-primary text-white">
                             <h1 class="mb-0 text-center text-uppercase"><i class="fas fa-sign-in-alt mr-2"></i>Tham gia</h1>
                         </div>
                         <div class="card-body pt-3 pb-0">
                             <div class="row">
-                                <div class="col-md-7">
-                                    <h2 class="text-center mb-4">Cách A</h2>
-                                    <div class="alert alert-primary text-center"><h4 class="text-center d-inline mr-2">Truy cập</h4><h3 class="text-center d-inline font-weight-bold">{{ appFullUrl }}</h3></div>
-                                    <h1 class="text-center text-primary mb-3"><i class="fas fa-arrow-circle-down"></i></h1>
-                                    <div class="alert alert-primary text-center"><h4 class="text-center d-inline mr-2">Nhập mã PIN</h4><h3 class="text-center d-inline font-weight-bold">{{ gamePIN }}</h3></div>
-                                    <h1 class="text-center text-primary mb-3"><i class="fas fa-check-circle"></i></h1>
+                                <div class="col-md-12">
+                                    <h2 class="text-center mb-2">Cách A</h2>
+                                    <div class="d-flex justify-content-around align-items-center">
+                                        <div class="alert alert-primary text-center"><h4 class="text-center d-inline mr-2">Truy cập</h4><h3 class="text-center d-inline font-weight-bold">{{ appFullUrl }}</h3></div>
+                                        <h1 class="text-center text-primary mb-3"><i class="fas fa-arrow-circle-right"></i></h1>
+                                        <div class="alert alert-primary text-center"><h4 class="text-center d-inline mr-2">Nhập mã PIN</h4><h3 class="text-center d-inline font-weight-bold">{{ gamePIN }}</h3></div>
+                                        <h1 class="text-center text-primary mb-3"><i class="fas fa-check-circle"></i></h1>
+                                    </div>
+                                    <hr class="my-3"/>
                                 </div>
-                                <div class="col-md-5">
-                                    <h2 class="text-center mb-4">Cách B</h2>
-                                    <div class="alert alert-info text-center">
-                                        <!-- <h5 class="text-center d-inline mr-2">Quét mã QR</h5> -->
-                                        <div id="gameQRCode" class="mt-2"></div>
+                                
+                                <div class="col-md-6 offset-md-3">
+                                    <h2 class="text-center mb-2">Cách B</h2>
+                                    <h5 class="text-center">(Sử dụng điện thoại để quét mã QR)</h5>
+                                    <div class="alert alert-primary text-center p-1">
+                                        <div id="gameQRCode" style="display: flex; justify-content: center; text-align: center;"></div>
                                     </div>
                                 </div>
                             </div>
@@ -278,7 +282,7 @@
                             this.lobby.visible = true;
 
                             setTimeout(() => {
-                                try { var qrcode = new QRCode("gameQRCode", { text: this.siteUrl+"/?quickjoin="+this.game.PIN, width: 226, height: 226 }); } catch(e) { }
+                                try { var qrcode = new QRCode("gameQRCode", { text: this.siteUrl+"/?quickjoin="+this.game.PIN, width: 300, height: 300 }); } catch(e) { }
 
                             }, 0);
 

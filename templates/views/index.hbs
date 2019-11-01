@@ -219,7 +219,7 @@
                     var fullName;
 
                     do {
-                        fullName = prompt("Vui lòng nhập tên của bạn", this.user.fullName);
+                        fullName = prompt("Vui lòng nhập tên của bạn", this.user.fullName || "Người chơi");
 
                         if(fullName.length > 24)
                             alert("Tên phải từ 1 đến 24 ký tự.");

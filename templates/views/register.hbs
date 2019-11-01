@@ -17,15 +17,15 @@
                     <form class="user">
                         <div class="form-group row">
                             <div class="col-sm-6 mb-3 mb-sm-0">
-                                <input ref="lastName" type="text" class="form-control form-control-user" v-model="lastName" placeholder="Họ">
+                                <input ref="lastName" type="text" class="form-control form-control-user" v-model="lastName" placeholder="Họ*">
                             </div>
                             <div class="col-sm-6">
-                                <input ref="firstName" type="text" class="form-control form-control-user" v-model="firstName" placeholder="Tên">
+                                <input ref="firstName" type="text" class="form-control form-control-user" v-model="firstName" placeholder="Tên*">
                             </div>
                         </div>
                         <div class="form-group row">
                             <div class="col-sm-6 mb-3 mb-sm-0">
-                                <input ref="username" type="text" class="form-control form-control-user" v-model="username" placeholder="Tên tài khoản">
+                                <input ref="username" type="text" class="form-control form-control-user" v-model="username" placeholder="Tên tài khoản*">
                             </div>
                             <div class="col-sm-6">
                                 <input ref="studentId" type="text" class="form-control form-control-user" v-model="studentId" placeholder="Mã sinh viên">
@@ -33,17 +33,17 @@
                         </div>
                         <div class="form-group row">
                             <div class="col-sm-6 mb-3 mb-sm-0">
-                                <input ref="password" type="password" class="form-control form-control-user" v-model="password" placeholder="Mật khẩu">
+                                <input ref="password" type="password" class="form-control form-control-user" v-model="password" placeholder="Mật khẩu*">
                             </div>
                             <div class="col-sm-6">
-                                <input ref="password2" type="password" class="form-control form-control-user" v-model="password2" placeholder="Nhập lại mật khẩu">
+                                <input ref="password2" type="password" class="form-control form-control-user" v-model="password2" placeholder="Nhập lại mật khẩu*">
                             </div>
                         </div>
                         <div class="form-group row">
                             <div class="col-sm-12">
                                 <b>Loại tài khoản: </b>
-                                <label class="radio-inline"><input ref="roleType0" type="radio" class="mx-2" value="0" name="roleType" v-model="roleType">Sinh Viên</label>
-                                <label class="radio-inline"><input ref="roleType1" type="radio" class="mx-2" value="1" name="roleType" v-model="roleType">Giảng Viên</label>
+                                <label class="radio-inline"><input ref="roleType0" type="radio" class="mx-2" value="0" name="roleType" v-model="roleType">Người chơi</label>
+                                <label class="radio-inline"><input ref="roleType1" type="radio" class="mx-2" value="1" name="roleType" v-model="roleType">Người dẫn</label>
                             </div>
                         </div>
                         <a ref="register" @click="register" class="btn btn-primary text-white btn-user btn-block">
