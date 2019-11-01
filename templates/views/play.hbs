@@ -26,22 +26,22 @@
         <div v-if="gameBoard.visible" class="fade-in slide-up">
             <div v-if="gameBoard.showAnswers" class="play-fullscreen">
                 <div class="row">
-                    <div class="col-md-6 mb-4">
+                    <div v-if="gameBoard.questData.Answers.length >= 1" class="col-md-6 mb-4">
                         <div @click="OnClick_Answer(0);" class="btn-client-answer border-triangle d-flex justify-content-center align-items-center ans-triangle py-3">
                             <div class="answer-icon text-dark d-flex justify-content-center align-items-center"><span>&bigtriangleup;</span></div>
                         </div>
                     </div>
-                    <div class="col-md-6 mb-4">
+                    <div v-if="gameBoard.questData.Answers.length >= 2" class="col-md-6 mb-4">
                         <div @click="OnClick_Answer(1);" class="btn-client-answer border-circle d-flex justify-content-center align-items-center ans-circle py-3">
                             <div class="answer-icon text-dark d-flex justify-content-center align-items-center"><span>O</span></div>
                         </div>
                     </div>
-                    <div class="col-md-6 mb-4">
+                    <div v-if="gameBoard.questData.Answers.length >= 3" class="col-md-6 mb-4">
                         <div @click="OnClick_Answer(2);" class="btn-client-answer border-cross d-flex justify-content-center align-items-center ans-cross py-3">
                             <div class="answer-icon text-dark d-flex justify-content-center align-items-center"><span>X</span></div>
                         </div>
                     </div>
-                    <div class="col-md-6 mb-4">
+                    <div v-if="gameBoard.questData.Answers.length >= 4" class="col-md-6 mb-4">
                         <div @click="OnClick_Answer(3);" class="btn-client-answer border-square d-flex justify-content-center align-items-center ans-square py-3">
                             <div class="answer-icon text-dark d-flex justify-content-center align-items-center"><span>&#9634;</span></div>
                         </div>
@@ -94,6 +94,10 @@
                     questData: null,
                     busyAnswering: false,
                     isAnswered: 0
+                },
+                sounds: {
+                    answerCorrect: null,
+                    answerWrong: null
                 }
             },
             computed: {
@@ -180,6 +184,11 @@
 
                             this.header.scoreNumber = data.result.point;
                             this.SetAnswerStatus(data.result);
+
+                            if(data.result.detail == 1) {
+                                this.sounds.answerCorrect.currentTime = 0.0;
+                                this.sounds.answerCorrect.play();
+                            }
                         }
                     }
                 },
@@ -364,6 +373,9 @@
             },
             mounted() {
                 //this.userGameId = this.getCookie('userGameId');
+
+                this.sounds.answerCorrect = new Audio("/sounds/answer_correct.wav");
+                this.sounds.answerWrong = new Audio("/sounds/answer_wrong.wav");
 
                 document.getElementById("app-testing").style.display = "block";
                 this.socketConnect();

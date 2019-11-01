@@ -471,7 +471,7 @@
                         for(var i = 0; i < this.gameBoard.answers.length; i++) {
                             var answer = data.detail.Answers[i];
 
-                            this.gameBoard.answers[i].id = answer ? answer.AnsID : -1;
+                            this.gameBoard.answers[i].id = answer ? answer.AnsID : null;
                             this.gameBoard.answers[i].content = answer ? answer.Content : "";
                             this.gameBoard.answers[i].percent = -1;
                         }
@@ -487,7 +487,7 @@
                         for(var i = 0; i < this.gameBoard.answers.length; i++) {
                             var answer = data.detail.Answers[i];
 
-                            this.gameBoard.answers[i].id = answer ? answer.AnsID : -1;
+                            this.gameBoard.answers[i].id = answer ? answer.AnsID : null;
                             this.gameBoard.answers[i].content = answer ? answer.Content : "";
                             this.gameBoard.answers[i].percent = -1;
                         }
