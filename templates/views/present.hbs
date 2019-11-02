@@ -507,11 +507,11 @@
                     }
                 },
                 OnTime_Run() {
-                    if(this.game.status == 2 && this.game.detailStatus == 1 && this.gameBoard.timer > 0 && !niggerThis.header.buttonLoading) {
+                    if(this.game.status == 2 && this.game.detailStatus == 1 && this.gameBoard.timer > 0 && !this.header.buttonLoading) {
                         this.gameBoard.timer--;
                         if(this.gameBoard.timer <= 0) { // One run
                             var niggerThis = this;
-                                niggerThis.header.buttonLoading = true;
+                            niggerThis.header.buttonLoading = true;
 
                             this.Check_QuestionAnswer(function(success, reason) {
                                 niggerThis.header.buttonLoading = false;
