@@ -360,19 +360,19 @@
                             break;
                         case 2: // Playing
                             if(this.game.detailStatus == 1) { // Now check for result
-                                var niggerButton = this.header.buttonLoading;
-                                niggerButton = true;
+                                var niggerThis = this;
+                                niggerThis.header.buttonLoading = true;
 
                                 this.Check_QuestionAnswer(function(success, reason) {
-                                    niggerButton = false;
+                                    niggerThis.header.buttonLoading = false;
                                     if(!success) alert(reason);
                                 });
                             } else if(this.game.detailStatus == 2) { // Go to next question
-                                var niggerButton = this.header.buttonLoading;
-                                niggerButton = true;
+                                var niggerThis = this;
+                                niggerThis.header.buttonLoading = true;
 
                                 this.Check_NextQuestion(function(success, reason) {
-                                    niggerButton = false;
+                                    niggerThis.header.buttonLoading = false;
                                     if(!success) alert(reason);
                                 });
                             }
@@ -381,19 +381,19 @@
                         case 3: // End Game
                             var result = confirm('Bạn có muốn kết thúc trò chơi?');
                             if(result) {
-                                var niggerButton = this.header.buttonLoading;
-                                niggerButton = true;
+                                var niggerThis = this;
+                                niggerThis.header.buttonLoading = true;
 
                                 axios("/present/"+this.game.id+"/presenter_act/end_game")
                                 .then(({ data }) => {
-                                    niggerButton = false;
+                                    niggerThis.header.buttonLoading = false;
                                     if(data.success) {
                                         location.reload();
                                     } else {
                                         alert(data.message);
                                     }
                                 }).catch((error) => {
-                                    niggerButton = false;
+                                    niggerThis.header.buttonLoading = false;
                                     console.log(error);
                                     this.ClosePresent("Không thể kết nối tới máy chủ.");
                                 });
@@ -510,11 +510,11 @@
                     if(this.game.status == 2 && this.game.detailStatus == 1 && this.gameBoard.timer > 0) {
                         this.gameBoard.timer--;
                         if(this.gameBoard.timer <= 0) { // One run
-                            var niggerButton = this.header.buttonLoading;
-                            niggerButton = true;
+                            var niggerThis = this;
+                                niggerThis.header.buttonLoading = true;
 
                             this.Check_QuestionAnswer(function(success, reason) {
-                                niggerButton = false;
+                                niggerThis.header.buttonLoading = false;
                                 if(!success) alert(reason);
                             });
                         }

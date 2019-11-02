@@ -653,13 +653,13 @@ function Startup(io, globalTokens) {
 
     // Reset Status
     QueryNow("UPDATE games SET OpenStatus = 0 WHERE OpenStatus = 1;").then((rows) => {
-
+/*
         // For Test purpose!
         OpenRoom(3).then(() => {
             Log(`[Active Games] Manually opened room 3`);
         });
         // End of Test
-
+*/
         if(rows.affectedRows <= 0) return
         Log(`[Active Games] Reseted ${rows.affectedRows} game(s) (Game lost when application crashed)`);
     });
