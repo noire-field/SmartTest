@@ -308,7 +308,7 @@ function Player_SendAnswer(game, req, res) {
     var userGameId = req.cookies.userGameId || "";
     if(userGameId != data.userGameId) return res.json({ success: false, message: "Danh tính không hợp lệ." });
     if(!game.PLAYERS.has(userGameId)) return res.json({ success: false, message: "Bạn không hề có trong phòng chơi này." });
-    if(game.STATUS != 2 || game.DETAIL.STATUS != 1) return res.json({ success: false, message: "Không thể trả lời vào lúc này." });
+    if(game.STATUS != 2 || game.DETAIL.STATUS != 1) return res.json({ success: false, message: "Quá muộn, lần tới hãy nhanh hơn." });
     if(!game.CUR_QUEST_DATA) return res.json({ success: false, message: "Hiện tại không có câu hỏi nào." });
     if(game.CUR_QUEST_DATA.QuestID != data.questID) return res.json({ success: false, message: "Dữ liệu của bạn đã lỗi thời, hãy làm mới lại trang." });
 
