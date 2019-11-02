@@ -536,12 +536,24 @@
                             $(inside).css('fontSize', parseFloat(fontsize) - 1);
                         }
                     }
+                },
+                Preload_Images(images) {
+                    var tempImages = [];
+                    for (var i = 0; i < images.length; i++) {
+                        tempImages[i] = new Image();
+                        tempImages[i].src = images[i];
+                    }
                 }
             },
             mounted() {
                 document.getElementById("app-testing").style.display = "block";
 
                 this.timer.quest = setInterval(this.OnTime_Run, 1000);
+
+                this.Preload_Images([
+                    "/img/loading3.gif",
+                    "/img/bg-chalkboard.jpg"
+                ]);
 
                 this.socketConnect();
             }

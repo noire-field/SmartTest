@@ -299,16 +299,14 @@
                         })
                         .then(({ data }) => {
                             if(data.success) {
-                                setTimeout(() => {
-                                    if(currentDetailStatus == this.game.detailStatus) { // Sometimes the API answered later than the socket
-                                        this.backgroundColor = 1;
-                                        this.gameBoard.showAnswers = false;
-                                        this.gameBoard.showMessage = true;
-                                        this.gameBoard.messageText = "<h1 class='text-center'><i class='far fa-check-circle mr-2'></i>Đã trả lời!</h1><span class='d-block small'>Bây giờ hãy chờ đợi kết quả.</span>";
-                                        
-                                        this.gameBoard.isAnswered = data.questID;
-                                    }
-                                }, 1000);
+                                if(currentDetailStatus == this.game.detailStatus) { // Sometimes the API answered later than the socket
+                                    this.backgroundColor = 1;
+                                    this.gameBoard.showAnswers = false;
+                                    this.gameBoard.showMessage = true;
+                                    this.gameBoard.messageText = "<h1 class='text-center'><i class='far fa-check-circle mr-2'></i>Đã trả lời!</h1><span class='d-block small'>Bây giờ hãy chờ đợi kết quả.</span>";
+                                    
+                                    this.gameBoard.isAnswered = data.questID;
+                                }
                             } else {
                                 alert(data.message);
                             }
