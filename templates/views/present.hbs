@@ -507,7 +507,7 @@
                     }
                 },
                 OnTime_Run() {
-                    if(this.game.status == 2 && this.game.detailStatus == 1 && this.gameBoard.timer > 0) {
+                    if(this.game.status == 2 && this.game.detailStatus == 1 && this.gameBoard.timer > 0 && !niggerThis.header.buttonLoading) {
                         this.gameBoard.timer--;
                         if(this.gameBoard.timer <= 0) { // One run
                             var niggerThis = this;
