@@ -16,39 +16,40 @@
   <link href="css/style.css" rel="stylesheet">
   <link href="css/all.min.css" rel="stylesheet">
 </head>
-
 <body>
-  <header id="header">
-    <div class="container">
-      <div id="logo" class="pull-left">
-        <!--<a href="#hero"><img src="img/logo.png" alt="" title="" /></img></a>-->
-        <h1 class="slide-right"><a href="#hero">Play To Learn</a></h1>
-      </div>
-
-      <nav id="nav-menu-container">
-        <ul class="nav-menu slide-left">
-          <li class="menu-active"><a href="/">Trang chủ</a></li>
-          {{#IfEqualBlock isUserLogged true}}
-          <li class="menu-has-children"><a href="/account">Tài khoản</a>
-            <ul>
-              <!-- <li><a href="/account">Cài đặt tài khoản</a></li>  -->
-              {{#IfEqualBlock isUserAdmin true}}
-              <li><a href="/dashboard">Quản lý trò chơi</a></li>
-              {{/IfEqualBlock}}
-              {{#IfEqualBlock isUserAdmin false}}
-              <!-- <li><a href="/result">Kết quả kiểm tra</a></li> -->
-              {{/IfEqualBlock}}
-              <li><a href="/logout">Đăng xuất</a></li>
-            </ul>
-          </li>
-          {{/IfEqualBlock}}
-          {{#IfEqualBlock isUserLogged false}}
-          <li><a href="/login">Đăng nhập</a></li>
-          <li><a href="/register">Đăng ký</a></li>
-          {{/IfEqualBlock}}
-        </ul>
-      </nav><!-- #nav-menu-container -->
+    <div id="preloder" v-if="pageBusy">
+        <div class="loader"></div>
     </div>
+    <header id="header">
+        <div class="container">
+            <div id="logo" class="pull-left">
+                <!--<a href="#hero"><img src="img/logo.png" alt="" title="" /></img></a>-->
+                <h1 class="slide-right my-1"><a href="#hero">Play To Learn</a></h1>
+            </div>
+            <nav id="nav-menu-container">
+                <ul class="nav-menu slide-left">
+                    <li class="menu-active"><a href="/">Trang chủ</a></li>
+                    {{#IfEqualBlock isUserLogged true}}
+                    <li class="menu-has-children"><a href="/account">Tài khoản</a>
+                        <ul>
+                        <!-- <li><a href="/account">Cài đặt tài khoản</a></li>  -->
+                        {{#IfEqualBlock isUserAdmin true}}
+                        <li><a href="/dashboard">Quản lý trò chơi</a></li>
+                        {{/IfEqualBlock}}
+                        {{#IfEqualBlock isUserAdmin false}}
+                        <!-- <li><a href="/result">Kết quả kiểm tra</a></li> -->
+                        {{/IfEqualBlock}}
+                        <li><a href="/logout">Đăng xuất</a></li>
+                        </ul>
+                    </li>
+                    {{/IfEqualBlock}}
+                    {{#IfEqualBlock isUserLogged false}}
+                    <li><a href="/login">Đăng nhập</a></li>
+                    <li><a href="/register">Đăng ký</a></li>
+                    {{/IfEqualBlock}}
+                </ul>
+            </nav><!-- #nav-menu-container -->
+        </div>
   </header><!-- #header -->
 
   <!--==========================
@@ -57,65 +58,21 @@
   <div id="nigger-app">
     <section id="hero">
         <div id="bigger-container" style="display: none;" class="fade-in">
-        <div class="hero-container">
-            <img style="height:250px;" class="mb-2" src="img/LearnToPlay_Icon.png"/>
-            <h1 class="slide-up text-primary mb-3">Chơi để học</h1>
-            {{#IfEqualBlock isInGame false}}
-            <div>
-                <h4 class="slide-up mb-2">Nhập mã PIN để vào phòng</h4>
+            <div class="hero-container">
+                <img class="mb-4 img-fluid slide-up" src="img/game_symbol.png"/>
+                {{#IfEqualBlock isInGame false}}
                 <div class="row slide-up">
-                    <div class="col-md-12">
-                        <div v-if="!gameSearch.isSearching" class="input-group mb-3">
-                            <input v-model="gameSearch.inputPIN" type="text" class="form-control" placeholder="VD: 97775" maxlength="5">
+                    <div class="col-md-8 offset-md-2 homepage-searchgroup">
+                        <div class="input-group">
+                            <input id="mainInputPIN" v-model="gameSearch.inputPIN" type="text" class="form-control form-control-lg" placeholder="VD: 97775" maxlength="5" data-placement="top" :data-content="gameSearch.errorText">
                             <div class="input-group-append">
-                                <button @click="SearchGame" class="btn btn-success" type="button"><i class="fas fa-search mr-2"></i>Tìm phòng</button>
+                                <button @click="SearchGame" class="btn btn-success px-3" type="button"><i class="fas fa-search"></i></button>
                             </div>
                         </div>
                     </div>
                 </div>
+                {{/IfEqualBlock}}
             </div>
-            {{/IfEqualBlock}}
-            {{#IfEqualBlock isInGame true}}
-            <h2 class="slide-up">Hệ thống nhận thấy bạn đang trong một bài kiểm tra, hãy bấm quay lại vào phòng</h2>
-            <div class="row slide-up">
-                <div class="col-md-12">
-                    <div v-if="!isLoading" class="input-group mb-3">
-                    <input type="text" id="txbPINCode" class="form-control" value="{{ testPIN }}" disabled>
-                    <div class="input-group-append">
-                        <button @click="backToRoom" id="btnBackToRoom" class="btn btn-success" type="button">Quay lại phòng</button>
-                    </div>
-                    </div>
-                </div>
-            </div>
-            {{/IfEqualBlock}}
-            <div class="row slide-up">
-                <div class="col-md-12">
-                    <div v-if="gameSearch.isSearching" class="py-2"><img src="img/loading3.gif" class="icon-loading"></div>
-                    <div v-if="gameSearch.isError" class="alert alert-warning py-2 pl-0">
-                        <ul class="m-0 y-0 text-left">
-                            <li v-for="e in gameSearch.errorList">{? e ?}</li>
-                        </ul>
-                    </div>
-                    <!--
-                    <div v-if="gameFound.isFound">
-                        <div class="card rounded-0 mt-5" style="opacity: 0.85;">
-                            <div class="card-header rounded-0 py-1 px-2 bg-primary text-white"><i class="fas fa-check-circle mr-2"></i><span>Đã tìm được phòng</span></div>
-                            <div class="card-body rounded-0 py-3 d-flex justify-content-between align-items-center text-left">
-                                <div class="pr-5">
-                                    <p class="m-0 y-0 text-primary"><b>{? gameFound.name ?}</b></p>
-                                    <hr class="my-1">
-                                    <p class="m-0 y-0 text-primary small"><b>Người dẫn:</b> {? gameFound.presenter ?}</p>
-                                </div>
-                                <div>
-                                    <button @click="JoinGame" class="btn btn-primary"><i class="fas fa-chevron-circle-right mr-2"></i>Vào phòng</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    -->
-                </div>
-            </div>
-        </div>
         </div>
     </section><!-- #hero -->
         <div class="modal fade" id="modal-joingame">
@@ -154,6 +111,26 @@
     <script src="/js/axios.min.js"></script>
     <script src="/js/babel.min.js"></script>
     <script type="text/babel">
+        var isPageBusy = true;
+        function Set_PageBusy(busy) {
+            if(isPageBusy == busy)
+                return;
+            
+            isPageBusy = busy;
+
+            if(isPageBusy) {
+                $(".loader").fadeIn(1);
+                $("#preloder").fadeIn(1);
+            } else {
+                $(".loader").fadeOut(1);
+                $("#preloder").fadeOut(1);
+            }
+        }
+
+        $(window).on("load", function() {
+            Set_PageBusy(false);
+        });
+        
         var vm = new Vue({
             el: "#nigger-app",
             delimiters: ["{?","?}"],
@@ -166,50 +143,60 @@
                     isSearching: false,
                     inputPIN: "",
                     isError: false,
-                    errorList: []
+                    errorText: ""
                 },
                 gameFound: {
                     isFound: false,
                     name: "",
                     presenter: "",
                     PIN: ""
-                }
+                },
+                pageBusy: true
             },
             methods: {
+                OnChange_InputPIN() {
+                    console.log('Test');
+                    this.showError(false, "");
+                },
                 SearchGame() {
                     this.gameFound.isFound = false;
-                    this.showError(false, "");
-
+                   
                     if(!(new RegExp(/^\d{5}$/).test(this.gameSearch.inputPIN)))
                         return this.showError(true, 'Mã PIN phải là 5 chữ số');
 
                     this.gameSearch.isSearching = true;
+                    Set_PageBusy(true);
 
-                    axios("/findgame/"+this.gameSearch.inputPIN)
-                    .then(({ data }) => {
-                        if(data.success) {
-                            this.gameFound.name = data.game.NAME;
-                            this.gameFound.presenter = data.game.PRESENTER;
-                            this.gameFound.PIN = this.gameSearch.inputPIN;
-                            this.gameFound.isFound = true;
+                    setTimeout(() => {
+                        axios("/findgame/"+this.gameSearch.inputPIN)
+                        .then(({ data }) => {
+                            if(data.success) {
+                                this.gameFound.name = data.game.NAME;
+                                this.gameFound.presenter = data.game.PRESENTER;
+                                this.gameFound.PIN = this.gameSearch.inputPIN;
+                                this.gameFound.isFound = true;
 
-                            $("#modal-joingame").modal("show");
-                            if(this.GetQuickJoin()) {
-                                var niggerThis = this;
-                                setTimeout(function() { niggerThis.JoinGame(); }, 500);
+                                $("#modal-joingame").modal("show");
+                                if(this.GetQuickJoin()) {
+                                    var niggerThis = this;
+                                    setTimeout(function() { niggerThis.JoinGame(); }, 500);
+                                }
+                            } else {
+                                this.showError(true, data.message);
+                                $("#modal-joingame").modal("hide");
                             }
-                        } else {
-                            this.showError(true, data.message);
-                            $("#modal-joingame").modal("hide");
-                        }
 
-                        this.gameSearch.isSearching = false;
-                    }).catch((error) => {
-                        console.log(error);
+                            this.gameSearch.isSearching = false;
+                            Set_PageBusy(false);
+                        }).catch((error) => {
+                            console.log(error);
 
-                        this.gameSearch.isSearching = false;
-                        this.showError(true, "Không thể kết nối tới máy chủ");
-                    });
+                            this.gameSearch.isSearching = false;
+                            Set_PageBusy(false);
+                            this.showError(true, "Không thể kết nối tới máy chủ");
+                        });
+                    }, 1000);
+                    
                 },
                 JoinGame() {
                     if(!this.gameFound.isFound)
@@ -239,14 +226,31 @@
                     window.location = '/playing';
                 },
                 showError(show, error) {
+                    this.gameSearch.errorText = error;
+                    setTimeout(function() { 
+                        $("#mainInputPIN").popover(show == true ? 'show' : 'hide'); 
+                    }, 10);
+
+                    /*
                     this.gameSearch.isError = show;
                     this.gameSearch.errorList = [error];
+                    */
                 },
                 GetQuickJoin() {
                     if(this.quickJoin.length == 5)
                         return true;
 
                     return false;
+                }
+            },
+            computed: {
+                searchPIN() {
+                    return this.gameSearch.inputPIN;
+                }
+            },
+            watch: {
+                searchPIN(val) {
+                    this.showError(false, "");
                 }
             },
             mounted() {
@@ -256,6 +260,10 @@
                     this.gameSearch.inputPIN = this.quickJoin;
                     this.SearchGame();
                 }
+
+                $('#mainInputPIN').popover({
+                    trigger: 'manual'
+                });
             }
         });
     </script>
