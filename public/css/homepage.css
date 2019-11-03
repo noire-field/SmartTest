@@ -142,18 +142,24 @@ h1, h2, h3, h4, h5, h6 {
 
 #hero {
   width: 100%;
-  min-height: 95vh;
+  min-height: 90vh;
   background: rgb(243, 243, 243);
   /* background: url(../img/play-to-learn.jpeg) top center;
   background-size: cover; */
   position: relative;
 }
 
-@media (min-width: 1024px) {
-  #hero {
-    background-attachment: fixed;
-  }
+@media (max-width: 375px) {
+    #hero {
+        min-height: 85vh;
+    }
 }
+
+@media (min-width: 1024px) {
+    #hero {
+      background-attachment: fixed;
+    }
+  }
 
 #hero:before {
   content: "";
