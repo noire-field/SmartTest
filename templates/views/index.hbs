@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <title>{{ head_title }}</title>
-  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <meta content="smarttest" name="keywords">
   <meta content="An application that makes exams easier" name="description">
   <link href="img/favicon.png" rel="icon">
@@ -16,7 +16,7 @@
   <link href="css/style.css" rel="stylesheet">
   <link href="css/all.min.css" rel="stylesheet">
 </head>
-<body>
+<body class="custom-body">
     <div id="preloder" v-if="pageBusy">
         <div class="loader"></div>
     </div>
@@ -119,11 +119,11 @@
             isPageBusy = busy;
 
             if(isPageBusy) {
-                $(".loader").fadeIn(1);
-                $("#preloder").fadeIn(1);
+                $(".loader").show();
+                $("#preloder").show();
             } else {
-                $(".loader").fadeOut(1);
-                $("#preloder").fadeOut(1);
+                $(".loader").hide();
+                $("#preloder").hide();
             }
         }
 
@@ -167,35 +167,33 @@
                     this.gameSearch.isSearching = true;
                     Set_PageBusy(true);
 
-                    setTimeout(() => {
-                        axios("/findgame/"+this.gameSearch.inputPIN)
-                        .then(({ data }) => {
-                            if(data.success) {
-                                this.gameFound.name = data.game.NAME;
-                                this.gameFound.presenter = data.game.PRESENTER;
-                                this.gameFound.PIN = this.gameSearch.inputPIN;
-                                this.gameFound.isFound = true;
+                    axios("/findgame/"+this.gameSearch.inputPIN)
+                    .then(({ data }) => {
+                        if(data.success) {
+                            this.gameFound.name = data.game.NAME;
+                            this.gameFound.presenter = data.game.PRESENTER;
+                            this.gameFound.PIN = this.gameSearch.inputPIN;
+                            this.gameFound.isFound = true;
 
-                                $("#modal-joingame").modal("show");
-                                if(this.GetQuickJoin()) {
-                                    var niggerThis = this;
-                                    setTimeout(function() { niggerThis.JoinGame(); }, 500);
-                                }
-                            } else {
-                                this.showError(true, data.message);
-                                $("#modal-joingame").modal("hide");
+                            $("#modal-joingame").modal("show");
+                            if(this.GetQuickJoin()) {
+                                var niggerThis = this;
+                                setTimeout(function() { niggerThis.JoinGame(); }, 500);
                             }
+                        } else {
+                            this.showError(true, data.message);
+                            $("#modal-joingame").modal("hide");
+                        }
 
-                            this.gameSearch.isSearching = false;
-                            Set_PageBusy(false);
-                        }).catch((error) => {
-                            console.log(error);
+                        this.gameSearch.isSearching = false;
+                        Set_PageBusy(false);
+                    }).catch((error) => {
+                        console.log(error);
 
-                            this.gameSearch.isSearching = false;
-                            Set_PageBusy(false);
-                            this.showError(true, "Không thể kết nối tới máy chủ");
-                        });
-                    }, 1000);
+                        this.gameSearch.isSearching = false;
+                        Set_PageBusy(false);
+                        this.showError(true, "Không thể kết nối tới máy chủ");
+                    });
                     
                 },
                 JoinGame() {

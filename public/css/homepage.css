@@ -136,9 +136,13 @@ h1, h2, h3, h4, h5, h6 {
 /*--------------------------------------------------------------
 # Hero Section
 --------------------------------------------------------------*/
+.custom-body {
+    background: rgb(243, 243, 243);
+}
+
 #hero {
   width: 100%;
-  height: 100vh;
+  min-height: 95vh;
   background: rgb(243, 243, 243);
   /* background: url(../img/play-to-learn.jpeg) top center;
   background-size: cover; */
