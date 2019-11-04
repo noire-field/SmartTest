@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="height: 100%;">
 <head>
     <title>{{ head_title }}</title>
     <meta charset="utf-8">
@@ -12,7 +12,7 @@
     <link href="/css/style.css" rel="stylesheet">
     <link href="/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
 </head>
-<body>
+<body style="height: 100%;">
     <div id="preloder">
         <div class="loader"></div>
     </div>
@@ -28,7 +28,7 @@
         </div>
         <div v-if="gameBoard.visible" class="fade-in slide-up">
             <div v-if="gameBoard.showAnswers" class="play-fullscreen">
-                <div v-if="!gameBoard.busyAnswering" class="row">
+                <div class="row">
                     <div v-if="gameBoard.questData.Answers.length >= 1" class="col-md-6 mb-4">
                         <div @click="OnClick_Answer(0);" :class="{ 'opacity-35': (gameBoard.answeredButtonID != 0 && gameBoard.isAnswered) }" class="btn-client-answer border-triangle d-flex justify-content-center align-items-center ans-triangle py-3">
                             <div class="answer-icon text-dark d-flex justify-content-center align-items-center"><span>&bigtriangleup;</span></div>
@@ -49,9 +49,6 @@
                             <div class="answer-icon text-dark d-flex justify-content-center align-items-center"><span>&#9634;</span></div>
                         </div>
                     </div>
-                </div>
-                <div v-if="gameBoard.busyAnswering" class="play-fullscreen d-flex justify-content-center align-items-center text-center">
-                    <img src="/img/loading3.gif" class="icon-loading">
                 </div>
             </div>
             <div v-if="gameBoard.showMessage" class="play-fullscreen d-flex justify-content-center align-items-center">
