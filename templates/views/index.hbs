@@ -17,7 +17,7 @@
   <link href="css/all.min.css" rel="stylesheet">
 </head>
 <body class="custom-body">
-    <div id="preloder" v-if="pageBusy">
+    <div id="preloder">
         <div class="loader"></div>
     </div>
     <header id="header">
@@ -82,10 +82,19 @@
                         <h4 class="modal-title text-success"><i class="fas fa-check-circle mr-2"></i><span>Đã tìm được phòng</span></h4>
                         <button type="button" class="close" data-dismiss="modal">&times;</button>
                     </div>
-                    <div class="modal-body py-5 text-center">
-                        <img style="height:190px;" class="mb-4" src="img/LearnToPlay_Icon.png"/>
-                        <h6 class="text-center font-weight-bold text-uppercase mb-2 text-muted">Chủ đề</h6>
-                        <h2 class="text-center text-success mb-1">{? gameFound.name ?}</h2>
+                    <div class="modal-body pt-5 text-center">
+                        <img class="img-fluid mb-4" src="img/game_symbol.png"/>
+                        <h2 class="text-center text-success mb-5">{? gameFound.name ?}</h2>
+                        <div class="row">
+                            <div class="col-md-6 offset-md-3">
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text">Tên bạn</span>
+                                    </div>
+                                    <input id="player-name" v-model="gameSearch.playerName" type="text" class="form-control" placeholder="VD: Cuong Vu" autofocus>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="modal-footer d-flex justify-content-between align-items-center">
                         <h6 class="text-center p-2 mb-0"><i class="fas fa-chalkboard-teacher mr-2"></i>{? gameFound.presenter ?}</h6>
@@ -136,14 +145,16 @@
             delimiters: ["{?","?}"],
             data: {
                 user: {
-                    fullName: "{{ userFullName }}"
+                    fullName: "{{ userFullName }}",
+                    quickJoin: false
                 },
                 quickJoin: "{{ quickJoin }}",
                 gameSearch: {
                     isSearching: false,
                     inputPIN: "",
                     isError: false,
-                    errorText: ""
+                    errorText: "",
+                    playerName: ""
                 },
                 gameFound: {
                     isFound: false,
@@ -164,6 +175,7 @@
                     if(!(new RegExp(/^\d{5}$/).test(this.gameSearch.inputPIN)))
                         return this.showError(true, 'Mã PIN phải là 5 chữ số');
 
+                    this.showError(false, "");
                     this.gameSearch.isSearching = true;
                     Set_PageBusy(true);
 
@@ -176,6 +188,7 @@
                             this.gameFound.isFound = true;
 
                             $("#modal-joingame").modal("show");
+                            setTimeout(function() { $("#player-name").focus(); }, 500);
                             if(this.GetQuickJoin()) {
                                 var niggerThis = this;
                                 setTimeout(function() { niggerThis.JoinGame(); }, 500);
@@ -201,22 +214,12 @@
                         return;
 
                     var pattern = "^[a-zA-Z_ÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂưăạảấầẩẫậắằẳẵặẹẻẽềềểỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵỷỹ\\s0-9]+$";
-                    var fullName;
+                    var fullName = this.gameSearch.playerName;
 
-                    do {
-                        fullName = prompt("Vui lòng nhập tên của bạn", this.user.fullName || "Người chơi");
-
-                        if(fullName.length > 24)
-                            alert("Tên phải từ 1 đến 24 ký tự.");
-                        else if(fullName.length > 0 && !(new RegExp(pattern).test(fullName)))
-                            alert("Tên nhập không hợp lệ. (Vui lòng không dùng ký tự đặc biệt)");
-                        else if(fullName <= 0) {
-                            alert("Vui lòng nhập tên để vào phòng");
-                            break;
-                        }
-
-                    } while(!(new RegExp(pattern).test(fullName)) || fullName.length > 24)
-                    if(fullName.length <= 0) return;
+                    if(fullName.length <= 0 || fullName.length > 24) 
+                        return alert("Tên phải từ 1 đến 24 ký tự.");
+                    if(!(new RegExp(pattern).test(fullName)))
+                        return alert("Tên nhập không hợp lệ. (Vui lòng không dùng ký tự đặc biệt)");
 
                     window.location.replace('/joingame/'+this.gameFound.PIN+'/'+encodeURI(fullName));
                 },
@@ -228,11 +231,6 @@
                     setTimeout(function() { 
                         $("#mainInputPIN").popover(show == true ? 'show' : 'hide'); 
                     }, 10);
-
-                    /*
-                    this.gameSearch.isError = show;
-                    this.gameSearch.errorList = [error];
-                    */
                 },
                 GetQuickJoin() {
                     if(this.quickJoin.length == 5)
@@ -253,11 +251,18 @@
             },
             mounted() {
                 document.getElementById('bigger-container').style.display = "block";
+                var niggerThis = this;
 
                 if(this.GetQuickJoin()) {
-                    this.gameSearch.inputPIN = this.quickJoin;
-                    this.SearchGame();
+                    setTimeout(function() {
+                        niggerThis.user.quickJoin = true;
+                        
+                        niggerThis.gameSearch.inputPIN = niggerThis.quickJoin;
+                        niggerThis.SearchGame();
+                    }, 500);
                 }
+
+                this.gameSearch.playerName = this.user.fullName;
 
                 $('#mainInputPIN').popover({
                     trigger: 'manual'
