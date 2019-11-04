@@ -656,9 +656,10 @@ function Startup(io, globalTokens) {
     QueryNow("UPDATE games SET OpenStatus = 0 WHERE OpenStatus = 1;").then((rows) => {
 
         // For Test purpose!
+        /*
         OpenRoom(7).then(() => {
             Log(`[Active Games] Manually opened room 7`);
-        });
+        });*/
         // End of Test
 
         if(rows.affectedRows <= 0) return

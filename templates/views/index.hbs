@@ -189,10 +189,11 @@
 
                             $("#modal-joingame").modal("show");
                             setTimeout(function() { $("#player-name").focus(); }, 500);
+                            /*
                             if(this.GetQuickJoin()) {
                                 var niggerThis = this;
                                 setTimeout(function() { niggerThis.JoinGame(); }, 500);
-                            }
+                            }*/
                         } else {
                             this.showError(true, data.message);
                             $("#modal-joingame").modal("hide");
