@@ -55,7 +55,7 @@
                 <div class="card-body py-3">
                     <div class="row">
                         <div v-for="(st, i) in lobby.users" class="col-md-3 mb-3">
-                            <div :data-userindex="i" class="white-transparent-high bg-dark text-white text-center px-3 py-2 lobby-user"><i class="fas fa-user mr-2"></i>{? st ?}</div>
+                            <div :data-userindex="i" class="white-transparent-high bg-primary text-white px-3 py-2 lobby-user"><i class="fas fa-user mr-2"></i>{? st ?}</div>
                         </div>
                     </div>
                     <h5 v-if="lobby.users.length <= 0" class="text-center my-1">Chưa có ai tham gia</h5>
@@ -91,25 +91,25 @@
             </div>
             <div v-if="gameBoard.showContent" class="row">
                 <div v-if="gameBoard.answers[0].id != null" class="col-md-6 mb-4">
-                    <div class="btn-answer border-triangle d-flex justify-content-between align-items-center" :class="{ 'answer-wrong': (!gameBoard.answers[0].isCorrect && game.detailStatus == 2) }">
+                    <div class="btn-answer border-triangle d-flex justify-content-between align-items-center" :class="{ 'opacity-35': (!gameBoard.answers[0].isCorrect && game.detailStatus == 2) }">
                         <div class="answer-icon text-color-triangle d-flex justify-content-center align-items-center"><span v-if="gameBoard.answers[0].percent == -1">&bigtriangleup;</span><span v-html="gameBoard.answers[0].percent" v-else="gameBoard.answers[0].percent != -1"></span></div>
                         <div class="answer-text ans-triangle d-flex justify-content-center align-items-center text-center p-2" data-answerid="1"><div><span>{? gameBoard.answers[0].content ?}</span></div></div>
                     </div>
                 </div>
                 <div v-if="gameBoard.answers[1].id != null" class="col-md-6 mb-4">
-                    <div class="btn-answer border-circle d-flex justify-content-between align-items-center" :class="{ 'answer-wrong': (!gameBoard.answers[1].isCorrect && game.detailStatus == 2) }">
+                    <div class="btn-answer border-circle d-flex justify-content-between align-items-center" :class="{ 'opacity-35': (!gameBoard.answers[1].isCorrect && game.detailStatus == 2) }">
                         <div class="answer-icon text-color-circle d-flex justify-content-center align-items-center"><span v-if="gameBoard.answers[1].percent == -1">O</span><span v-html="gameBoard.answers[1].percent" v-else="gameBoard.answers[1].percent != -1"></span></div>
                         <div class="answer-text ans-circle d-flex justify-content-center align-items-center text-center p-2" data-answerid="2"><div><span>{? gameBoard.answers[1].content ?}</span></div></div>
                     </div>
                 </div>
                 <div v-if="gameBoard.answers[2].id != null" class="col-md-6 mb-4">
-                    <div class="btn-answer border-cross d-flex justify-content-between align-items-center" :class="{ 'answer-wrong': (!gameBoard.answers[2].isCorrect && game.detailStatus == 2) }">
+                    <div class="btn-answer border-cross d-flex justify-content-between align-items-center" :class="{ 'opacity-35': (!gameBoard.answers[2].isCorrect && game.detailStatus == 2) }">
                         <div class="answer-icon text-color-cross d-flex justify-content-center align-items-center"><span v-if="gameBoard.answers[2].percent == -1">X</span><span v-html="gameBoard.answers[2].percent" v-else="gameBoard.answers[2].percent != -1"></span></div>
                         <div class="answer-text ans-cross d-flex justify-content-center align-items-center text-center p-2" data-answerid="3"><div><span>{? gameBoard.answers[2].content ?}</span></div></div>
                     </div>
                 </div>
                 <div v-if="gameBoard.answers[3].id != null" class="col-md-6 mb-4">
-                    <div class="btn-answer border-square d-flex justify-content-between align-items-center" :class="{ 'answer-wrong': (!gameBoard.answers[3].isCorrect && game.detailStatus == 2) }">
+                    <div class="btn-answer border-square d-flex justify-content-between align-items-center" :class="{ 'opacity-35': (!gameBoard.answers[3].isCorrect && game.detailStatus == 2) }">
                         <div class="answer-icon text-color-square d-flex justify-content-center align-items-center"><span v-if="gameBoard.answers[3].percent == -1">&#9634;</span><span v-html="gameBoard.answers[3].percent" v-else="gameBoard.answers[3].percent != -1"></span></div>
                         <div class="answer-text ans-square d-flex justify-content-center align-items-center text-center p-2" data-answerid="4"><div><span>{? gameBoard.answers[3].content ?}</span></div></div>
                     </div>

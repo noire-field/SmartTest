@@ -13,6 +13,9 @@
     <link href="/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
 </head>
 <body>
+    <div id="preloder">
+        <div class="loader"></div>
+    </div>
     <div id="app-testing" class="container pt-3" :class="BackgroundColor" style="display:none;">
         <div v-if="centerMessage.show" class="text-center text-white loading-box"><img v-if="centerMessage.loadingEffect" src="/img/loading3.gif" class="icon-loading mr-2">{? centerMessage.text ?}</div>
         <div v-if="header.visible" id="testing-header" class="bg-dark text-white py-1 px-2 d-flex align-items-center mb-4 fade-in slide-down">
@@ -27,22 +30,22 @@
             <div v-if="gameBoard.showAnswers" class="play-fullscreen">
                 <div v-if="!gameBoard.busyAnswering" class="row">
                     <div v-if="gameBoard.questData.Answers.length >= 1" class="col-md-6 mb-4">
-                        <div @click="OnClick_Answer(0);" class="btn-client-answer border-triangle d-flex justify-content-center align-items-center ans-triangle py-3">
+                        <div @click="OnClick_Answer(0);" :class="{ 'opacity-35': (gameBoard.answeredButtonID != 0 && gameBoard.isAnswered) }" class="btn-client-answer border-triangle d-flex justify-content-center align-items-center ans-triangle py-3">
                             <div class="answer-icon text-dark d-flex justify-content-center align-items-center"><span>&bigtriangleup;</span></div>
                         </div>
                     </div>
                     <div v-if="gameBoard.questData.Answers.length >= 2" class="col-md-6 mb-4">
-                        <div @click="OnClick_Answer(1);" class="btn-client-answer border-circle d-flex justify-content-center align-items-center ans-circle py-3">
+                        <div @click="OnClick_Answer(1);" :class="{ 'opacity-35': (gameBoard.answeredButtonID != 1 && gameBoard.isAnswered) }" class="btn-client-answer border-circle d-flex justify-content-center align-items-center ans-circle py-3">
                             <div class="answer-icon text-dark d-flex justify-content-center align-items-center"><span>O</span></div>
                         </div>
                     </div>
                     <div v-if="gameBoard.questData.Answers.length >= 3" class="col-md-6 mb-4">
-                        <div @click="OnClick_Answer(2);" class="btn-client-answer border-cross d-flex justify-content-center align-items-center ans-cross py-3">
+                        <div @click="OnClick_Answer(2);" :class="{ 'opacity-35': (gameBoard.answeredButtonID != 2 && gameBoard.isAnswered) }" class="btn-client-answer border-cross d-flex justify-content-center align-items-center ans-cross py-3">
                             <div class="answer-icon text-dark d-flex justify-content-center align-items-center"><span>X</span></div>
                         </div>
                     </div>
                     <div v-if="gameBoard.questData.Answers.length >= 4" class="col-md-6 mb-4">
-                        <div @click="OnClick_Answer(3);" class="btn-client-answer border-square d-flex justify-content-center align-items-center ans-square py-3">
+                        <div @click="OnClick_Answer(3);" :class="{ 'opacity-35': (gameBoard.answeredButtonID != 3 && gameBoard.isAnswered) }" class="btn-client-answer border-square d-flex justify-content-center align-items-center ans-square py-3">
                             <div class="answer-icon text-dark d-flex justify-content-center align-items-center"><span>&#9634;</span></div>
                         </div>
                     </div>
@@ -63,6 +66,26 @@
     <script src="/js/axios.min.js"></script>
     <script src="/js/babel.min.js"></script>
     <script type="text/babel">
+        var isPageBusy = true;
+        function Set_PageBusy(busy) {
+            if(isPageBusy == busy)
+                return;
+            
+            isPageBusy = busy;
+
+            if(isPageBusy) {
+                $(".loader").show();
+                $("#preloder").show();
+            } else {
+                $(".loader").hide();
+                $("#preloder").hide();
+            }
+        }
+
+        $(window).on("load", function() {
+            Set_PageBusy(false);
+        });
+
         var vm = new Vue({
             el: "#app-testing",
             delimiters: ['{?','?}'],
@@ -96,7 +119,8 @@
                     messageText: "Vui lòng chờ câu hỏi",
                     questData: null,
                     busyAnswering: false,
-                    isAnswered: 0
+                    isAnswered: 0,
+                    answeredButtonID: -1
                 },
                 sounds: {
                     answerCorrect: null,
@@ -183,6 +207,7 @@
                             this.gameBoard.showMessage = false;
 
                             this.gameBoard.questData = data.quest;
+                            this.gameBoard.isAnswered = false;
                         } else if(data.detailStatus == 2) {
                             this.game.detailStatus = 2;
                             this.gameBoard.showAnswers = false;
@@ -230,6 +255,7 @@
 
                             break;
                         case 2: // Playing
+                        
                             if(game.DETAIL_STATUS == 1) {
                                 this.game.detailStatus = 1;
 
@@ -242,9 +268,16 @@
 
                                 if(this.gameBoard.isAnswered) {
                                     this.backgroundColor = 1;
-                                    this.gameBoard.showAnswers = false;
-                                    this.gameBoard.showMessage = true;
+                                    this.gameBoard.showAnswers = true;
+                                    this.gameBoard.showMessage = false;
                                     this.gameBoard.messageText = "<h1 class='text-center'><i class='far fa-check-circle mr-2'></i>Bạn vừa trả lời xong!</h1><span class='d-block small'>Bây giờ hãy chờ đợi kết quả.</span>";
+                                
+                                    var index = 0, niggerThis = this;
+                                    this.gameBoard.questData.Answers.forEach(function(a) {
+                                        if(a.AnsID == game.answeredID)
+                                            niggerThis.gameBoard.answeredButtonID = index;
+                                        index++;
+                                    });
                                 }
                             } else if(game.DETAIL_STATUS == 2) {
                                 this.game.detailStatus = 2;
@@ -283,12 +316,16 @@
                         return;
                     if(this.gameBoard.busyAnswering)
                         return;
+                    if(this.gameBoard.isAnswered)
+                        return;
 
                     this.gameBoard.busyAnswering = true;
 
                     var questID = this.gameBoard.questData.QuestID;
                     var ansID = this.gameBoard.questData.Answers[orderId].AnsID;
                     var currentDetailStatus = this.game.detailStatus;
+
+                    Set_PageBusy(true);
 
                     axios("/play/"+this.game.id+"/player_act/send_answer", {
                             params: {
@@ -301,19 +338,22 @@
                             if(data.success) {
                                 if(currentDetailStatus == this.game.detailStatus) { // Sometimes the API answered later than the socket
                                     this.backgroundColor = 1;
-                                    this.gameBoard.showAnswers = false;
-                                    this.gameBoard.showMessage = true;
+                                    this.gameBoard.showAnswers = true;
+                                    this.gameBoard.showMessage = false;
                                     this.gameBoard.messageText = "<h1 class='text-center'><i class='far fa-check-circle mr-2'></i>Đã trả lời!</h1><span class='d-block small'>Bây giờ hãy chờ đợi kết quả.</span>";
                                     
                                     this.gameBoard.isAnswered = data.questID;
+                                    this.gameBoard.answeredButtonID = orderId;
                                 }
                             } else {
                                 alert(data.message);
                             }
 
                             this.gameBoard.busyAnswering = false;
+                            Set_PageBusy(false);
                         }).catch((error) => {
                             this.gameBoard.busyAnswering = false;
+                            Set_PageBusy(false);
 
                             console.log(error);
                             this.CloseGame("Không thể kết nối tới máy chủ.")

@@ -320,6 +320,7 @@ function Player_SendAnswer(game, req, res) {
     if(userPlay.latestAnswer.questID == data.questID) return res.json({ success: false, message: "Bạn đã trả lời câu hỏi này rồi." });
 
     userPlay.latestAnswer.questID = data.questID;
+    userPlay.latestAnswer.ansID = data.ansID;
 
     if(thisQuest.CorrectAns.indexOf(data.ansID) != -1) { // Correct!
         userPlay.latestAnswer.isCorrect = true;
@@ -467,7 +468,10 @@ function Player_GetData(game, res, userGameId) {
             for(let i = 0; i < newGame.CUR_QUEST_DATA.Answers.length; i++)
                 delete(newGame.CUR_QUEST_DATA.Answers[i].Count);
 
-            newGame.isAnswered = Users.Players.get(userGameId).play.latestAnswer.questID == newGame.CUR_QUEST_DATA.QuestID ? newGame.CUR_QUEST_DATA.QuestID : 0
+            var { play } = Users.Players.get(userGameId);
+            
+            newGame.isAnswered = play.latestAnswer.questID == newGame.CUR_QUEST_DATA.QuestID ? newGame.CUR_QUEST_DATA.QuestID : 0;
+            newGame.answeredID = play.latestAnswer.questID == newGame.CUR_QUEST_DATA.QuestID ? play.latestAnswer.ansID : -1;
         } else if(game.DETAIL.STATUS == 2) {
             newGame.CUR_QUEST_DATA = {...game.CUR_QUEST_DATA};
 
@@ -570,6 +574,7 @@ function RGet_JoinGame(req, res, next) {
             correctAnswers: 0,
             latestAnswer: {
                 questID: null,
+                ansID: null,
                 isCorrect: false,
                 pointAdd: 0
             }
@@ -659,7 +664,8 @@ function Startup(io, globalTokens) {
         /*
         OpenRoom(7).then(() => {
             Log(`[Active Games] Manually opened room 7`);
-        });*/
+        });
+        */
         // End of Test
 
         if(rows.affectedRows <= 0) return
