@@ -51,3 +51,9 @@ body {
 .answer-wrong {
     opacity: 0.35;
 }
+
+.text-pin {
+    font-size: 4.0em;
+    letter-spacing: 0.5em;
+    margin-right: -0.5em;
+}

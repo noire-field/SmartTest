@@ -54,6 +54,7 @@ function RGet_Present(req, res, next)
     var data = {
         head_title: game.NAME + ' - ' + config.APP_NAME,
         appFullUrl: config.APP_URLFULL,
+        appShortUrl: config.APP_URLSHORT,
         user: req.user,
         gameId: game.ID,
         gamePIN: game.PIN
@@ -653,13 +654,13 @@ function Startup(io, globalTokens) {
 
     // Reset Status
     QueryNow("UPDATE games SET OpenStatus = 0 WHERE OpenStatus = 1;").then((rows) => {
-/*
+
         // For Test purpose!
-        OpenRoom(3).then(() => {
-            Log(`[Active Games] Manually opened room 3`);
+        OpenRoom(7).then(() => {
+            Log(`[Active Games] Manually opened room 7`);
         });
         // End of Test
-*/
+
         if(rows.affectedRows <= 0) return
         Log(`[Active Games] Reseted ${rows.affectedRows} game(s) (Game lost when application crashed)`);
     });

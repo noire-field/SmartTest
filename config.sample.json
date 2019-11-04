@@ -1,6 +1,7 @@
 {
     "APP_NAME": "PlayToLearn",
     "APP_URLFULL": "localhost:8080",
+    "APP_URLSHORT": "localhost:8080",
     "HTTP_PORT": 8080,
     "SESSION_NAME": "SmartTestAuth",
     "SESSION_SECRET": "Somethingbullshit",

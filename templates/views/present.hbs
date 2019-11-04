@@ -17,11 +17,13 @@
         <div v-if="centerMessage.show" class="text-center text-white loading-box"><img v-if="centerMessage.loadingEffect" src="/img/loading3.gif" class="icon-loading mr-2">{? centerMessage.text ?}</div>
         <div v-if="header.visible" id="testing-header" class="row bg-dark text-white py-1 px-2 d-flex align-items-center mb-4 fade-in slide-down">
             <div class="col-md-5">
-                <h1 class="my-0 py-0 text-uppercase">{? header.gameName ?}</h1>
+                <h1 class="my-0 py-0 text-uppercase">{? siteUrlShort ?}</h1>
             </div>
             <div class="col-md-2 text-center">
-                <p class="my-0 py-0 text-uppercase"><i class="far fa-question-circle mr-2"></i>Số câu hỏi</p>
-                <h2>{? header.gameQuestCount[0] ?}/{? header.gameQuestCount[1] ?}</h2>
+                <div v-show="game.status > 1">
+                    <p class="my-0 py-0 text-uppercase">Số câu hỏi</p>
+                    <h2 style="line-height: 0.7em;">{? header.gameQuestCount[0] ?}/{? header.gameQuestCount[1] ?}</h2>
+                </div>
             </div>
              <div class="col-md-5 text-right">
                 <button v-if="!header.buttonLoading" @click="OnClick_HeaderButton" class="btn btn-danger"><span v-html="header.nextButtonText"></span></button>
@@ -29,42 +31,38 @@
             </div>
         </div>
         <div v-if="lobby.visible" class="fade-in slide-up">
-            <div class="row mb-5">
-                <div class="col-md-10 offset-md-1">
-                    <div class="card rounded-0 border-0">
-                        <div class="card-header rounded-0 py-2 bg-primary text-white">
-                            <h1 class="mb-0 text-center text-uppercase"><i class="fas fa-sign-in-alt mr-2"></i>Tham gia</h1>
+            <div class="card rounded-0 border-0 mb-3">
+                <div class="card-header rounded-0 py-2 bg-dark text-white">
+                    <h1 class="mb-0 text-center text-uppercase">{? header.gameName ?}</h1>
+                </div>
+                <div class="card-body py-3">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h1 class="text-center mb-2 text-pin">{{ gamePIN }}</h1>
                         </div>
-                        <div class="card-body pt-3 pb-0">
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <h2 class="text-center mb-2">Cách A</h2>
-                                    <div class="d-flex justify-content-around align-items-center">
-                                        <div class="alert alert-primary text-center"><h4 class="text-center d-inline mr-2">Truy cập</h4><h3 class="text-center d-inline font-weight-bold">{{ appFullUrl }}</h3></div>
-                                        <h1 class="text-center text-primary mb-3"><i class="fas fa-arrow-circle-right"></i></h1>
-                                        <div class="alert alert-primary text-center"><h4 class="text-center d-inline mr-2">Nhập mã PIN</h4><h3 class="text-center d-inline font-weight-bold">{{ gamePIN }}</h3></div>
-                                        <h1 class="text-center text-primary mb-3"><i class="fas fa-check-circle"></i></h1>
-                                    </div>
-                                    <hr class="my-3"/>
-                                </div>
-                                
-                                <div class="col-md-6 offset-md-3">
-                                    <h2 class="text-center mb-2">Cách B</h2>
-                                    <h5 class="text-center">(Sử dụng điện thoại để quét mã QR)</h5>
-                                    <div class="alert alert-primary text-center p-1">
-                                        <div id="gameQRCode" style="display: flex; justify-content: center; text-align: center;"></div>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="col-md-6 offset-md-3">
+                                <hr class="mt-0 mb-3"/>
+                            <div id="gameQRCode" style="display: flex; justify-content: center; text-align: center;"></div>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="row d-flex justify-content-center">
-                <div v-for="st in lobby.users" class="col-md-3 mb-3">
-                    <div class="white-transparent-high bg-dark text-white text-center px-3 py-2"><i class="fas fa-user mr-2"></i>{? st ?}</div>
+            <div class="card rounded-0 border-0">
+                <div class="card-header rounded-0 py-0 bg-dark text-white d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0 text-center text-uppercase">Người tham gia</h3>
+                    <h1 class="mb-0 text-center text-uppercase">{? lobby.users.length ?}</h1>
+                </div>
+                <div class="card-body py-3">
+                    <div class="row">
+                        <div v-for="(st, i) in lobby.users" class="col-md-3 mb-3">
+                            <div :data-userindex="i" class="white-transparent-high bg-dark text-white text-center px-3 py-2 lobby-user"><i class="fas fa-user mr-2"></i>{? st ?}</div>
+                        </div>
+                    </div>
+                    <h5 v-if="lobby.users.length <= 0" class="text-center my-1">Chưa có ai tham gia</h5>
                 </div>
             </div>
+ 
+            
         </div>
         <div v-if="gameBoard.visible" class="fade-in slide-up">
             <div v-if="gameBoard.showContent" class="row mb-3">
@@ -123,22 +121,18 @@
         </div>
         <div v-if="ranking.visible" class="fade-in slide-up">
             <div class="row mb-3">
-               <div class="col-md-12 offset-md-0">
-                   <div class="card border-0">
-                       <div class="card-body bg-question pt-5">
-                            <h1 class="text-center text-white font-weight-bold mb-5"><span class="bg-dark-semi text-uppercase">Xếp hạng hiện tại</span></h1>
-                            <div class="row">
-                                <div class="col-md-6 offset-md-3">
-                                    <ul class="list-group">
-                                        <li v-for="r in ranking.rankList" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center bg-ranking-user">
-                                            <h3>{? r.name ?}</h3>
-                                            <h3 class="text-white">{? r.point ?}</h3>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                       </div>
-                   </div>
+               <div class="col-md-12 pt-5">
+                    <h1 class="text-center text-white font-weight-bold mb-5"><span class="bg-dark-semi text-uppercase">Xếp hạng hiện tại</span></h1>
+                    <div class="row">
+                        <div class="col-md-6 offset-md-3">
+                            <ul class="list-group">
+                                <li v-for="r in ranking.rankList" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center bg-ranking-user">
+                                    <h3>{? r.name ?}</h3>
+                                    <h3 class="text-white">{? r.point ?}</h3>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
                </div>
             </div>
         </div>
@@ -156,6 +150,7 @@
             delimiters: ['{?','?}'],
             data: {
                 siteUrl: "{{ appFullUrl }}",
+                siteUrlShort: "{{ appShortUrl }}",
                 presenter: {
                     userId: Number("{{ user.UserID }}"),
                     userToken: "{{ user.UserToken }}",
@@ -182,7 +177,7 @@
                 },
                 lobby: {
                     visible: false,
-                    users: ['Noirefield', 'Cuong Vu','Noirefield', 'Cuong Vu','Noirefield', 'Cuong Vu','Noirefield']
+                    users: []
                 },
                 gameBoard: {
                     visible: false,
@@ -259,8 +254,19 @@
                     } else this.ClosePresent();
                 },
                 socketOnPresenterUpdatePlayerList(data) {
-                    if(this.game.status == 1) // Only update when in joining state
-                        this.lobby.users = data.players;
+                    if(this.game.status == 1) { // Only update when in joining state
+                        var isJoining = false;
+                        
+                        if(data.players.length > this.lobby.users.length)
+                            isJoining = true;
+
+                        this.lobby.users = data.players.reverse();
+                        if(isJoining) {
+                            $(".lobby-user:first").hide().fadeIn(1000);
+                            if(this.lobby.users.length == 1) // Bugfix
+                                setTimeout(function() { $(".lobby-user:first").hide().fadeIn(1000); }, 1);
+                        }
+                    }
                 },
                 socketOnUpdateAnswered(data) {
                     this.gameBoard.answered = data.answered;
@@ -278,7 +284,7 @@
                     switch(game.STATUS) {
                         case 1: // Opening for joining
                             this.header.nextButtonText = "<i class='fas fa-play-circle mr-2'></i>Bắt đầu trò chơi";
-                            this.lobby.users = game.PLAYERS;
+                            this.lobby.users = game.PLAYERS.reverse();
                             this.lobby.visible = true;
 
                             setTimeout(() => {
