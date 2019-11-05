@@ -239,7 +239,7 @@
                     this.gameBoard.showMessage = true;
 
                     this.backgroundColor = 2;
-                    this.gameBoard.messageText = "<h1 class='text-center'><i class='far fa-check-circle mr-2'></i>Trò chơi kết thúc! (Hạng "+data.result.rank+")</h1><span class='d-block small'>Bạn trả lời đúng "+data.result.correctAnswers+"/"+data.questTotal+" câu với tổng "+data.result.point+" điểm.</span>";
+                    this.gameBoard.messageText = "<h1 class='text-center'><i class='far fa-check-circle mr-2'></i>Trò chơi kết thúc!</br></br>Hạng "+data.result.rank+"</h1><span class='d-block small'>Bạn trả lời đúng "+data.result.correctAnswers+"/"+data.questTotal+" câu với tổng "+data.result.point+" điểm.</span>";
                 },
                 ReadPlayerData(data) {
                     var { game, endGame } = data;
