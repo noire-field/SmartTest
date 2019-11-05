@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" style="height: 100%;">
+<html lang="en">
 <head>
     <title>{{ head_title }}</title>
     <meta charset="utf-8">
@@ -12,39 +12,39 @@
     <link href="/css/style.css" rel="stylesheet">
     <link href="/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
 </head>
-<body style="height: 100%;">
+<body>
     <div id="preloder">
         <div class="loader"></div>
     </div>
-    <div id="app-testing" class="container pt-3" :class="BackgroundColor" style="display:none;">
+    <div id="app-testing" class="container pt-1" :class="BackgroundColor" style="display:none;">
         <div v-if="centerMessage.show" class="text-center text-white loading-box"><img v-if="centerMessage.loadingEffect" src="/img/loading3.gif" class="icon-loading mr-2">{? centerMessage.text ?}</div>
-        <div v-if="header.visible" id="testing-header" class="bg-dark text-white py-1 px-2 d-flex align-items-center mb-4 fade-in slide-down">
+        <div v-if="header.visible" id="testing-header" class="bg-dark text-white py-1 px-2 d-flex align-items-center fade-in slide-down">
             <div class="col-md-6 py-2">
-                <h3><i class="fab fa-product-hunt mr-2"></i>{? header.scoreNumber ?}</h3>
+                <h3 class="mb-0 pb-0"><i class="fab fa-product-hunt mr-2"></i>{? header.scoreNumber ?}</h3>
             </div>
              <div class="col-md-6 text-right">
                 <button @click="OnClick_Quit" class="btn btn-danger"><i class="far fa-times-circle mr-2"></i>Thoát</button>
             </div>
         </div>
-        <div v-if="gameBoard.visible" class="fade-in slide-up">
+        <div v-if="gameBoard.visible" class="fade-in slide-up mt-4">
             <div v-if="gameBoard.showAnswers" class="play-fullscreen">
                 <div class="row">
-                    <div v-if="gameBoard.questData.Answers.length >= 1" class="col-md-6 mb-4">
+                    <div v-if="gameBoard.questData.Answers.length >= 1" class="col-md-6 mb-2 mb-md-4">
                         <div @click="OnClick_Answer(0);" :class="{ 'opacity-35': (gameBoard.answeredButtonID != 0 && gameBoard.isAnswered) }" class="btn-client-answer border-triangle d-flex justify-content-center align-items-center ans-triangle py-3">
                             <div class="answer-icon text-dark d-flex justify-content-center align-items-center"><span>&bigtriangleup;</span></div>
                         </div>
                     </div>
-                    <div v-if="gameBoard.questData.Answers.length >= 2" class="col-md-6 mb-4">
+                    <div v-if="gameBoard.questData.Answers.length >= 2" class="col-md-6 mb-2 mb-md-4">
                         <div @click="OnClick_Answer(1);" :class="{ 'opacity-35': (gameBoard.answeredButtonID != 1 && gameBoard.isAnswered) }" class="btn-client-answer border-circle d-flex justify-content-center align-items-center ans-circle py-3">
                             <div class="answer-icon text-dark d-flex justify-content-center align-items-center"><span>O</span></div>
                         </div>
                     </div>
-                    <div v-if="gameBoard.questData.Answers.length >= 3" class="col-md-6 mb-4">
+                    <div v-if="gameBoard.questData.Answers.length >= 3" class="col-md-6 mb-2 mb-md-4">
                         <div @click="OnClick_Answer(2);" :class="{ 'opacity-35': (gameBoard.answeredButtonID != 2 && gameBoard.isAnswered) }" class="btn-client-answer border-cross d-flex justify-content-center align-items-center ans-cross py-3">
                             <div class="answer-icon text-dark d-flex justify-content-center align-items-center"><span>X</span></div>
                         </div>
                     </div>
-                    <div v-if="gameBoard.questData.Answers.length >= 4" class="col-md-6 mb-4">
+                    <div v-if="gameBoard.questData.Answers.length >= 4" class="col-md-6 mb-2 mb-md-4">
                         <div @click="OnClick_Answer(3);" :class="{ 'opacity-35': (gameBoard.answeredButtonID != 3 && gameBoard.isAnswered) }" class="btn-client-answer border-square d-flex justify-content-center align-items-center ans-square py-3">
                             <div class="answer-icon text-dark d-flex justify-content-center align-items-center"><span>&#9634;</span></div>
                         </div>
@@ -126,6 +126,16 @@
             },
             computed: {
                 BackgroundColor: function() {
+                    
+                    var addClass = [];
+                    switch(this.backgroundColor) {
+                        case 1: addClass.push('bg-white'); break;
+                        case 2: addClass.push('bg-success'); break;
+                        case 3: addClass.push('bg-danger'); break;
+                    }
+
+                    $("body").removeClass().addClass(addClass.join(' '));
+                    
                     return {
                         'bg-white': this.backgroundColor == 1 ? true : false,
                         'bg-success': this.backgroundColor == 2 ? true : false,
@@ -399,7 +409,7 @@
                     switch(result.detail) {
                         case 0:
                             this.backgroundColor = 3;
-                            this.gameBoard.messageText = "<h1 class='text-center'><i class='far fa-times-circle mr-2'></i>Bạn chưa trả lời!</h1><span class='d-block small'>Bạn không được cộng điểm.</span>";
+                            this.gameBoard.messageText = "<h1 class='text-center'><i class='far fa-times-circle mr-2'></i>Chưa trả lời!</h1><span class='d-block small'>Bạn không được cộng điểm.</span>";
                             break;
                         case 1:
                             this.backgroundColor = 2;

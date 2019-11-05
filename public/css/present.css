@@ -1,15 +1,18 @@
 body {
     width: 100%;
-    height: 80vh;
-    /* background: rgb(224, 224, 224); */
+    height: 100vh;
+    background: rgb(224, 224, 224);
     position: relative;
-    overflow: hidden;
 }
 
 #app-testing {
-    padding-left: 5px;
-    padding-right: 5px;
+    padding-left: 10px;
+    padding-right: 10px;
+    background: rgb(231, 231, 231);
     height: 100%;
+    -webkit-box-shadow: 0px 0px 40px 7px rgba(0, 0, 0, .35);
+    -moz-box-shadow: 0px 0px 40px 7px rgba(0, 0, 0, .35);
+    box-shadow: 0px 0px 40px 7px rgba(0, 0, 0, .35);
 }
 
 .black-transparent {
